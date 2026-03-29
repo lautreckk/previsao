@@ -1,12 +1,20 @@
+/**
+ * BSPay API Integration
+ * Base URL: https://api.bspay.co/v2
+ * Auth: OAuth2 Basic Auth → Bearer token
+ */
+
 const BSPAY_CLIENT_ID = process.env.BSPAY_CLIENT_ID!;
 const BSPAY_CLIENT_SECRET = process.env.BSPAY_CLIENT_SECRET!;
 const BSPAY_BASE_URL = "https://api.bspay.co/v2";
 
-let cachedToken: { token: string; expiresAt: number } | null = null;
+// ---- OAuth2 Token Cache (~150s) ----
+let cachedToken: string | null = null;
+let tokenExpiresAt = 0;
 
-export async function getBspayToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt) {
-    return cachedToken.token;
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiresAt - 30000) {
+    return cachedToken;
   }
 
   const credentials = Buffer.from(`${BSPAY_CLIENT_ID}:${BSPAY_CLIENT_SECRET}`).toString("base64");
@@ -15,23 +23,29 @@ export async function getBspayToken(): Promise<string> {
     method: "POST",
     headers: {
       Authorization: `Basic ${credentials}`,
-      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
+    body: "grant_type=client_credentials",
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`BSPay auth failed: ${res.status} ${JSON.stringify(err)}`);
-  }
+  const text = await res.text();
+  if (!res.ok) throw new Error(`BSPay OAuth failed: ${res.status} - ${text}`);
 
-  const data = await res.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in ? data.expires_in * 1000 - 60000 : 3500000),
-  };
-
-  return cachedToken.token;
+  const data = JSON.parse(text);
+  cachedToken = data.access_token;
+  tokenExpiresAt = Date.now() + (data.expires_in || 150) * 1000;
+  return cachedToken!;
 }
+
+function authHeaders(token: string) {
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+}
+
+// ---- Generate PIX QR Code ----
 
 export interface PixQRCodeRequest {
   amount: number;
@@ -43,74 +57,124 @@ export interface PixQRCodeRequest {
 }
 
 export async function generatePixQRCode(req: PixQRCodeRequest) {
-  const token = await getBspayToken();
+  const token = await getAccessToken();
 
   const payload = {
     amount: req.amount,
     external_id: req.externalId,
-    payerQuestion: "Depósito Previsao.io",
+    postbackUrl: req.postbackUrl,
     payer: {
       name: req.payerName,
-      document: req.payerDocument,
-      email: req.payerEmail,
+      document: req.payerDocument.replace(/\D/g, ""),
     },
-    postbackUrl: req.postbackUrl,
   };
+
+  console.log("[BSPay] Creating PIX:", JSON.stringify(payload));
 
   const res = await fetch(`${BSPAY_BASE_URL}/pix/qrcode`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
+    headers: authHeaders(token),
     body: JSON.stringify(payload),
   });
 
+  const text = await res.text();
+  console.log("[BSPay] PIX response:", res.status, text);
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`BSPay QR failed: ${res.status} ${JSON.stringify(err)}`);
+    if (res.status === 401) {
+      cachedToken = null;
+      const newToken = await getAccessToken();
+      const retry = await fetch(`${BSPAY_BASE_URL}/pix/qrcode`, {
+        method: "POST",
+        headers: authHeaders(newToken),
+        body: JSON.stringify(payload),
+      });
+      const retryText = await retry.text();
+      if (!retry.ok) throw new Error(`BSPay PIX failed: ${retry.status} - ${retryText}`);
+      return JSON.parse(retryText);
+    }
+    throw new Error(`BSPay PIX failed: ${res.status} - ${text}`);
   }
 
-  return res.json();
+  return JSON.parse(text);
 }
 
-export async function consultTransaction(pixId: string) {
-  const token = await getBspayToken();
+// ---- Consult Transaction Status ----
 
-  const res = await fetch(`${BSPAY_BASE_URL}/consult-transaction`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ pix_id: pixId }),
-  });
+export async function consultTransaction(pixId: string): Promise<{ paid: boolean; status: string; raw: Record<string, unknown> }> {
+  try {
+    const token = await getAccessToken();
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`BSPay consult failed: ${res.status} ${JSON.stringify(err)}`);
+    const res = await fetch(`${BSPAY_BASE_URL}/consult-transaction`, {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ pix_id: pixId }),
+    });
+
+    const text = await res.text();
+
+    if (!res.ok) {
+      // Retry with fresh token on 401
+      if (res.status === 401) {
+        cachedToken = null;
+        const newToken = await getAccessToken();
+        const retry = await fetch(`${BSPAY_BASE_URL}/consult-transaction`, {
+          method: "POST",
+          headers: authHeaders(newToken),
+          body: JSON.stringify({ pix_id: pixId }),
+        });
+        const retryText = await retry.text();
+        if (!retry.ok) return { paid: false, status: "ERROR", raw: {} };
+        const retryData = JSON.parse(retryText);
+        const retryStatus = (retryData.requestBody?.status || "").toUpperCase();
+        return { paid: retryStatus === "PAID" || retryStatus === "COMPLETED" || retryStatus === "APPROVED", status: retryStatus, raw: retryData };
+      }
+      return { paid: false, status: "ERROR", raw: {} };
+    }
+
+    const data = JSON.parse(text);
+    const status = (data.requestBody?.status || data.status || "").toUpperCase();
+    const isPaid = status === "PAID" || status === "COMPLETED" || status === "APPROVED";
+
+    return { paid: isPaid, status, raw: data };
+  } catch (err) {
+    console.error("[BSPay] consultTransaction error:", err);
+    return { paid: false, status: "ERROR", raw: {} };
   }
-
-  return res.json();
 }
 
-export async function getBalance() {
-  const token = await getBspayToken();
+// ---- PIX Withdrawal ----
 
-  const res = await fetch(`${BSPAY_BASE_URL}/balance`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
+export interface PixWithdrawalRequest {
+  amount: number;
+  pixKey: string;
+  pixKeyType: "cpf" | "cnpj" | "telefone" | "email" | "aleatoria";
+  taxId: string;
+  name: string;
+  externalId: string;
+}
+
+export async function requestWithdrawal(req: PixWithdrawalRequest) {
+  const token = await getAccessToken();
+
+  const payload = {
+    amount: req.amount,
+    external_id: req.externalId,
+    creditParty: {
+      name: req.name,
+      keyType: req.pixKeyType,
+      key: req.pixKey,
+      taxId: req.taxId,
     },
+  };
+
+  const res = await fetch(`${BSPAY_BASE_URL}/pix/payment`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`BSPay balance failed: ${res.status} ${JSON.stringify(err)}`);
-  }
-
-  return res.json();
+  const text = await res.text();
+  if (!res.ok) throw new Error(`BSPay withdrawal failed: ${res.status} - ${text}`);
+  return JSON.parse(text);
 }

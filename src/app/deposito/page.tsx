@@ -1,352 +1,207 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/lib/UserContext";
+import { trackPurchase } from "@/lib/pixel";
 import BottomNav from "@/components/BottomNav";
+import Link from "next/link";
 
 export default function DepositoPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"amount" | "form" | "qrcode" | "success">("amount");
+  const { user, addBalance, refreshUser } = useUser();
+  const [step, setStep] = useState<"amount" | "qrcode" | "success">("amount");
   const [amount, setAmount] = useState("");
-  const [name, setName] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [pixData, setPixData] = useState<{
-    qrCode: string;
-    qrCodeBase64?: string;
-    transactionId: string;
-  } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCode: string; qrCodeImage: string; transactionId: string; externalId: string } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(false);
-
+  const [errorMsg, setErrorMsg] = useState("");
+  const [polling, setPolling] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const confirmedRef = useRef(false);
+  const balanceBeforeRef = useRef(0);
   const presetAmounts = [10, 25, 50, 100, 250, 500];
 
-  const formatCPF = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
+  const confirmPayment = useCallback(async () => {
+    confirmedRef.current = true;
+    if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    setPolling(false);
 
-  const handleGeneratePix = async () => {
-    if (!amount || parseFloat(amount) < 1 || !name || !cpf || !email) return;
-    setLoading(true);
+    // Refresh user from Supabase to get webhook-credited balance
+    try { await refreshUser(); } catch { /* ignore */ }
 
+    trackPurchase(parseFloat(amount));
+    setStep("success");
+  }, [amount, refreshUser]);
+
+  const checkPaymentStatus = useCallback(async () => {
+    if (!pixData || confirmedRef.current) return;
     try {
-      const res = await fetch("/api/bspay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          name,
-          document: cpf.replace(/\D/g, ""),
-          email,
-        }),
-      });
-
+      const params = new URLSearchParams();
+      if (pixData.transactionId) params.set("txId", pixData.transactionId);
+      if (pixData.externalId) params.set("extId", pixData.externalId);
+      const res = await fetch(`/api/bspay?${params.toString()}`);
       const data = await res.json();
 
-      if (!res.ok) {
-        alert(data.error || "Erro ao gerar QR Code PIX");
-        setLoading(false);
-        return;
-      }
+      if (data.status === "PAID") {
+        await confirmPayment();
+      } else {
+        setPollCount((c) => c + 1);
 
-      setPixData({
-        qrCode: data.qrCode,
-        qrCodeBase64: data.qrCodeBase64,
-        transactionId: data.transactionId,
-      });
-      setStep("qrcode");
-    } catch {
-      alert("Erro de conexão. Tente novamente.");
-    } finally {
-      setLoading(false);
+        // Every 5 polls (~15s), also check if user balance changed
+        // (webhook may have credited without updating pix_transaction)
+        if ((pollCount + 1) % 5 === 0 && user) {
+          try {
+            await refreshUser();
+          } catch { /* ignore */ }
+        }
+      }
+    } catch { /* silent */ }
+  }, [pixData, confirmPayment, pollCount, user, refreshUser]);
+
+  useEffect(() => {
+    if (step === "qrcode" && pixData && !confirmedRef.current) {
+      setPolling(true); setPollCount(0);
+      // Poll every 3 seconds
+      pollingRef.current = setInterval(() => checkPaymentStatus(), 3000);
+      const firstCheck = setTimeout(() => checkPaymentStatus(), 2000);
+      return () => { if (pollingRef.current) clearInterval(pollingRef.current); clearTimeout(firstCheck); };
     }
+  }, [step, pixData, checkPaymentStatus]);
+
+  useEffect(() => { return () => { if (pollingRef.current) clearInterval(pollingRef.current); }; }, []);
+
+  // Detect balance change while on qrcode step (webhook credited balance)
+  useEffect(() => {
+    if (step === "qrcode" && user && !confirmedRef.current) {
+      if (balanceBeforeRef.current > 0 && user.balance > balanceBeforeRef.current) {
+        // Balance increased! Payment was credited via webhook
+        confirmPayment();
+      }
+    }
+  }, [user?.balance, step, confirmPayment]);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-surface-dim text-on-surface flex items-center justify-center">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-5xl text-on-surface-variant">account_balance_wallet</span>
+          <p className="mt-2 text-on-surface-variant mb-4">Faca login para depositar</p>
+          <Link href="/login" className="px-6 py-3 rounded-2xl kinetic-gradient text-[#003D2E] font-black font-headline text-sm uppercase">Entrar</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const handleGeneratePix = async () => {
+    if (!amount || parseFloat(amount) < 1) return;
+    setLoading(true); setErrorMsg(""); confirmedRef.current = false;
+    balanceBeforeRef.current = user.balance; // Save balance before deposit
+    try {
+      const res = await fetch("/api/bspay", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: parseFloat(amount), name: user.name || "Usuario", document: user.cpf || "00000000000", email: user.email }) });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.error || "Erro ao gerar QR Code PIX"); setLoading(false); return; }
+      setPixData({ qrCode: data.qrCode, qrCodeImage: data.qrCodeImage || "", transactionId: data.transactionId, externalId: data.externalId || "" });
+      setStep("qrcode");
+    } catch { setErrorMsg("Erro de conexao. Tente novamente."); } finally { setLoading(false); }
   };
 
   const handleCopyPix = async () => {
     if (!pixData?.qrCode) return;
-    try {
-      await navigator.clipboard.writeText(pixData.qrCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = pixData.qrCode;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleCheckStatus = async () => {
-    if (!pixData?.transactionId) return;
-    setCheckingStatus(true);
-    try {
-      const res = await fetch(`/api/bspay?txId=${pixData.transactionId}`);
-      const data = await res.json();
-      if (data.status === "PAID") {
-        setStep("success");
-      } else {
-        alert("Pagamento ainda não confirmado. Aguarde alguns instantes.");
-      }
-    } catch {
-      alert("Erro ao verificar status.");
-    } finally {
-      setCheckingStatus(false);
+    try { await navigator.clipboard.writeText(pixData.qrCode); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {
+      const textarea = document.createElement("textarea"); textarea.value = pixData.qrCode; document.body.appendChild(textarea); textarea.select(); document.execCommand("copy"); document.body.removeChild(textarea); setCopied(true); setTimeout(() => setCopied(false), 2000);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-[#121212]/90 backdrop-blur-md border-b border-[#2A2A2A] px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-white">
-          <span className="material-icons-outlined">arrow_back</span>
-        </button>
-        <h1 className="text-base font-semibold">Depositar via PIX</h1>
+    <div className="min-h-screen bg-surface-dim text-on-surface overflow-x-hidden w-full max-w-[100vw]">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex items-center px-4 h-16 overflow-hidden">
+        <button onClick={() => router.back()} className="text-[#00D4AA] mr-4"><span className="material-symbols-outlined">arrow_back</span></button>
+        <h1 className="text-base font-bold font-headline uppercase tracking-tight flex-1">Depositar via PIX</h1>
+        <span className="text-sm text-on-surface-variant">Saldo: <span className="text-[#00D4AA] font-bold font-headline">R$ {user.balance.toFixed(2)}</span></span>
       </div>
 
-      <div className="p-4 max-w-md mx-auto">
-        {/* Step: Amount */}
+      <div className="pt-24 p-4 max-w-md mx-auto pb-32">
+        {errorMsg && (
+          <div className="bg-error/10 border border-error/30 rounded-2xl p-3 mb-4 flex items-center gap-2 animate-fade-in-up">
+            <span className="material-symbols-outlined text-error text-sm">warning</span>
+            <p className="text-error text-sm flex-1">{errorMsg}</p>
+          </div>
+        )}
+
         {step === "amount" && (
           <div className="flex flex-col gap-4 animate-fade-in-up">
-            <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-              <h2 className="text-sm font-semibold text-[#9CA3AF] mb-3">Qual valor deseja depositar?</h2>
+            <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#00D4AA]/20 flex items-center justify-center">
+                  <span className="text-lg font-black text-[#00D4AA] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div className="flex-1 min-w-0"><p className="text-sm font-bold truncate">{user.name}</p><p className="text-xs text-on-surface-variant truncate">{user.email}</p></div>
+                <div className="text-right"><p className="text-xs text-on-surface-variant">CPF</p><p className="text-xs text-white font-mono">{user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.***-$4")}</p></div>
+              </div>
+            </div>
 
+            <div className="bg-surface-container rounded-2xl p-5 border border-white/5">
+              <h2 className="text-sm font-bold text-on-surface-variant mb-4 uppercase tracking-wider">Qual valor deseja depositar?</h2>
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {presetAmounts.map((val) => (
-                  <button
-                    key={val}
-                    onClick={() => setAmount(String(val))}
-                    className={`py-3 rounded-lg text-sm font-semibold transition-colors ${
-                      amount === String(val)
-                        ? "bg-[#00C853] text-white"
-                        : "bg-[#2A2A2A] text-gray-300 hover:bg-[#333]"
-                    }`}
-                  >
-                    R$ {val}
-                  </button>
+                  <button key={val} onClick={() => setAmount(String(val))} className={`py-3 rounded-2xl text-sm font-bold transition-all active:scale-95 ${amount === String(val) ? "kinetic-gradient text-[#003D2E] glow-green" : "bg-surface-container-highest text-on-surface hover:bg-surface-bright"}`}>R$ {val}</button>
                 ))}
               </div>
-
               <div className="relative mb-4">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-lg font-semibold">
-                  R$
-                </span>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  min="1"
-                  className="w-full bg-[#2A2A2A] rounded-lg pl-10 pr-4 py-4 text-white text-2xl font-bold outline-none focus:ring-2 focus:ring-[#00C853] border-none"
-                />
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg font-bold">R$</span>
+                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" min="1" className="w-full bg-surface-container-lowest rounded-2xl pl-12 pr-4 py-4 text-white text-2xl font-black outline-none focus:ring-2 focus:ring-[#00D4AA]/40 border border-white/5" />
               </div>
-
-              <p className="text-xs text-[#9CA3AF] mb-4">Valor mínimo: R$ 1,00</p>
-
-              <button
-                onClick={() => {
-                  if (parseFloat(amount) >= 1) setStep("form");
-                }}
-                disabled={!amount || parseFloat(amount) < 1}
-                className="w-full py-3 rounded-xl bg-[#00C853] text-white font-semibold text-base disabled:opacity-40 transition-opacity"
-              >
-                Continuar
+              <p className="text-xs text-on-surface-variant mb-4">Valor minimo: R$ 1,00</p>
+              <button onClick={handleGeneratePix} disabled={loading || !amount || parseFloat(amount) < 1} className="w-full py-4 rounded-2xl kinetic-gradient text-[#003D2E] font-black font-headline text-base disabled:opacity-40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider glow-green">
+                {loading ? (<><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Gerando PIX...</>) : (<><span className="material-symbols-outlined text-sm">pix</span>Gerar PIX</>)}
               </button>
             </div>
-
-            <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="material-icons-outlined text-[#00C853] text-sm">verified</span>
-                <span className="text-sm font-semibold">Depósito Instantâneo</span>
-              </div>
-              <p className="text-xs text-[#9CA3AF]">
-                Pagamentos via PIX são confirmados em segundos. Seu saldo é creditado automaticamente.
-              </p>
+            <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
+              <div className="flex items-center gap-2 mb-2"><span className="material-symbols-outlined text-[#00D4AA] text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span><span className="text-sm font-bold font-headline">Deposito Instantaneo</span></div>
+              <p className="text-xs text-on-surface-variant">Pagamentos via PIX sao confirmados automaticamente em segundos.</p>
             </div>
           </div>
         )}
 
-        {/* Step: Form */}
-        {step === "form" && (
-          <div className="flex flex-col gap-4 animate-fade-in-up">
-            <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-[#9CA3AF]">Dados do pagador</h2>
-                <span className="text-lg font-bold text-[#00C853]">R$ {parseFloat(amount).toFixed(2)}</span>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className="text-xs text-[#9CA3AF] mb-1 block">Nome completo</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Seu nome completo"
-                    className="w-full bg-[#2A2A2A] rounded-lg px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-[#00C853] border-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-[#9CA3AF] mb-1 block">CPF</label>
-                  <input
-                    type="text"
-                    value={cpf}
-                    onChange={(e) => setCpf(formatCPF(e.target.value))}
-                    placeholder="000.000.000-00"
-                    maxLength={14}
-                    className="w-full bg-[#2A2A2A] rounded-lg px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-[#00C853] border-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-[#9CA3AF] mb-1 block">E-mail</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    className="w-full bg-[#2A2A2A] rounded-lg px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-[#00C853] border-none"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleGeneratePix}
-                disabled={loading || !name || !cpf || !email || cpf.replace(/\D/g, "").length < 11}
-                className="w-full py-3 rounded-xl bg-[#00C853] text-white font-semibold text-base disabled:opacity-40 transition-opacity mt-4 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Gerando PIX...
-                  </>
-                ) : (
-                  "Gerar QR Code PIX"
-                )}
-              </button>
-            </div>
-
-            <button
-              onClick={() => setStep("amount")}
-              className="text-[#9CA3AF] text-sm font-medium text-center"
-            >
-              Voltar
-            </button>
-          </div>
-        )}
-
-        {/* Step: QR Code */}
         {step === "qrcode" && pixData && (
           <div className="flex flex-col gap-4 animate-fade-in-up">
-            <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A] text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="material-icons-outlined text-[#00C853]">pix</span>
-                <h2 className="text-lg font-bold">PIX QR Code</h2>
+            <div className="bg-surface-container rounded-2xl p-5 border border-white/5 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2"><span className="material-symbols-outlined text-[#00D4AA]">pix</span><h2 className="text-lg font-black font-headline uppercase">PIX Copia e Cola</h2></div>
+              <p className="text-2xl font-black text-[#FFB800] font-headline mb-4">R$ {parseFloat(amount).toFixed(2)}</p>
+              <div className="bg-white rounded-2xl p-3 inline-block mb-4">
+                {pixData.qrCodeImage ? <img src={pixData.qrCodeImage} alt="QR Code PIX" className="w-44 h-44 sm:w-52 sm:h-52" /> : <div className="w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center"><span className="material-symbols-outlined text-6xl text-gray-400">qr_code_2</span></div>}
               </div>
-              <p className="text-2xl font-bold text-[#00C853] mb-4">R$ {parseFloat(amount).toFixed(2)}</p>
-
-              {/* QR Code display */}
-              <div className="bg-white rounded-xl p-4 inline-block mb-4">
-                {pixData.qrCodeBase64 ? (
-                  <img
-                    src={`data:image/png;base64,${pixData.qrCodeBase64}`}
-                    alt="QR Code PIX"
-                    className="w-48 h-48"
-                  />
-                ) : (
-                  <div className="w-48 h-48 flex items-center justify-center">
-                    <span className="material-icons-outlined text-6xl text-gray-400">qr_code_2</span>
-                  </div>
-                )}
-              </div>
-
-              <p className="text-xs text-[#9CA3AF] mb-3">
-                Escaneie o QR Code acima ou copie o código PIX abaixo
-              </p>
-
-              {/* Pix copia e cola */}
-              <div className="bg-[#2A2A2A] rounded-lg p-3 mb-3">
-                <p className="text-xs text-[#9CA3AF] mb-1">Código PIX (copia e cola)</p>
-                <p className="text-xs text-white break-all font-mono leading-5 max-h-16 overflow-y-auto">
-                  {pixData.qrCode}
-                </p>
-              </div>
-
-              <button
-                onClick={handleCopyPix}
-                className={`w-full py-3 rounded-xl font-semibold text-base transition-colors ${
-                  copied
-                    ? "bg-[#00C853] text-white"
-                    : "bg-[#2A2A2A] text-white border border-[#00C853]"
-                }`}
-              >
-                {copied ? "Copiado!" : "Copiar Código PIX"}
-              </button>
+              <p className="text-xs text-on-surface-variant mb-3">Escaneie o QR Code ou copie o codigo abaixo</p>
+              <div className="bg-surface-container-highest rounded-2xl p-3 mb-3 text-left"><p className="text-xs text-on-surface-variant mb-1">Codigo PIX</p><p className="text-xs text-white break-all font-mono leading-5 max-h-20 overflow-y-auto">{pixData.qrCode}</p></div>
+              <button onClick={handleCopyPix} className={`w-full py-3 rounded-2xl font-bold text-base transition-all active:scale-95 ${copied ? "kinetic-gradient text-[#003D2E]" : "bg-surface-container-highest text-white border border-[#00D4AA]/40"}`}>{copied ? "Copiado!" : "Copiar Codigo PIX"}</button>
             </div>
-
-            <button
-              onClick={handleCheckStatus}
-              disabled={checkingStatus}
-              className="w-full py-3 rounded-xl bg-[#00C853]/10 text-[#00C853] border border-[#00C853]/30 font-semibold text-base flex items-center justify-center gap-2"
-            >
-              {checkingStatus ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Verificando...
-                </>
-              ) : (
-                <>
-                  <span className="material-icons-outlined text-sm">refresh</span>
-                  Já paguei - verificar
-                </>
-              )}
-            </button>
-
-            <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-              <p className="text-xs text-[#9CA3AF] flex items-start gap-2">
-                <span className="material-icons-outlined text-yellow-500 text-sm shrink-0 mt-0.5">info</span>
-                O QR Code expira em 30 minutos. Após o pagamento, seu saldo será creditado automaticamente em alguns segundos.
-              </p>
+            <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
+              <div className="flex items-center gap-3">
+                {polling && <svg className="animate-spin h-5 w-5 text-[#00D4AA] shrink-0" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
+                <div className="flex-1"><p className="text-sm font-bold text-white">Aguardando pagamento...</p><p className="text-xs text-on-surface-variant mt-0.5">Verificacao automatica a cada 3s{pollCount > 0 && ` (${pollCount}x)`}</p></div>
+                <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#00D4AA] animate-pulse-live" /><span className="text-[10px] text-[#00D4AA] font-bold uppercase tracking-widest">Ativo</span></div>
+              </div>
+              <div className="mt-3 w-full h-1 bg-surface-container-highest rounded-full overflow-hidden"><div className="h-full bg-[#00D4AA] rounded-full" style={{ animation: "poll-progress 3s linear infinite" }} /></div>
             </div>
+            <button onClick={checkPaymentStatus} className="w-full py-3 rounded-2xl bg-surface-container-highest text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-surface-bright transition-colors active:scale-95"><span className="material-symbols-outlined text-sm">refresh</span>Verificar manualmente</button>
           </div>
         )}
 
-        {/* Step: Success */}
         {step === "success" && (
           <div className="flex flex-col gap-4 animate-fade-in-up text-center py-8">
-            <div className="bg-[#1E1E1E] rounded-xl p-8 border border-[#2A2A2A]">
-              <div className="w-16 h-16 rounded-full bg-[#00C853]/20 flex items-center justify-center mx-auto mb-4">
-                <span className="material-icons-outlined text-[#00C853] text-3xl">check_circle</span>
-              </div>
-              <h2 className="text-xl font-bold mb-2">Depósito Confirmado!</h2>
-              <p className="text-3xl font-bold text-[#00C853] mb-2">R$ {parseFloat(amount).toFixed(2)}</p>
-              <p className="text-sm text-[#9CA3AF]">Seu saldo foi atualizado com sucesso.</p>
+            <div className="bg-surface-container rounded-2xl p-8 border border-white/5">
+              <div className="w-16 h-16 rounded-full bg-[#00D4AA]/20 flex items-center justify-center mx-auto mb-4"><span className="material-symbols-outlined text-[#00D4AA] text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span></div>
+              <h2 className="text-xl font-black font-headline mb-2 uppercase">Deposito Confirmado!</h2>
+              <p className="text-3xl font-black text-[#FFB800] font-headline mb-2">R$ {parseFloat(amount).toFixed(2)}</p>
+              <p className="text-sm text-on-surface-variant">Seu saldo foi atualizado.</p>
+              <p className="text-sm text-white mt-2">Novo saldo: <span className="text-[#00D4AA] font-black font-headline">R$ {user.balance.toFixed(2)}</span></p>
             </div>
-
-            <button
-              onClick={() => router.push("/")}
-              className="w-full py-3 rounded-xl bg-[#00C853] text-white font-semibold text-base"
-            >
-              Ir para Mercados
-            </button>
+            <button onClick={() => router.push("/")} className="w-full py-4 rounded-2xl kinetic-gradient text-[#003D2E] font-black font-headline text-base uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all">Ir para Mercados</button>
           </div>
         )}
       </div>
-
       <BottomNav />
     </div>
   );

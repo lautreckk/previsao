@@ -1,123 +1,82 @@
 "use client";
 
-import { Market } from "@/lib/markets";
+import type { PredictionMarket } from "@/lib/engines/types";
+import { CATEGORY_META } from "@/lib/engines/types";
 import Link from "next/link";
+import { calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 
-function StatusBadge({ status, timeLeft }: { status: Market["status"]; timeLeft?: string }) {
-  if (status === "live") {
-    return (
-      <div className="flex items-center justify-between w-full pt-2 border-t border-[#2A2A2A] mt-1">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse-live" />
-          <span className="text-xs font-semibold text-yellow-500 uppercase">Ao Vivo</span>
+export default function MarketCard({ market }: { market: PredictionMarket }) {
+  const meta = CATEGORY_META[market.category];
+  const isClosed = ["resolved", "cancelled"].includes(market.status);
+  const isLive = market.status === "open" && market.close_at > Date.now();
+  const now = Date.now();
+  const timeLeft = market.close_at - now;
+
+  let timeStr = "";
+  if (timeLeft <= 0) timeStr = "Encerrado";
+  else if (timeLeft < 3600000) { const m = Math.floor(timeLeft / 60000); const s = Math.floor((timeLeft % 60000) / 1000); timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; }
+  else if (timeLeft < 86400000) { const h = Math.floor(timeLeft / 3600000); const m = Math.floor((timeLeft % 3600000) / 60000); timeStr = `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`; }
+  else if (timeLeft < 604800000) timeStr = `${Math.floor(timeLeft / 86400000)}d`;
+  else timeStr = `${Math.floor(timeLeft / 604800000)} sem.`;
+
+  const probs = calcImpliedProbabilities(market.outcomes);
+
+  return (
+    <Link href={isClosed ? "#" : `/evento/${market.id}`} className={`block ${isClosed ? "pointer-events-none opacity-50" : ""}`}>
+      <div className="bg-[#1a2332] rounded-xl border border-[#2a3444] hover:border-[#3a4454] transition-all h-full flex flex-col">
+        {/* Category tag */}
+        <div className="px-3 pt-3">
+          <span className="text-[10px] font-bold bg-[#222e3d] text-[#8B95A8] px-2.5 py-1 rounded inline-block">{meta?.label || market.category}</span>
         </div>
-        {timeLeft && (
-          <div className="flex items-center gap-1 text-[#9CA3AF]">
-            <span className="material-icons-outlined text-sm">schedule</span>
-            <span className="text-xs font-medium">{timeLeft}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
 
-  if (status === "closing") {
-    return (
-      <div className="flex items-center justify-between w-full pt-2 border-t border-[#2A2A2A] mt-1">
-        <div className="h-4" />
-        {timeLeft && (
-          <div className="flex items-center gap-1 text-[#FF3B30]">
-            <span className="material-icons-outlined text-sm">timer</span>
-            <span className="text-xs font-medium">{timeLeft}</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center justify-between w-full pt-2 border-t border-[#2A2A2A] mt-1">
-      <div className="h-4" />
-      {timeLeft && (
-        <div className="flex items-center gap-1 text-yellow-500">
-          <span className="material-icons-outlined text-sm">schedule</span>
-          <span className="text-xs font-medium">{timeLeft}</span>
+        {/* Title with avatar image */}
+        <div className="px-3 pt-2.5 pb-2 flex items-start gap-2.5">
+          {market.banner_url && (
+            <img src={market.banner_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 mt-0.5" />
+          )}
+          <h4 className="text-sm font-bold leading-tight text-white line-clamp-2">{market.title}</h4>
         </div>
-      )}
-    </div>
-  );
-}
 
-function OptionBar({ option }: { option: Market["options"][0] }) {
-  const isGreen = option.color === "green" || option.color === "blue";
-  const barColor = option.color === "red" ? "rgba(255,59,48,0.2)" : "rgba(0,200,83,0.2)";
-  const textColor = option.color === "red" ? "#FF3B30" : "#00C853";
-  const borderColor = option.color === "red" ? "rgba(255,59,48,0.3)" : "rgba(0,200,83,0.3)";
-  const bgColor = option.color === "red" ? "rgba(255,59,48,0.1)" : "rgba(0,200,83,0.1)";
+        {/* Outcomes */}
+        <div className="px-3 pb-2 flex-1 space-y-1.5">
+          {market.outcomes.slice(0, 3).map((o) => {
+            const prob = probs.find((p) => p.key === o.key);
+            const pct = prob ? Math.round(prob.probability * 100) : 0;
+            const isGreen = pct >= 50;
+            return (
+              <div key={o.key} className="flex items-center gap-2 text-xs">
+                <span className="text-[#8B95A8] truncate flex-1 max-w-[60px]" title={o.label}>{o.label}</span>
+                <span className="text-[#8B95A8] font-mono">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"}</span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[42px] text-center ${isGreen ? "bg-[#00D4AA]/15 text-[#00D4AA]" : "bg-[#FF6B5A]/15 text-[#FF6B5A]"}`}>{pct}%</span>
+              </div>
+            );
+          })}
+          {market.outcomes.length > 3 && (
+            <p className="text-[10px] text-[#5A6478]">+{market.outcomes.length - 3} opcoes</p>
+          )}
+        </div>
 
-  const icon = option.color === "red" ? "arrow_drop_down" : option.color === "gray" ? "drag_handle" : "arrow_drop_up";
-
-  return (
-    <div className="relative w-full bg-[#2A2A2A] rounded-lg h-10 flex items-center px-3 justify-between overflow-hidden">
-      <div
-        className="absolute left-0 top-0 bottom-0"
-        style={{ width: `${option.probability}%`, backgroundColor: barColor }}
-      />
-      <div className="flex items-center gap-2 z-10">
-        <span className="material-icons-outlined text-sm" style={{ color: textColor }}>
-          {icon}
-        </span>
-        <span className="text-sm font-medium text-gray-200">
-          {option.name}{" "}
-          <span className="text-xs text-[#9CA3AF] ml-1">{option.odds}x</span>
-        </span>
-      </div>
-      <span
-        className="text-sm font-bold z-10 px-2 py-0.5 rounded-md"
-        style={{ color: textColor, borderColor, backgroundColor: bgColor, border: `1px solid ${borderColor}` }}
-      >
-        {option.probability}%
-      </span>
-    </div>
-  );
-}
-
-export default function MarketCard({ market }: { market: Market }) {
-  return (
-    <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-sm border border-[#2A2A2A] flex flex-col gap-4 animate-fade-in-up">
-      <Link href={`/evento/${market.id}`} className="flex flex-col gap-3 cursor-pointer">
-        <div className="flex justify-between items-start">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] bg-[#2A2A2A] px-2 py-0.5 rounded-sm w-max">
-              {market.category}
-            </span>
-            <div className="flex items-start gap-2">
-              {market.image ? (
-                <img
-                  alt={market.title}
-                  className="w-8 h-8 rounded-full object-cover shrink-0"
-                  src={market.image}
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-green-900 flex items-center justify-center shrink-0">
-                  <span className="material-icons-outlined text-white text-sm">{market.categoryIcon}</span>
-                </div>
-              )}
-              <h2 className="text-base font-semibold leading-tight text-white line-clamp-2">
-                {market.title}
-              </h2>
+        {/* Footer */}
+        <div className="px-3 pb-3 pt-1 flex items-center justify-between border-t border-[#2a3444]">
+          {isLive && timeLeft > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00D4AA] animate-pulse" />
+              <span className="text-[10px] font-bold text-[#00D4AA]">AO VIVO</span>
             </div>
+          ) : timeLeft <= 0 ? (
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[#8B95A8] text-xs">check_circle</span>
+              <span className="text-[10px] font-bold text-[#8B95A8]">Encerrado</span>
+            </div>
+          ) : (
+            <div />
+          )}
+          <div className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-[#5A6478] text-xs">schedule</span>
+            <span className="text-[10px] text-[#5A6478] font-bold">{timeStr}</span>
           </div>
         </div>
-
-        <div className="flex flex-col gap-3">
-          {market.options.slice(0, 3).map((option) => (
-            <OptionBar key={option.id} option={option} />
-          ))}
-        </div>
-
-        <StatusBadge status={market.status} timeLeft={market.timeLeft} />
-      </Link>
-    </div>
+      </div>
+    </Link>
   );
 }

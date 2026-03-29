@@ -1,65 +1,119 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useUser } from "@/lib/UserContext";
 import BottomNav from "@/components/BottomNav";
 
 export default function SaldosPage() {
   const router = useRouter();
+  const { user, bets } = useUser();
+  const [activeTab, setActiveTab] = useState<"ativas" | "resolvidas" | "canceladas">("ativas");
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-surface-dim text-on-surface flex items-center justify-center">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-5xl text-on-surface-variant">confirmation_number</span>
+          <p className="mt-2 text-on-surface-variant mb-4">Faca login para ver seus saldos</p>
+          <Link href="/login" className="px-6 py-3 rounded-2xl kinetic-gradient text-[#003D2E] font-black font-headline text-sm uppercase">Entrar</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const activeBets = bets.filter((b) => b.status === "pending");
+  const resolvedBets = bets.filter((b) => b.status === "won" || b.status === "lost");
+  const displayedBets = activeTab === "ativas" ? activeBets : activeTab === "resolvidas" ? resolvedBets : [];
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white pb-24">
-      <div className="sticky top-0 z-40 bg-[#121212]/90 backdrop-blur-md border-b border-[#2A2A2A] px-4 py-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-white">
-          <span className="material-icons-outlined">arrow_back</span>
-        </button>
-        <h1 className="text-base font-semibold">Saldos & Apostas</h1>
-      </div>
-
-      <div className="p-4 max-w-md mx-auto flex flex-col gap-4">
-        {/* Balance Card */}
-        <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-sm text-[#9CA3AF]">Saldo Total</p>
-            <span className="material-icons-outlined text-[#9CA3AF] text-sm">visibility</span>
+    <div className="min-h-screen bg-surface-dim text-on-surface pb-32 overflow-x-hidden w-full max-w-[100vw]">
+      <header className="bg-[#0b1120]/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 shadow-2xl shadow-emerald-500/10 overflow-hidden">
+        <div className="flex justify-between items-center px-4 h-16">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()}><span className="material-symbols-outlined text-[#00D4AA]">arrow_back</span></button>
+            <Link href="/"><img src="/logo.png" alt="Winify" className="h-16 w-auto" /></Link>
           </div>
-          <p className="text-3xl font-bold text-white mb-1">R$ 0,00</p>
-          <p className="text-xs text-[#9CA3AF]">Disponível para apostar</p>
-          <div className="flex gap-2 mt-4">
-            <Link
-              href="/deposito"
-              className="flex-1 py-2.5 rounded-xl bg-[#00C853] text-white font-semibold text-sm text-center"
+          <div className="bg-surface-container-highest px-4 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
+            <span className="text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">Saldo</span>
+            <span className="font-headline font-bold text-[#00D4AA]">R$ {user.balance.toFixed(2)}</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="pt-24 px-4 space-y-8 max-w-md mx-auto">
+        <section className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+          {(["ativas", "resolvidas", "canceladas"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2 rounded-full font-headline font-bold text-sm whitespace-nowrap transition-all ${
+                activeTab === tab
+                  ? "bg-[#00D4AA]/10 text-[#00D4AA] shadow-[0_0_15px_rgba(0,212,170,0.2)]"
+                  : "text-on-surface-variant"
+              }`}
             >
-              Depositar
-            </Link>
-            <button className="flex-1 py-2.5 rounded-xl bg-[#2A2A2A] text-white font-semibold text-sm">
-              Sacar
+              {tab === "ativas" ? `ATIVAS (${activeBets.length})` : tab === "resolvidas" ? "RESOLVIDAS" : "CANCELADAS"}
             </button>
-          </div>
-        </div>
+          ))}
+        </section>
 
-        {/* Active bets */}
-        <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-          <h3 className="text-sm font-semibold mb-3">Apostas Ativas</h3>
-          <div className="text-center py-8">
-            <span className="material-icons-outlined text-3xl text-[#9CA3AF] mb-2 block">receipt_long</span>
-            <p className="text-sm text-[#9CA3AF]">Nenhuma aposta ativa</p>
-            <Link href="/" className="text-[#00C853] text-sm font-semibold mt-2 inline-block">
-              Explorar mercados
-            </Link>
+        <div className="space-y-6">
+          <div className="flex justify-between items-end">
+            <h2 className="font-headline font-extrabold text-2xl tracking-tight">
+              {activeTab === "ativas" ? "Apostas Ativas" : activeTab === "resolvidas" ? "Resolvidas" : "Canceladas"}
+            </h2>
+            {activeTab === "ativas" && activeBets.length > 0 && (
+              <span className="text-[10px] font-bold text-[#00D4AA] uppercase tracking-[0.2em]">Live Tracking</span>
+            )}
           </div>
-        </div>
 
-        {/* History */}
-        <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-          <h3 className="text-sm font-semibold mb-3">Histórico</h3>
-          <div className="text-center py-8">
-            <span className="material-icons-outlined text-3xl text-[#9CA3AF] mb-2 block">history</span>
-            <p className="text-sm text-[#9CA3AF]">Nenhuma transação ainda</p>
-          </div>
+          {displayedBets.length === 0 ? (
+            <div className="bg-surface-container rounded-2xl p-8 text-center">
+              <span className="material-symbols-outlined text-3xl text-on-surface-variant mb-2 block">receipt_long</span>
+              <p className="text-sm text-on-surface-variant">{activeTab === "ativas" ? "Nenhuma aposta ativa" : "Nenhuma aposta encontrada"}</p>
+              <Link href="/" className="text-[#00D4AA] text-sm font-bold font-headline mt-2 inline-block">Explorar mercados</Link>
+            </div>
+          ) : (
+            displayedBets.map((bet) => (
+              <div key={bet.id} className={`bg-surface-container rounded-2xl overflow-hidden relative ${bet.status === "pending" ? "border-l-4 border-[#00D4AA]" : ""}`}>
+                <div className="p-5 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1 min-w-0 flex-1 mr-3">
+                      {bet.status === "pending" && (
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-2 w-2 rounded-full bg-[#00D4AA] animate-pulse" />
+                          <p className="text-[10px] font-black text-[#00D4AA] uppercase tracking-widest">Pendente</p>
+                        </div>
+                      )}
+                      <h3 className="font-headline font-bold text-lg leading-tight truncate">{bet.marketTitle}</h3>
+                    </div>
+                    <div className="bg-surface-container-highest p-3 rounded-2xl text-center min-w-[70px] shrink-0">
+                      <p className="text-[9px] text-on-surface-variant font-bold uppercase mb-1">Odds</p>
+                      <p className="font-headline font-black text-[#FFB800] text-lg">{bet.odds.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 py-4 border-y border-white/5">
+                    <div><p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Palpite</p><p className="font-bold text-on-surface">{bet.optionName}</p></div>
+                    <div className="text-right"><p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Valor Apostado</p><p className="font-bold text-on-surface">R$ {bet.amount.toFixed(2)}</p></div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${bet.status === "won" ? "text-[#00D4AA]" : bet.status === "lost" ? "text-error" : "text-[#00D4AA]"}`}>
+                        {bet.status === "pending" ? "Retorno Potencial" : bet.status === "won" ? "Ganho" : "Perdido"}
+                      </p>
+                      <p className={`font-headline font-black text-3xl tracking-tighter ${bet.status === "won" ? "text-[#00D4AA]" : bet.status === "lost" ? "text-error" : "text-[#00D4AA]"}`}>
+                        R$ {bet.potentialWin.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
-      </div>
-
+      </main>
       <BottomNav />
     </div>
   );

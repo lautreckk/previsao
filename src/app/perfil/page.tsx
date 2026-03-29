@@ -2,61 +2,141 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useUser } from "@/lib/UserContext";
 import BottomNav from "@/components/BottomNav";
 
 export default function PerfilPage() {
   const router = useRouter();
+  const { user, bets, logout } = useUser();
 
-  return (
-    <div className="min-h-screen bg-[#121212] text-white pb-24">
-      <div className="sticky top-0 z-40 bg-[#121212]/90 backdrop-blur-md border-b border-[#2A2A2A] px-4 py-3">
-        <h1 className="text-base font-semibold">Perfil</h1>
-      </div>
-
-      <div className="p-4 max-w-md mx-auto flex flex-col gap-4">
-        {/* Avatar */}
-        <div className="bg-[#1E1E1E] rounded-xl p-6 border border-[#2A2A2A] text-center">
-          <div className="w-20 h-20 rounded-full bg-[#2A2A2A] flex items-center justify-center mx-auto mb-3">
-            <span className="material-icons-outlined text-4xl text-[#9CA3AF]">person</span>
-          </div>
-          <h2 className="text-lg font-bold">Usuário</h2>
-          <p className="text-sm text-[#9CA3AF]">usuario@email.com</p>
-        </div>
-
-        {/* Balance */}
-        <div className="bg-[#1E1E1E] rounded-xl p-4 border border-[#2A2A2A]">
-          <p className="text-xs text-[#9CA3AF] mb-1">Saldo disponível</p>
-          <p className="text-2xl font-bold text-[#00C853]">R$ 0,00</p>
-          <Link
-            href="/deposito"
-            className="mt-3 block w-full py-2.5 rounded-xl bg-[#00C853] text-white font-semibold text-sm text-center"
-          >
-            Depositar
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-surface-dim text-on-surface flex items-center justify-center">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-5xl text-on-surface-variant">person</span>
+          <p className="mt-2 text-on-surface-variant mb-4">Faca login para ver seu perfil</p>
+          <Link href="/login" className="px-6 py-3 rounded-2xl kinetic-gradient text-[#003D2E] font-black font-headline text-sm uppercase">
+            Entrar
           </Link>
         </div>
-
-        {/* Menu */}
-        <div className="bg-[#1E1E1E] rounded-xl border border-[#2A2A2A] divide-y divide-[#2A2A2A]">
-          {[
-            { icon: "receipt_long", label: "Minhas Apostas", href: "/saldos" },
-            { icon: "account_balance_wallet", label: "Saldos", href: "/saldos" },
-            { icon: "pix", label: "Depositar", href: "/deposito" },
-            { icon: "help_outline", label: "Suporte", href: "#" },
-            { icon: "logout", label: "Sair", href: "/login" },
-          ].map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex items-center gap-3 px-4 py-3.5 hover:bg-[#2A2A2A] transition-colors"
-            >
-              <span className="material-icons-outlined text-[#9CA3AF]">{item.icon}</span>
-              <span className="text-sm font-medium flex-1">{item.label}</span>
-              <span className="material-icons-outlined text-[#9CA3AF] text-sm">chevron_right</span>
-            </Link>
-          ))}
-        </div>
       </div>
+    );
+  }
 
+  const activeBets = bets.filter((b) => b.status === "pending");
+
+  return (
+    <div className="min-h-screen bg-surface-dim text-on-surface pb-32 overflow-x-hidden w-full max-w-[100vw]">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex justify-between items-center px-4 h-16 overflow-hidden">
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo.png" alt="Winify" className="h-16 w-auto" />
+        </Link>
+        <div className="bg-surface-container-highest px-4 py-1.5 rounded-full border border-white/5 flex items-center gap-2">
+          <span className="text-[#00D4AA] font-bold font-headline tracking-tight text-sm">R$ {user.balance.toFixed(2)}</span>
+          <span className="material-symbols-outlined text-[#00D4AA] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
+        </div>
+      </header>
+
+      <main className="pt-24 pb-8 px-4 space-y-8 max-w-md mx-auto">
+        <section className="relative flex flex-col items-center">
+          <div className="relative">
+            <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-[#00D4AA] via-[#FFB800] to-[#00D4AA] animate-pulse shadow-[0_0_30px_rgba(0,212,170,0.3)]">
+              <div className="w-full h-full rounded-full bg-surface-dim flex items-center justify-center border-4 border-surface-dim">
+                <span className="text-5xl font-black text-[#00D4AA] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-center mt-6">
+            <h1 className="font-headline font-extrabold text-2xl tracking-tight text-on-surface">{user.name}</h1>
+            <p className="text-on-surface-variant text-sm font-medium">{user.email}</p>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 bg-surface-container rounded-2xl p-6 border-l-4 border-[#00D4AA] shadow-xl">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-[0.2em]">Saldo Disponivel</p>
+                <h2 className="text-4xl font-headline font-black text-on-surface mt-1 italic">R$ {user.balance.toFixed(2)}</h2>
+              </div>
+              <span className="material-symbols-outlined text-[#00D4AA] text-3xl">payments</span>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/deposito" className="flex-1 bg-gradient-to-r from-[#00D4AA] to-[#00B894] text-[#003D2E] font-headline font-extrabold py-3 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all glow-green text-center">DEPOSITAR</Link>
+              <button className="flex-1 bg-surface-container-highest text-on-surface font-headline font-extrabold py-3 rounded-2xl hover:bg-surface-bright active:scale-95 transition-all">SACAR</button>
+            </div>
+          </div>
+          <div className="bg-surface-container-low rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-[#00D4AA] font-headline font-black text-xl italic leading-none">{activeBets.length}</span>
+            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Apostas Ativas</p>
+          </div>
+          <div className="bg-surface-container-low rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-[#FFB800] font-headline font-black text-xl italic leading-none">--</span>
+            <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Lucro Semanal</p>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="font-headline font-bold text-lg tracking-tight">Ultimas Atividades</h3>
+            <Link href="/saldos" className="text-[#FFB800] text-[10px] font-black uppercase tracking-widest">Ver Tudo</Link>
+          </div>
+          <div className="space-y-3">
+            {bets.length === 0 ? (
+              <div className="bg-surface-container rounded-2xl p-6 text-center">
+                <span className="material-symbols-outlined text-3xl text-on-surface-variant mb-2 block">receipt_long</span>
+                <p className="text-sm text-on-surface-variant">Nenhuma atividade recente</p>
+                <Link href="/" className="text-[#00D4AA] text-sm font-bold mt-2 inline-block">Explorar mercados</Link>
+              </div>
+            ) : (
+              bets.slice(-3).reverse().map((bet) => (
+                <div key={bet.id} className={`bg-surface-container rounded-2xl p-4 flex items-center justify-between border-l-4 ${bet.status === "won" ? "border-[#00D4AA]" : bet.status === "lost" ? "border-error" : "border-[#5B9DFF]"} shadow-sm`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-full ${bet.status === "won" ? "bg-[#00D4AA]/10" : bet.status === "lost" ? "bg-error/10" : "bg-[#5B9DFF]/10"}`}>
+                      <span className={`material-symbols-outlined ${bet.status === "won" ? "text-[#00D4AA]" : bet.status === "lost" ? "text-error" : "text-[#5B9DFF]"}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {bet.status === "won" ? "check_circle" : bet.status === "lost" ? "cancel" : "pending"}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-headline font-bold text-sm truncate">{bet.marketTitle}</p>
+                      <p className="text-[10px] text-on-surface-variant font-medium">{bet.optionName} - {bet.odds}x</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 ml-2">
+                    <p className={`font-headline font-black text-sm italic ${bet.status === "won" ? "text-[#00D4AA]" : bet.status === "lost" ? "text-error" : "text-on-surface"}`}>R$ {bet.amount.toFixed(2)}</p>
+                    <p className="text-[9px] text-on-surface-variant uppercase font-bold tracking-tighter">{bet.status === "pending" ? "Pendente" : bet.status === "won" ? "Ganho" : "Perdido"}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h3 className="font-headline font-bold text-lg tracking-tight px-1">Configuracoes</h3>
+          <div className="bg-surface-container rounded-2xl divide-y divide-white/5 overflow-hidden">
+            {[
+              { icon: "person", label: "Alterar Foto do Perfil" },
+              { icon: "verified_user", label: "Seguranca e Senha" },
+              { icon: "notifications_active", label: "Preferencias de Alerta" },
+            ].map((item) => (
+              <button key={item.label} className="w-full flex items-center justify-between p-4 hover:bg-surface-container-high transition-colors group">
+                <div className="flex items-center gap-4">
+                  <span className="material-symbols-outlined text-on-surface-variant group-hover:text-[#00D4AA] transition-colors">{item.icon}</span>
+                  <span className="font-headline font-semibold text-sm">{item.label}</span>
+                </div>
+                <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
+              </button>
+            ))}
+            <button onClick={() => { logout(); router.push("/"); }} className="w-full flex items-center justify-between p-4 hover:bg-surface-container-high transition-colors group">
+              <div className="flex items-center gap-4">
+                <span className="material-symbols-outlined text-error/70 group-hover:text-error transition-colors">logout</span>
+                <span className="font-headline font-semibold text-sm text-error/80">Sair da Conta</span>
+              </div>
+            </button>
+          </div>
+        </section>
+      </main>
       <BottomNav />
     </div>
   );

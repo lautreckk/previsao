@@ -3,48 +3,36 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const navItems = [
-  { href: "/", icon: "home", label: "Início" },
-  { href: "#search", icon: "search", label: "Buscar" },
-  { href: "#add", icon: "add", label: "", isCenter: true },
-  { href: "/saldos", icon: "receipt_long", label: "Apostas", badge: true },
-  { href: "/perfil", icon: "person", label: "Perfil" },
-];
-
 export default function BottomNav() {
   const pathname = usePathname();
 
+  const navItems = [
+    { href: "/", icon: "home", label: "Home" },
+    { href: "/saldos", icon: "confirmation_number", label: "Apostas" },
+    { href: "/perfil", icon: "person", label: "Perfil" },
+  ];
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#1E1E1E] border-t border-[#2A2A2A] flex justify-around items-center py-3 pb-safe z-50 px-4 sm:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 flex justify-around items-center px-4 pb-6 pt-3 bg-[#0f1729]/90 backdrop-blur-2xl rounded-t-[3rem] z-50 border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden">
       {navItems.map((item) => {
-        if (item.isCenter) {
-          return (
-            <div key="center" className="relative -top-5">
-              <Link
-                href="/deposito"
-                className="w-12 h-12 rounded-full bg-[#00C853] text-white flex items-center justify-center shadow-lg border-4 border-[#1E1E1E]"
-              >
-                <span className="material-icons-outlined">add</span>
-              </Link>
-            </div>
-          );
-        }
-
         const isActive = pathname === item.href;
-
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-1 transition-colors relative ${
-              isActive ? "text-[#00C853]" : "text-[#9CA3AF] hover:text-white"
+            className={`flex flex-col items-center justify-center transition-all ${
+              isActive
+                ? "text-[#00D4AA] bg-[#00D4AA]/10 rounded-full py-2 px-4 shadow-[0_0_15px_rgba(0,212,170,0.2)]"
+                : "text-[#5A6478] opacity-70 hover:text-[#00D4AA] active:scale-110"
             }`}
           >
-            <span className="material-icons-outlined">{item.icon}</span>
-            <span className="text-[10px] font-medium">{item.label}</span>
-            {item.badge && (
-              <span className="absolute top-0 right-1 w-2 h-2 bg-[#FF3B30] rounded-full border border-[#1E1E1E]" />
-            )}
+            <span
+              className={`material-symbols-outlined text-2xl ${isActive ? "fill-icon" : ""}`}
+              style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
+            >
+              {item.icon}
+            </span>
+            <span className="text-[10px] uppercase tracking-widest font-bold">{item.label}</span>
           </Link>
         );
       })}
