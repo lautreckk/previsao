@@ -156,26 +156,17 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         />
       )}
 
-      {/* GREEN COUNTING LINE — CSS overlay (always visible) */}
-      <div className="absolute inset-0 pointer-events-none z-[5] rounded-lg overflow-hidden">
-        {/* Green dashed line at 55% height */}
-        <div
-          className="absolute left-0 right-0"
-          style={{ top: "55%" }}
-        >
-          <div className="w-full border-t-2 border-dashed border-[#00FF00]" style={{ boxShadow: "0 0 8px #00FF00, 0 0 4px #00FF00" }} />
-          {/* Label */}
-          <div className="absolute -top-5 left-2 bg-black/60 px-2 py-0.5 rounded">
-            <span className="text-[9px] font-bold text-[#00FF00] uppercase tracking-wider">{cameraId} — ZONA DE CONTAGEM</span>
-          </div>
-          {/* Arrows along the line */}
-          <div className="absolute top-[-6px] left-0 right-0 flex justify-around">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <span key={i} className="text-[#00FF00] text-[10px]">&#9654;</span>
-            ))}
+      {/* Counting zone indicator — subtle, only in HLS mode (frame mode has OpenCV annotations) */}
+      {mode === "hls" && (
+        <div className="absolute inset-0 pointer-events-none z-[5] rounded-lg overflow-hidden">
+          <div className="absolute left-[10%] right-[25%]" style={{ top: "55%" }}>
+            <div className="w-full border-t-2 border-dashed border-[#00FF00]/50" style={{ boxShadow: "0 0 4px #00FF00" }} />
+            <div className="absolute -top-5 left-0 bg-black/60 px-2 py-0.5 rounded">
+              <span className="text-[9px] font-bold text-[#00FF00]/70 uppercase tracking-wider">ZONA DE CONTAGEM</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Loading spinner */}
       {mode === "loading" && (
