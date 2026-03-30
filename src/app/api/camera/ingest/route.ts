@@ -7,6 +7,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxeW1hbG1iYnR6ZG5wYm5lZWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MjUzNDYsImV4cCI6MjA5MDIwMTM0Nn0.Mj_L0h3HGfG4X22Qb3f53oeipNXa91nIGW5-J_zl-kM"
 );
 
+// Fire-and-forget broadcast — subscribe first, then send, then clean up
+function broadcast(marketId: string, event: string, payload: Record<string, unknown>) {
+  const channelName = `cars-stream-${marketId}`;
+  const channel = supabase.channel(channelName);
+  channel.subscribe((status: string) => {
+    if (status === "SUBSCRIBED") {
+      channel.send({ type: "broadcast", event, payload })
+        .catch(() => {})
+        .finally(() => { supabase.removeChannel(channel); });
+    } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      supabase.removeChannel(channel);
+    }
+  });
+}
+
 // Store latest count per market (in-memory cache for serverless)
 const countCache = new Map<string, number>();
 
@@ -25,15 +40,10 @@ export async function POST(request: NextRequest) {
 
     // Type 1: Individual vehicle detection event
     if (event_type === "vehicle.detected" && vehicle_id) {
-      // Broadcast to realtime channel (fire-and-forget)
-      supabase.channel(`cars-stream-${market_id}`).send({
-        type: "broadcast",
-        event: "vehicle.detected",
-        payload: {
-          idKey: vehicle_id,
-          time: timestamp || Date.now(),
-          type: "vehicle",
-        },
+      broadcast(market_id, "vehicle.detected", {
+        idKey: vehicle_id,
+        time: timestamp || Date.now(),
+        type: "vehicle",
       });
 
       return NextResponse.json({ ok: true, event: "vehicle.detected", vehicle_id });
@@ -49,12 +59,7 @@ export async function POST(request: NextRequest) {
         .update({ current_count: count, updated_at: timestamp || new Date().toISOString() })
         .eq("id", market_id);
 
-      // Broadcast count sync (fire-and-forget)
-      supabase.channel(`cars-stream-${market_id}`).send({
-        type: "broadcast",
-        event: "count.sync",
-        payload: { count, timestamp },
-      });
+      broadcast(market_id, "count.sync", { count, timestamp });
 
       return NextResponse.json({ ok: true, count });
     }
@@ -62,11 +67,7 @@ export async function POST(request: NextRequest) {
     // Type 3: Round reset
     if (event_type === "round.reset") {
       countCache.set(market_id, 0);
-      supabase.channel(`cars-stream-${market_id}`).send({
-        type: "broadcast",
-        event: "round.reset",
-        payload: {},
-      });
+      broadcast(market_id, "round.reset", {});
       return NextResponse.json({ ok: true, event: "round.reset" });
     }
 

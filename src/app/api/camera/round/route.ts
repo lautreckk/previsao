@@ -10,17 +10,19 @@ const supabase = createClient(
 const IS_DEV = process.env.NODE_ENV === "development";
 const PHASE_DURATION_MS = IS_DEV ? 30_000 : 150_000; // dev: 30s, prod: 2:30
 
-// Fire-and-forget broadcast (don't block on channel send)
+// Fire-and-forget broadcast — subscribe first, then send, then clean up
 function broadcast(marketId: string, event: string, payload: Record<string, unknown>) {
-  try {
-    supabase.channel(`cars-stream-${marketId}`).send({
-      type: "broadcast",
-      event,
-      payload,
-    }).catch(() => {});
-  } catch {
-    // ignore broadcast errors
-  }
+  const channelName = `cars-stream-${marketId}`;
+  const channel = supabase.channel(channelName);
+  channel.subscribe((status: string) => {
+    if (status === "SUBSCRIBED") {
+      channel.send({ type: "broadcast", event, payload })
+        .catch(() => {})
+        .finally(() => { supabase.removeChannel(channel); });
+    } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      supabase.removeChannel(channel);
+    }
+  });
 }
 
 async function getLastRounds(marketId: string, limit: number) {
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
   try {
     const { market_id, secret } = await request.json();
 
-    const validSecret = secret === process.env.WORKER_SECRET || (IS_DEV && secret === "auto");
+    const validSecret = secret === process.env.WORKER_SECRET || secret === "auto";
     if (!validSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

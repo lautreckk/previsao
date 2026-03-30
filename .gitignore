@@ -9,3 +9,4 @@ node_modules/
 worker/ffmpeg
 worker/yolov8n.pt
 worker/__pycache__/
+.vercel

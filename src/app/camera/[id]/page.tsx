@@ -39,6 +39,8 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
   const [frameTs, setFrameTs] = useState(Date.now());
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
 
   // Use our proxy URL instead of direct camera URL (avoids CORS/SSL, more stable)
   const proxyUrl = `/api/camera/stream?cam=${cameraId}`;
@@ -48,7 +50,8 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
     const video = videoRef.current;
     if (!video) return;
 
-    let hls: { destroy: () => void; loadSource: (url: string) => void; startLoad: () => void } | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let hls: any = null;
     const fallbackTimer = setTimeout(() => {
       setMode((m) => m === "loading" ? "frame" : m);
     }, 10000);
@@ -81,7 +84,7 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
             if (data.fatal) {
               // Try to recover once before giving up
               setTimeout(() => { h.loadSource(proxyUrl); h.startLoad(); }, 2000);
-              setTimeout(() => { if (mode !== "hls") setMode("frame"); }, 8000);
+              setTimeout(() => { if (modeRef.current !== "hls") setMode("frame"); }, 8000);
             }
           });
           hls = h;
@@ -101,6 +104,34 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
     const iv = setInterval(() => setFrameTs(Date.now()), 2000);
     return () => clearInterval(iv);
   }, [mode]);
+
+  // Periodically retry HLS if stuck in frame mode (every 30s)
+  useEffect(() => {
+    if (mode !== "frame") return;
+    const video = videoRef.current;
+    if (!video) return;
+    const retryIv = setInterval(async () => {
+      try {
+        const res = await fetch(proxyUrl, { method: "HEAD" });
+        if (res.ok && video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = proxyUrl;
+          video.play().then(() => setMode("hls")).catch(() => {});
+        } else if (res.ok) {
+          const { default: Hls } = await import("hls.js");
+          if (Hls.isSupported()) {
+            const h = new Hls({ enableWorker: true, lowLatencyMode: true, liveSyncDurationCount: 2, liveMaxLatencyDurationCount: 4, maxBufferLength: 10 });
+            h.loadSource(proxyUrl);
+            h.attachMedia(video);
+            h.on(Hls.Events.MANIFEST_PARSED, () => {
+              video.play().then(() => setMode("hls")).catch(() => { h.destroy(); });
+            });
+            h.on(Hls.Events.ERROR, (_e: unknown, d: { fatal: boolean }) => { if (d.fatal) h.destroy(); });
+          }
+        }
+      } catch {}
+    }, 30000);
+    return () => clearInterval(retryIv);
+  }, [mode, proxyUrl]);
 
   const frameUrl = `${SUPABASE_URL}/storage/v1/object/public/camera-frames/${marketId}/latest.jpg?t=${frameTs}`;
 
