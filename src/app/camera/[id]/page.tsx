@@ -35,37 +35,54 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
 }
 
 /* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
-function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
+function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
   const [frameTs, setFrameTs] = useState(Date.now());
 
-  // Try HLS first, fallback to frame after 8s or on error
+  // Use our proxy URL instead of direct camera URL (avoids CORS/SSL, more stable)
+  const proxyUrl = `/api/camera/stream?cam=${cameraId}`;
+
+  // Try HLS first, fallback to frame after 10s or on error
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     let hls: { destroy: () => void; loadSource: (url: string) => void; startLoad: () => void } | null = null;
     const fallbackTimer = setTimeout(() => {
-      if (mode === "loading") setMode("frame");
-    }, 8000);
+      setMode((m) => m === "loading" ? "frame" : m);
+    }, 10000);
 
     async function setup() {
       if (!video) return;
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = streamUrl;
+        video.src = proxyUrl;
         video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
       } else {
         const { default: Hls } = await import("hls.js");
         if (Hls.isSupported()) {
-          const h = new Hls({ enableWorker: true, lowLatencyMode: true, liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 5 });
-          h.loadSource(streamUrl);
+          const h = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            liveSyncDurationCount: 2,
+            liveMaxLatencyDurationCount: 4,
+            maxBufferLength: 10,
+            maxMaxBufferLength: 20,
+            fragLoadingTimeOut: 15000,
+            manifestLoadingTimeOut: 15000,
+            levelLoadingTimeOut: 15000,
+          });
+          h.loadSource(proxyUrl);
           h.attachMedia(video);
           h.on(Hls.Events.MANIFEST_PARSED, () => {
             video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
           });
-          h.on(Hls.Events.ERROR, (_event: unknown, data: { fatal: boolean }) => {
-            if (data.fatal) setMode("frame");
+          h.on(Hls.Events.ERROR, (_event: unknown, data: { fatal: boolean; type: string }) => {
+            if (data.fatal) {
+              // Try to recover once before giving up
+              setTimeout(() => { h.loadSource(proxyUrl); h.startLoad(); }, 2000);
+              setTimeout(() => { if (mode !== "hls") setMode("frame"); }, 8000);
+            }
           });
           hls = h;
         } else {
@@ -76,7 +93,7 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
 
     setup();
     return () => { hls?.destroy(); clearTimeout(fallbackTimer); };
-  }, [streamUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [proxyUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh frame every 2s in frame mode
   useEffect(() => {
