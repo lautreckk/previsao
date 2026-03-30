@@ -3,23 +3,10 @@
 Vehicle Counter Worker for Camera Prediction Markets
 
 Detects and counts vehicles using YOLOv8 + DeepSORT.
-Draws bounding boxes and counting line on frames.
+Sends count updates immediately when vehicles cross the counting line.
 Uploads annotated frames to Supabase Storage every 2 seconds.
-Sends vehicle count to API every N seconds.
 
 Supports ROI (Region of Interest) to focus counting on the main road only.
-
-Usage:
-  python counter.py \
-    --market-id cam_rodovia_sp123 \
-    --stream-url "https://34.104.32.249.nip.io/SP055-KM073/stream.m3u8" \
-    --stream-type hls \
-    --api-url "https://previsao-tau.vercel.app" \
-    --secret "wk_xxx" \
-    --supabase-url "https://xxx.supabase.co" \
-    --supabase-key "eyJhbG..." \
-    --roi-x-start 0.1 --roi-x-end 0.7 \
-    --line-y 0.55
 """
 
 import argparse
@@ -27,6 +14,7 @@ import time
 import cv2
 import requests
 import numpy as np
+from threading import Thread
 from ultralytics import YOLO
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
@@ -129,6 +117,19 @@ def upload_frame(frame, market_id, supa_url, supa_key):
         return f"ERR:{e}"
 
 
+def send_count_async(api_url, market_id, count, secret, timestamp=None):
+    """Send count update in background thread to not block detection loop."""
+    def _send():
+        try:
+            requests.post(f"{api_url}/api/camera/ingest",
+                json={"market_id": market_id, "count": count,
+                      "timestamp": timestamp or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                      "secret": secret}, timeout=5)
+        except:
+            pass
+    Thread(target=_send, daemon=True).start()
+
+
 def main():
     p = argparse.ArgumentParser(description="Vehicle Counter Worker")
     p.add_argument("--market-id", required=True)
@@ -142,17 +143,15 @@ def main():
     p.add_argument("--count-interval", type=int, default=2)
     p.add_argument("--frame-interval", type=int, default=2)
     p.add_argument("--model", default="yolov8n.pt")
-    # ROI parameters — focus counting on the main road
-    p.add_argument("--roi-x-start", type=float, default=0.0, help="Left edge of ROI (0.0-1.0)")
-    p.add_argument("--roi-x-end", type=float, default=1.0, help="Right edge of ROI (0.0-1.0)")
-    p.add_argument("--line-y", type=float, default=0.55, help="Counting line Y position (0.0-1.0)")
-    p.add_argument("--tolerance", type=int, default=25, help="Pixel distance from line to count vehicle")
+    p.add_argument("--roi-x-start", type=float, default=0.0)
+    p.add_argument("--roi-x-end", type=float, default=1.0)
+    p.add_argument("--line-y", type=float, default=0.55)
+    p.add_argument("--tolerance", type=int, default=25)
     args = p.parse_args()
 
     print(f"[Worker] Market: {args.market_id}")
     print(f"[Worker] Stream: {args.stream_url} ({args.stream_type})")
     print(f"[Worker] ROI: x=[{args.roi_x_start:.0%} - {args.roi_x_end:.0%}], line_y={args.line_y:.0%}, tolerance={args.tolerance}px")
-    print(f"[Worker] Frames: {'Supabase' if args.supabase_url else 'disabled'}")
 
     resolved = get_stream_url(args.stream_url, args.stream_type)
     print(f"[Worker] Resolved URL: {resolved[:80]}...")
@@ -169,6 +168,7 @@ def main():
 
     fc = 0
     total = 0
+    last_sent_count = -1  # Track what we last sent to avoid duplicate API calls
     counted = set()
     t_count = t_frame = time.time()
     line_y = None
@@ -209,6 +209,7 @@ def main():
                     dets.append(([x1, y1, x2 - x1, y2 - y1], float(box.conf[0]), cid))
 
         # Track
+        new_vehicles_this_frame = False
         tracks = tracker.update_tracks(dets, frame=frame)
         for t in tracks:
             if not t.is_confirmed():
@@ -217,33 +218,33 @@ def main():
             bb = t.to_ltrb()
             cx = (bb[0] + bb[2]) / 2
             cy = (bb[1] + bb[3]) / 2
-            # Only count if vehicle center is within ROI and crossing the line
             in_roi = roi_x_start_px <= cx <= roi_x_end_px
             near_line = abs(cy - line_y) < args.tolerance
             if tid not in counted and in_roi and near_line:
                 counted.add(tid)
                 total += 1
+                new_vehicles_this_frame = True
 
         now = time.time()
+
+        # INSTANT: send count immediately when new vehicle detected
+        if new_vehicles_this_frame and total != last_sent_count:
+            last_sent_count = total
+            send_count_async(args.api_url, args.market_id, total, args.secret)
 
         # Upload annotated frame
         if args.supabase_url and now - t_frame >= args.frame_interval:
             ann = draw_annotations(frame, tracks, counted, line_y, total,
                                    args.roi_x_start, args.roi_x_end)
-            st = upload_frame(ann, args.market_id, args.supabase_url, args.supabase_key)
+            upload_frame(ann, args.market_id, args.supabase_url, args.supabase_key)
             t_frame = now
 
-        # Send count to API
+        # Periodic count sync (backup, every N seconds)
         if now - t_count >= args.count_interval:
-            try:
-                r = requests.post(f"{args.api_url}/api/camera/ingest",
-                    json={"market_id": args.market_id, "count": total,
-                          "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                          "secret": args.secret}, timeout=10)
-                api = r.status_code
-            except Exception as e:
-                api = f"ERR:{e}"
-            print(f"[Worker] #{fc} | Veiculos: {total} | Rastreados: {len(counted)} | API: {api}")
+            if total != last_sent_count:
+                last_sent_count = total
+                send_count_async(args.api_url, args.market_id, total, args.secret)
+            print(f"[Worker] #{fc} | Veiculos: {total} | Rastreados: {len(counted)}")
             t_count = now
 
     cap.release()

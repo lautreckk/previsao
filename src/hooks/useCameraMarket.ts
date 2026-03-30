@@ -180,10 +180,9 @@ export function useCameraMarket(marketId: string) {
     };
   }, [marketId, fetchRound]);
 
-  // Poll every 3s as fallback + auto-tick rounds + dev simulation
+  // Fast poll (1.5s) for count + phase updates + auto-tick rounds
   useEffect(() => {
     let ticking = false;
-    const isDev = process.env.NODE_ENV === "development";
     const iv = setInterval(async () => {
       const { data } = await supabase
         .from("camera_markets")
@@ -191,15 +190,8 @@ export function useCameraMarket(marketId: string) {
         .eq("id", marketId)
         .maybeSingle();
       if (data) {
-        // In dev, simulate count incrementing if worker isn't running
-        if (isDev && (data.phase === "betting" || data.phase === "observation") && data.current_count === 0) {
-          const simCount = Math.floor(Math.random() * 3) + 1;
-          setCurrentCount((prev) => prev + simCount);
-          // Also update in DB so round resolution uses it
-          supabase.from("camera_markets").update({ current_count: (data.current_count || 0) + simCount }).eq("id", marketId).then(() => {});
-        } else {
-          setCurrentCount(data.current_count || 0);
-        }
+        // Always update count from DB (source of truth)
+        setCurrentCount(data.current_count || 0);
         setMarket((prev) => (prev ? { ...prev, ...data } : null));
 
         // Auto-tick: if phase expired or waiting, call round endpoint to advance
@@ -215,11 +207,10 @@ export function useCameraMarket(marketId: string) {
             });
           } catch {}
           setTimeout(() => { ticking = false; }, 5000);
-          // Refetch after tick
           setTimeout(() => fetchRound(), 1000);
         }
       }
-    }, 3000);
+    }, 1500);
     return () => clearInterval(iv);
   }, [marketId, fetchRound]);
 
