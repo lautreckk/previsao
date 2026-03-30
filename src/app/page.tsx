@@ -108,6 +108,8 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"closing" | "hot">("closing");
   const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
   const [chatMsgs, setChatMsgs] = useState<{ user: string; text: string; id: number; ts: number }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatRef = useRef<HTMLDivElement>(null);
@@ -205,6 +207,16 @@ export default function Home() {
     }
   }, [chatMsgs, isAtBottom]);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleChatScroll = useCallback(() => {
     const el = chatRef.current;
     if (!el) return;
@@ -235,13 +247,17 @@ export default function Home() {
   const sorted = [...filtered].sort((a, b) => {
     // Featured always first
     if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
-    // Then by category priority (entertainment/fofoca first)
-    const catA = catPriority[a.category] ?? 9;
-    const catB = catPriority[b.category] ?? 9;
-    if (catA !== catB) return catA - catB;
-    // Then by pool size (most popular)
-    if (activeTab === "hot") return b.pool_total - a.pool_total;
-    // Then by closing time
+
+    if (activeTab === "hot") {
+      // "Em Alta": sort purely by pool size (most volume first)
+      return (b.pool_total || 0) - (a.pool_total || 0);
+    }
+
+    // "Encerram em breve": sort by closing time, but deprioritize camera/live markets
+    // Camera markets (with stream_url) cycle every 5 min so they always "close soon"
+    const aIsLive = !!a.stream_url;
+    const bIsLive = !!b.stream_url;
+    if (aIsLive !== bIsLive) return aIsLive ? 1 : -1; // push live markets to end
     return a.close_at - b.close_at;
   });
 
@@ -254,10 +270,54 @@ export default function Home() {
         <Link href="/" className="shrink-0">
           <img src="/logo.png" alt="Winify" className="h-10 w-auto" />
         </Link>
-        <div className="flex-1 max-w-lg mx-auto hidden sm:block">
+        <div className="flex-1 max-w-lg mx-auto hidden sm:block" ref={searchRef}>
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6478] text-sm">search</span>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar mercados..." className="w-full bg-[#0d1525] rounded-lg pl-10 pr-4 py-2 text-sm text-white border border-[#2a3444] outline-none focus:border-[#00D4AA]/40 placeholder-[#5A6478]" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              placeholder="Buscar mercados..."
+              className="w-full bg-[#0d1525] rounded-lg pl-10 pr-4 py-2 text-sm text-white border border-[#2a3444] outline-none focus:border-[#00D4AA]/40 placeholder-[#5A6478]"
+            />
+            {search.length > 0 && searchFocused && (() => {
+              const results = openMarkets
+                .filter((m) => m.title.toLowerCase().includes(search.toLowerCase()))
+                .slice(0, 6);
+              return results.length > 0 ? (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
+                  {results.map((m) => {
+                    const isCam = !!m.stream_url;
+                    const href = isCam ? `/camera/${m.id}` : `/evento/${m.id}`;
+                    return (
+                      <Link
+                        key={m.id}
+                        href={href}
+                        onClick={() => { setSearch(""); setSearchFocused(false); }}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1a2332] transition-colors"
+                      >
+                        {m.image_url ? (
+                          <img src={m.image_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-[#1a2332] flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[#5A6478] text-sm">monitoring</span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white truncate">{m.title}</p>
+                          <p className="text-xs text-[#5A6478]">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p>
+                        </div>
+                        <span className="text-xs text-[#00D4AA] font-bold shrink-0">R$ {(m.pool_total || 0).toFixed(2)}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 z-[60] px-4 py-3 text-center text-sm text-[#5A6478]">
+                  Nenhum mercado encontrado
+                </div>
+              );
+            })()}
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
