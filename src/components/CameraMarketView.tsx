@@ -663,6 +663,17 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                       R$ {v}
                     </button>
                   ))}
+                  <button
+                    onClick={() => user && setBetAmount(String(Math.floor(Number(user.balance) * 100) / 100))}
+                    disabled={!user || Number(user.balance) <= 0}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold ${
+                      user && betAmount === String(Math.floor(Number(user.balance) * 100) / 100)
+                        ? "bg-[#00FFB8]/20 text-[#00FFB8] border border-[#00FFB8]/40"
+                        : "bg-[#111827] text-[#8B95A8] border border-[#1e2a3a] disabled:opacity-40"
+                    }`}
+                  >
+                    MAX
+                  </button>
                 </div>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8B95A8] font-bold">R$</span>

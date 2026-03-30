@@ -10,7 +10,8 @@ const supabase = createClient(
 );
 
 const FAL_KEY = process.env.FAL_KEY || "";
-const AI_MODEL = "anthropic/claude-sonnet-4-5";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
+const AI_MODEL = process.env.AI_MODEL || "anthropic/claude-sonnet-4-5";
 
 // Categories with generation templates (inspired by Palpitano market types)
 const MARKET_TEMPLATES = [
@@ -151,11 +152,13 @@ ${existingTitles.slice(0, 20).join(", ")}
 
 Gere mercados FRESCOS e atuais. Responda SOMENTE com JSON array valido.`;
 
-    const aiResponse = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", {
+    const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.VERCEL_OIDC_TOKEN || process.env.AI_GATEWAY_API_KEY || ""}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": process.env.WEBHOOK_BASE_URL || "https://winify.com.br",
+        "X-Title": "Winify Previsao",
       },
       body: JSON.stringify({
         model: AI_MODEL,

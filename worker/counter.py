@@ -180,6 +180,8 @@ def main():
     roi_x_start_px = None
     roi_x_end_px = None
     known_round = current_round
+    known_phase = phase
+    counting_paused = phase == "waiting"  # Don't count during waiting phase
 
     # Set DB count to 0 for the current round (clean start)
     if args.supabase_url:
@@ -219,6 +221,55 @@ def main():
                     dets.append(([x1, y1, x2 - x1, y2 - y1], float(box.conf[0]), cid))
 
         tracks = tracker.update_tracks(dets, frame=frame)
+
+        now = time.time()
+
+        # Check for round/phase changes BEFORE counting
+        if args.supabase_url and now - t_round_check >= 5:
+            new_round, new_phase, db_count = get_current_round(args.supabase_url, args.supabase_key, args.market_id)
+
+            # Pause counting during waiting phase
+            if new_phase == "waiting":
+                if not counting_paused:
+                    print(f"[Worker] Phase -> waiting. Pausing count.")
+                    counting_paused = True
+            else:
+                counting_paused = False
+
+            # Reset on new round OR when transitioning from waiting to betting
+            needs_reset = (new_round != known_round) or (known_phase == "waiting" and new_phase == "betting")
+
+            if needs_reset:
+                print(f"[Worker] RESET: round {known_round}->{new_round} phase {known_phase}->{new_phase}")
+                total = 0
+                counted.clear()
+                last_sent_count = -1
+                tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
+                update_count_direct(args.supabase_url, args.supabase_key, args.market_id, 0)
+                counting_paused = False
+
+            # Sync: if DB count is 0 but our total is high, DB was reset externally
+            if db_count == 0 and total > 5 and new_phase in ("betting", "observation"):
+                print(f"[Worker] DB count=0 but local total={total}. External reset detected. Resetting.")
+                total = 0
+                counted.clear()
+                last_sent_count = -1
+                tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
+
+            known_round = new_round
+            known_phase = new_phase
+            t_round_check = now
+
+        # Skip counting + DB updates if paused (waiting phase)
+        if counting_paused:
+            if args.supabase_url and now - t_frame >= args.frame_interval:
+                ann = draw_annotations(frame, tracks, counted, line_y, total,
+                                       args.roi_x_start, args.roi_x_end)
+                Thread(target=upload_frame, args=(ann, args.market_id, args.supabase_url, args.supabase_key), daemon=True).start()
+                t_frame = now
+            continue
+
+        # Count vehicles crossing the line (only when not paused)
         for t in tracks:
             if not t.is_confirmed():
                 continue
@@ -231,21 +282,6 @@ def main():
             if tid not in counted and in_roi and near_line:
                 counted.add(tid)
                 total += 1
-
-        now = time.time()
-
-        # Check for new round every 5 seconds — reset count if round changed
-        if args.supabase_url and now - t_round_check >= 5:
-            new_round, new_phase, _ = get_current_round(args.supabase_url, args.supabase_key, args.market_id)
-            if new_round != known_round:
-                print(f"[Worker] NEW ROUND {known_round} -> {new_round}! Resetting count.")
-                known_round = new_round
-                total = 0
-                counted.clear()
-                last_sent_count = -1
-                tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
-                update_count_direct(args.supabase_url, args.supabase_key, args.market_id, 0)
-            t_round_check = now
 
         # Update Supabase directly when count changes
         if total != last_sent_count and args.supabase_url:

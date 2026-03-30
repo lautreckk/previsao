@@ -161,3 +161,12 @@ body {
   background-size: 200% auto;
   animation: shimmer 3s linear infinite;
 }
+
+@keyframes float-up {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-30px); }
+}
+
+.animate-float-up {
+  animation: float-up 2s ease-out forwards;
+}
