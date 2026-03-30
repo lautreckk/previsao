@@ -146,11 +146,12 @@ def main():
     p.add_argument("--roi-x-start", type=float, default=0.0, help="Left edge of ROI (0.0-1.0)")
     p.add_argument("--roi-x-end", type=float, default=1.0, help="Right edge of ROI (0.0-1.0)")
     p.add_argument("--line-y", type=float, default=0.55, help="Counting line Y position (0.0-1.0)")
+    p.add_argument("--tolerance", type=int, default=25, help="Pixel distance from line to count vehicle")
     args = p.parse_args()
 
     print(f"[Worker] Market: {args.market_id}")
     print(f"[Worker] Stream: {args.stream_url} ({args.stream_type})")
-    print(f"[Worker] ROI: x=[{args.roi_x_start:.0%} - {args.roi_x_end:.0%}], line_y={args.line_y:.0%}")
+    print(f"[Worker] ROI: x=[{args.roi_x_start:.0%} - {args.roi_x_end:.0%}], line_y={args.line_y:.0%}, tolerance={args.tolerance}px")
     print(f"[Worker] Frames: {'Supabase' if args.supabase_url else 'disabled'}")
 
     resolved = get_stream_url(args.stream_url, args.stream_type)
@@ -218,7 +219,7 @@ def main():
             cy = (bb[1] + bb[3]) / 2
             # Only count if vehicle center is within ROI and crossing the line
             in_roi = roi_x_start_px <= cx <= roi_x_end_px
-            near_line = abs(cy - line_y) < 25
+            near_line = abs(cy - line_y) < args.tolerance
             if tid not in counted and in_roi and near_line:
                 counted.add(tid)
                 total += 1
