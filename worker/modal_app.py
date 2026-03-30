@@ -25,11 +25,21 @@ image = (
     .add_local_file("counter.py", "/root/counter.py")
 )
 
-# Camera configs
+# Camera configs — all 13 DER-SP cameras
 CAMERAS = {
     "cam_sp055_km110b": "SP055-KM110B",
     "cam_sp055_km110a": "SP055-KM110A",
     "cam_sp055_km073": "SP055-KM073",
+    "cam_sp055_km055": "SP055-KM055",
+    "cam_sp055_km083": "SP055-KM083",
+    "cam_sp055_km092": "SP055-KM092",
+    "cam_sp055_km136": "SP055-KM136",
+    "cam_sp055_km168": "SP055-KM168",
+    "cam_sp055_km193": "SP055-KM193",
+    "cam_sp055_km211a": "SP055-KM211A",
+    "cam_sp055_km211b": "SP055-KM211B",
+    "cam_sp008_km095": "SP008-KM095",
+    "cam_sp046_km167": "SP046-KM167",
 }
 
 API_URL = "https://previsao-tau.vercel.app"

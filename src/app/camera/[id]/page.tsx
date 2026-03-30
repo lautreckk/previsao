@@ -35,9 +35,8 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
 }
 
 /* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
-function LiveStream({ marketId, streamUrl, count }: { marketId: string; streamUrl: string; count: number }) {
+function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
   const [frameTs, setFrameTs] = useState(Date.now());
 
@@ -47,10 +46,7 @@ function LiveStream({ marketId, streamUrl, count }: { marketId: string; streamUr
     if (!video) return;
 
     let hls: { destroy: () => void; loadSource: (url: string) => void; startLoad: () => void } | null = null;
-    let fallbackTimer: ReturnType<typeof setTimeout>;
-
-    // Fallback to frame mode after timeout
-    fallbackTimer = setTimeout(() => {
+    const fallbackTimer = setTimeout(() => {
       if (mode === "loading") setMode("frame");
     }, 8000);
 
@@ -89,59 +85,6 @@ function LiveStream({ marketId, streamUrl, count }: { marketId: string; streamUr
     return () => clearInterval(iv);
   }, [mode]);
 
-  // Draw green counting line overlay
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const draw = () => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      const w = canvas.offsetWidth;
-      const h = canvas.offsetHeight;
-      canvas.width = w;
-      canvas.height = h;
-      ctx.clearRect(0, 0, w, h);
-
-      const lineY = Math.floor(h * 0.55);
-      // Green dashed counting line
-      ctx.setLineDash([12, 8]);
-      ctx.strokeStyle = "#00FF00";
-      ctx.lineWidth = 2;
-      ctx.shadowColor = "#00FF00";
-      ctx.shadowBlur = 4;
-      ctx.beginPath();
-      ctx.moveTo(0, lineY);
-      ctx.lineTo(w, lineY);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Direction arrows
-      ctx.setLineDash([]);
-      ctx.fillStyle = "#00FF00";
-      for (let x = 60; x < w; x += 100) {
-        ctx.beginPath();
-        ctx.moveTo(x, lineY - 5);
-        ctx.lineTo(x + 12, lineY);
-        ctx.lineTo(x, lineY + 5);
-        ctx.fill();
-      }
-
-      // Label
-      ctx.font = "bold 10px sans-serif";
-      ctx.fillStyle = "#00FF00";
-      ctx.shadowColor = "#000";
-      ctx.shadowBlur = 3;
-      ctx.fillText("ZONA DE CONTAGEM", 10, lineY - 8);
-    };
-
-    draw();
-    const resizeHandler = () => draw();
-    window.addEventListener("resize", resizeHandler);
-    const iv = setInterval(draw, 3000);
-    return () => { clearInterval(iv); window.removeEventListener("resize", resizeHandler); };
-  }, []);
-
   const frameUrl = `${SUPABASE_URL}/storage/v1/object/public/camera-frames/${marketId}/latest.jpg?t=${frameTs}`;
 
   return (
@@ -155,7 +98,7 @@ function LiveStream({ marketId, streamUrl, count }: { marketId: string; streamUr
         className={`absolute inset-0 w-full h-full object-cover rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
       />
 
-      {/* Worker frame fallback (with green line + bounding boxes already drawn) */}
+      {/* Worker frame fallback */}
       {mode === "frame" && (
         <img
           src={frameUrl}
@@ -165,13 +108,26 @@ function LiveStream({ marketId, streamUrl, count }: { marketId: string; streamUr
         />
       )}
 
-      {/* Green line canvas overlay (only on HLS mode, frame already has it) */}
-      {mode === "hls" && (
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full rounded-lg pointer-events-none z-[5]"
-        />
-      )}
+      {/* GREEN COUNTING LINE — CSS overlay (always visible) */}
+      <div className="absolute inset-0 pointer-events-none z-[5] rounded-lg overflow-hidden">
+        {/* Green dashed line at 55% height */}
+        <div
+          className="absolute left-0 right-0"
+          style={{ top: "55%" }}
+        >
+          <div className="w-full border-t-2 border-dashed border-[#00FF00]" style={{ boxShadow: "0 0 8px #00FF00, 0 0 4px #00FF00" }} />
+          {/* Label */}
+          <div className="absolute -top-5 left-2 bg-black/60 px-2 py-0.5 rounded">
+            <span className="text-[9px] font-bold text-[#00FF00] uppercase tracking-wider">{cameraId} — ZONA DE CONTAGEM</span>
+          </div>
+          {/* Arrows along the line */}
+          <div className="absolute top-[-6px] left-0 right-0 flex justify-around">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <span key={i} className="text-[#00FF00] text-[10px]">&#9654;</span>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Loading spinner */}
       {mode === "loading" && (
@@ -492,7 +448,7 @@ export default function CameraMarketPage() {
 
           {/* Live HLS stream */}
           <div className="px-4 pt-3">
-            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} />
+            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} cameraId={market.camera_id || marketId} />
           </div>
 
           {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}
