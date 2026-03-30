@@ -527,14 +527,55 @@ export default function CameraMarketPage() {
           {/* Round history */}
           <RoundHistory marketId={marketId} />
 
-          {/* Last result toast */}
+          {/* Last result + Next round CTA */}
           {lastResult && (
-            <div className={`mx-4 mb-3 rounded-xl p-3 border text-center text-sm ${
-              lastResult.result === "over"
-                ? "bg-[#00FFB8]/10 border-[#00FFB8]/30 text-[#00FFB8]"
-                : "bg-[#FF5252]/10 border-[#FF5252]/30 text-[#FF5252]"
-            }`}>
-              Resultado: <span className="font-black">{lastResult.final_count}</span> veiculos — {lastResult.result.toUpperCase()} (threshold {lastResult.threshold}) — {lastResult.payout_multiplier.toFixed(2)}x
+            <div className="mx-4 mb-3 space-y-3">
+              <div className={`rounded-xl p-4 border text-center ${
+                lastResult.result === "over"
+                  ? "bg-[#00FFB8]/10 border-[#00FFB8]/30 text-[#00FFB8]"
+                  : "bg-[#FF5252]/10 border-[#FF5252]/30 text-[#FF5252]"
+              }`}>
+                <p className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Resultado da Rodada</p>
+                <p className="text-2xl font-black">{lastResult.final_count} <span className="text-sm">veiculos</span></p>
+                <p className="text-xs mt-1">
+                  {lastResult.result.toUpperCase()} (threshold {lastResult.threshold}) — <span className="font-black">{lastResult.payout_multiplier.toFixed(2)}x</span>
+                </p>
+              </div>
+              {market.phase === "waiting" && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await fetch("/api/camera/round", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ market_id: marketId, secret: "auto" }),
+                      });
+                    } catch {}
+                  }}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-[#00FFB8] to-[#00D4FF] text-[#003D2E] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(0,255,184,0.2)]"
+                >
+                  Proxima Previsao
+                </button>
+              )}
+            </div>
+          )}
+          {/* Waiting without result */}
+          {!lastResult && market.phase === "waiting" && (
+            <div className="mx-4 mb-3">
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch("/api/camera/round", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ market_id: marketId, secret: "auto" }),
+                    });
+                  } catch {}
+                }}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-[#00FFB8] to-[#00D4FF] text-[#003D2E] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(0,255,184,0.2)] animate-pulse"
+              >
+                Iniciar Previsao
+              </button>
             </div>
           )}
         </div>

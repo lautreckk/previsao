@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-Vehicle Counter Worker for Camera Prediction Markets
+Vehicle Counter Worker — Near Real-Time
 
-Detects and counts vehicles using YOLOv8 + DeepSORT.
-Sends count updates immediately when vehicles cross the counting line.
-Uploads annotated frames to Supabase Storage every 2 seconds.
-
-Supports ROI (Region of Interest) to focus counting on the main road only.
+Detects vehicles using YOLOv8 + DeepSORT.
+Updates count DIRECTLY in Supabase (no Vercel API hop) for minimum latency.
+Flow: Worker → Supabase DB (direct PATCH) → postgres_changes → Frontend (~200ms)
 """
 
 import argparse
@@ -18,10 +16,8 @@ from threading import Thread
 from ultralytics import YOLO
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
-# Vehicle classes: car=2, bus=5, truck=7 (NOT motorcycle=3)
-VEHICLE_CLASSES = {2, 5, 7}
+VEHICLE_CLASSES = {2, 5, 7}  # car, bus, truck
 
-# Colors (BGR)
 RED = (0, 0, 255)
 GREEN = (0, 255, 0)
 WHITE = (255, 255, 255)
@@ -41,11 +37,9 @@ def get_stream_url(url, stream_type):
 def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_start, roi_x_end):
     h, w = frame.shape[:2]
     out = frame.copy()
-
     x_start = int(w * roi_x_start)
     x_end = int(w * roi_x_end)
 
-    # Dim area outside ROI (darken non-counting zones)
     overlay = out.copy()
     if roi_x_start > 0:
         cv2.rectangle(overlay, (0, 0), (x_start, h), BLACK, -1)
@@ -53,23 +47,17 @@ def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_star
         cv2.rectangle(overlay, (x_end, 0), (w, h), BLACK, -1)
     cv2.addWeighted(overlay, 0.3, out, 0.7, 0, out)
 
-    # ROI border (subtle cyan lines)
     cv2.line(out, (x_start, 0), (x_start, h), CYAN, 1)
     cv2.line(out, (x_end, 0), (x_end, h), CYAN, 1)
 
-    # Counting line (green dashed) — only within ROI
     for x in range(x_start, x_end, 20):
         cv2.line(out, (x, line_y), (min(x + 10, x_end), line_y), GREEN, 2)
-
-    # Direction arrows on line
     for x in range(x_start + 60, x_end, 120):
         cv2.arrowedLine(out, (x - 20, line_y), (x + 20, line_y), GREEN, 1, tipLength=0.4)
 
-    # ROI label
     cv2.putText(out, "ZONA DE CONTAGEM", (x_start + 5, line_y - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, GREEN, 1)
 
-    # Bounding boxes
     for track in tracks:
         if not track.is_confirmed():
             continue
@@ -78,56 +66,55 @@ def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_star
         x1, y1, x2, y2 = int(ltrb[0]), int(ltrb[1]), int(ltrb[2]), int(ltrb[3])
         is_counted = tid in counted_ids
         color = GREEN if is_counted else RED
-
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
-
         label = f"#{tid}"
         (tw, th_t), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
         cv2.rectangle(out, (x1, y1 - th_t - 8), (x1 + tw + 6, y1), color, -1)
         cv2.putText(out, label, (x1 + 3, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.45, WHITE, 1)
-
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
         cv2.circle(out, (cx, cy), 3, YELLOW, -1)
 
-    # Count overlay (top-left)
     txt = f"Veiculos: {total_count}"
     (tw, th_t), _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)
     cv2.rectangle(out, (5, 5), (tw + 18, th_t + 18), BLACK, -1)
     cv2.rectangle(out, (5, 5), (tw + 18, th_t + 18), GREEN, 1)
     cv2.putText(out, txt, (10, th_t + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, GREEN, 2)
-
     return out
 
 
 def upload_frame(frame, market_id, supa_url, supa_key):
     try:
         _, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 72])
-        r = requests.put(
+        requests.put(
             f"{supa_url}/storage/v1/object/camera-frames/{market_id}/latest.jpg",
+            headers={"Authorization": f"Bearer {supa_key}", "Content-Type": "image/jpeg", "x-upsert": "true"},
+            data=buf.tobytes(), timeout=5)
+    except:
+        pass
+
+
+def update_count_direct(supa_url, supa_key, market_id, count):
+    """Update count DIRECTLY in Supabase via PostgREST — bypasses Vercel API entirely.
+    This triggers postgres_changes which the frontend receives in ~100-300ms."""
+    try:
+        requests.patch(
+            f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}",
             headers={
+                "apikey": supa_key,
                 "Authorization": f"Bearer {supa_key}",
-                "Content-Type": "image/jpeg",
-                "x-upsert": "true",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
             },
-            data=buf.tobytes(),
-            timeout=5,
+            json={"current_count": count, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+            timeout=3,
         )
-        return r.status_code
-    except Exception as e:
-        return f"ERR:{e}"
+    except:
+        pass
 
 
-def send_count_async(api_url, market_id, count, secret, timestamp=None):
-    """Send count update in background thread to not block detection loop."""
-    def _send():
-        try:
-            requests.post(f"{api_url}/api/camera/ingest",
-                json={"market_id": market_id, "count": count,
-                      "timestamp": timestamp or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                      "secret": secret}, timeout=5)
-        except:
-            pass
-    Thread(target=_send, daemon=True).start()
+def update_count_async(supa_url, supa_key, market_id, count):
+    """Non-blocking count update."""
+    Thread(target=update_count_direct, args=(supa_url, supa_key, market_id, count), daemon=True).start()
 
 
 def main():
@@ -151,10 +138,11 @@ def main():
 
     print(f"[Worker] Market: {args.market_id}")
     print(f"[Worker] Stream: {args.stream_url} ({args.stream_type})")
-    print(f"[Worker] ROI: x=[{args.roi_x_start:.0%} - {args.roi_x_end:.0%}], line_y={args.line_y:.0%}, tolerance={args.tolerance}px")
+    print(f"[Worker] ROI: x=[{args.roi_x_start:.0%}-{args.roi_x_end:.0%}] line_y={args.line_y:.0%} tol={args.tolerance}px")
+    print(f"[Worker] Mode: DIRECT Supabase update (no Vercel API hop)")
 
     resolved = get_stream_url(args.stream_url, args.stream_type)
-    print(f"[Worker] Resolved URL: {resolved[:80]}...")
+    print(f"[Worker] Resolved: {resolved[:80]}...")
 
     model = YOLO(args.model)
     tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
@@ -168,9 +156,9 @@ def main():
 
     fc = 0
     total = 0
-    last_sent_count = -1  # Track what we last sent to avoid duplicate API calls
+    last_sent_count = -1
     counted = set()
-    t_count = t_frame = time.time()
+    t_log = t_frame = time.time()
     line_y = None
     roi_x_start_px = None
     roi_x_end_px = None
@@ -198,7 +186,6 @@ def main():
             roi_x_start_px = int(w * args.roi_x_start)
             roi_x_end_px = int(w * args.roi_x_end)
 
-        # Detect
         results = model(frame, conf=args.confidence, verbose=False)
         dets = []
         for r in results:
@@ -208,8 +195,6 @@ def main():
                     x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                     dets.append(([x1, y1, x2 - x1, y2 - y1], float(box.conf[0]), cid))
 
-        # Track
-        new_vehicles_this_frame = False
         tracks = tracker.update_tracks(dets, frame=frame)
         for t in tracks:
             if not t.is_confirmed():
@@ -223,29 +208,25 @@ def main():
             if tid not in counted and in_roi and near_line:
                 counted.add(tid)
                 total += 1
-                new_vehicles_this_frame = True
 
         now = time.time()
 
-        # INSTANT: send count immediately when new vehicle detected
-        if new_vehicles_this_frame and total != last_sent_count:
+        # INSTANT: update Supabase directly when count changes (no Vercel API hop)
+        if total != last_sent_count and args.supabase_url:
             last_sent_count = total
-            send_count_async(args.api_url, args.market_id, total, args.secret)
+            update_count_async(args.supabase_url, args.supabase_key, args.market_id, total)
 
-        # Upload annotated frame
+        # Upload annotated frame every 2s
         if args.supabase_url and now - t_frame >= args.frame_interval:
             ann = draw_annotations(frame, tracks, counted, line_y, total,
                                    args.roi_x_start, args.roi_x_end)
-            upload_frame(ann, args.market_id, args.supabase_url, args.supabase_key)
+            Thread(target=upload_frame, args=(ann, args.market_id, args.supabase_url, args.supabase_key), daemon=True).start()
             t_frame = now
 
-        # Periodic count sync (backup, every N seconds)
-        if now - t_count >= args.count_interval:
-            if total != last_sent_count:
-                last_sent_count = total
-                send_count_async(args.api_url, args.market_id, total, args.secret)
+        # Log every 5s
+        if now - t_log >= 5:
             print(f"[Worker] #{fc} | Veiculos: {total} | Rastreados: {len(counted)}")
-            t_count = now
+            t_log = now
 
     cap.release()
 
