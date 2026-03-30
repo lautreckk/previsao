@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Vehicle Counter Worker — Near Real-Time
+Vehicle Counter Worker — Round-Aware, Near Real-Time
 
-Detects vehicles using YOLOv8 + DeepSORT.
-Updates count DIRECTLY in Supabase (no Vercel API hop) for minimum latency.
-Flow: Worker → Supabase DB (direct PATCH) → postgres_changes → Frontend (~200ms)
+- Polls Supabase every 5s to check current round_number
+- Resets count to 0 when a new round starts
+- Updates count DIRECTLY in Supabase for instant frontend updates
 """
 
 import argparse
@@ -94,12 +94,7 @@ def upload_frame(frame, market_id, supa_url, supa_key):
 
 
 def update_count_direct(supa_url, supa_key, market_id, count):
-    """Update count via TWO parallel paths for maximum speed:
-    1. PostgREST PATCH → triggers postgres_changes → frontend (~200ms)
-    2. Realtime broadcast → frontend receives directly (~50-100ms)
-    """
-    ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    # Path 1: DB update (triggers postgres_changes with REPLICA IDENTITY FULL)
+    """Update count directly in Supabase via PostgREST."""
     try:
         requests.patch(
             f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}",
@@ -109,7 +104,7 @@ def update_count_direct(supa_url, supa_key, market_id, count):
                 "Content-Type": "application/json",
                 "Prefer": "return=minimal",
             },
-            json={"current_count": count, "updated_at": ts},
+            json={"current_count": count, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
             timeout=3,
         )
     except:
@@ -117,33 +112,51 @@ def update_count_direct(supa_url, supa_key, market_id, count):
 
 
 def update_count_async(supa_url, supa_key, market_id, count):
-    """Non-blocking count update via background thread."""
     Thread(target=update_count_direct, args=(supa_url, supa_key, market_id, count), daemon=True).start()
+
+
+def get_current_round(supa_url, supa_key, market_id):
+    """Fetch current round_number and phase from Supabase."""
+    try:
+        r = requests.get(
+            f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}&select=round_number,phase,current_count",
+            headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}"},
+            timeout=5,
+        )
+        data = r.json()
+        if data and len(data) > 0:
+            return data[0].get("round_number", 0), data[0].get("phase", "waiting"), data[0].get("current_count", 0)
+    except:
+        pass
+    return 0, "waiting", 0
 
 
 def main():
     p = argparse.ArgumentParser(description="Vehicle Counter Worker")
     p.add_argument("--market-id", required=True)
     p.add_argument("--stream-url", required=True)
-    p.add_argument("--stream-type", default="youtube", choices=["youtube", "hls", "rtsp"])
+    p.add_argument("--stream-type", default="hls", choices=["youtube", "hls", "rtsp"])
     p.add_argument("--api-url", required=True)
     p.add_argument("--secret", required=True)
     p.add_argument("--supabase-url", default="")
     p.add_argument("--supabase-key", default="")
-    p.add_argument("--confidence", type=float, default=0.35)
+    p.add_argument("--confidence", type=float, default=0.30)
     p.add_argument("--count-interval", type=int, default=2)
     p.add_argument("--frame-interval", type=int, default=2)
     p.add_argument("--model", default="yolov8n.pt")
     p.add_argument("--roi-x-start", type=float, default=0.0)
     p.add_argument("--roi-x-end", type=float, default=1.0)
     p.add_argument("--line-y", type=float, default=0.55)
-    p.add_argument("--tolerance", type=int, default=25)
+    p.add_argument("--tolerance", type=int, default=35)
     args = p.parse_args()
 
     print(f"[Worker] Market: {args.market_id}")
     print(f"[Worker] Stream: {args.stream_url} ({args.stream_type})")
     print(f"[Worker] ROI: x=[{args.roi_x_start:.0%}-{args.roi_x_end:.0%}] line_y={args.line_y:.0%} tol={args.tolerance}px")
-    print(f"[Worker] Mode: DIRECT Supabase update (no Vercel API hop)")
+
+    # Read current round from DB on startup to sync state
+    current_round, phase, db_count = get_current_round(args.supabase_url, args.supabase_key, args.market_id)
+    print(f"[Worker] Synced from DB: round={current_round} phase={phase} count={db_count}")
 
     resolved = get_stream_url(args.stream_url, args.stream_type)
     print(f"[Worker] Resolved: {resolved[:80]}...")
@@ -159,13 +172,19 @@ def main():
     print(f"[Worker] Stream opened. FPS: {cap.get(cv2.CAP_PROP_FPS):.0f}")
 
     fc = 0
-    total = 0
+    total = 0  # Always start fresh at 0 for this round
     last_sent_count = -1
     counted = set()
-    t_log = t_frame = time.time()
+    t_log = t_frame = t_round_check = time.time()
     line_y = None
     roi_x_start_px = None
     roi_x_end_px = None
+    known_round = current_round
+
+    # Set DB count to 0 for the current round (clean start)
+    if args.supabase_url:
+        update_count_direct(args.supabase_url, args.supabase_key, args.market_id, 0)
+        print(f"[Worker] Reset count to 0 for round {known_round}")
 
     while True:
         ret, frame = cap.read()
@@ -215,7 +234,20 @@ def main():
 
         now = time.time()
 
-        # INSTANT: update Supabase directly when count changes (no Vercel API hop)
+        # Check for new round every 5 seconds — reset count if round changed
+        if args.supabase_url and now - t_round_check >= 5:
+            new_round, new_phase, _ = get_current_round(args.supabase_url, args.supabase_key, args.market_id)
+            if new_round != known_round:
+                print(f"[Worker] NEW ROUND {known_round} -> {new_round}! Resetting count.")
+                known_round = new_round
+                total = 0
+                counted.clear()
+                last_sent_count = -1
+                tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
+                update_count_direct(args.supabase_url, args.supabase_key, args.market_id, 0)
+            t_round_check = now
+
+        # Update Supabase directly when count changes
         if total != last_sent_count and args.supabase_url:
             last_sent_count = total
             update_count_async(args.supabase_url, args.supabase_key, args.market_id, total)
@@ -229,7 +261,7 @@ def main():
 
         # Log every 5s
         if now - t_log >= 5:
-            print(f"[Worker] #{fc} | Veiculos: {total} | Rastreados: {len(counted)}")
+            print(f"[Worker] #{fc} | Round {known_round} | Veiculos: {total} | Rastreados: {len(counted)}")
             t_log = now
 
     cap.release()
