@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/generate-markets",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

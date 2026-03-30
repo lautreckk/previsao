@@ -8,6 +8,7 @@ import { initializeStore, getMarkets, tickAllMarkets } from "@/lib/engines/store
 import { CATEGORY_META } from "@/lib/engines/types";
 import { useUser } from "@/lib/UserContext";
 import type { PredictionMarket, MarketCategory } from "@/lib/engines/types";
+import { supabase } from "@/lib/supabase";
 
 // ---- WINNERS TICKER ----
 const FAKE_WINNERS = [
@@ -116,9 +117,61 @@ export default function Home() {
 
   useEffect(() => {
     initializeStore();
-    const refresh = () => { const ms = tickAllMarkets(); setMarkets(ms); };
+
+    async function refresh() {
+      // Local markets (legacy seed)
+      const local = tickAllMarkets();
+
+      // Supabase markets (AI-generated + admin-created)
+      try {
+        const { data } = await supabase
+          .from("prediction_markets")
+          .select("*")
+          .in("status", ["open", "frozen", "closed", "awaiting_resolution"])
+          .order("close_at", { ascending: true })
+          .limit(100);
+
+        if (data && data.length > 0) {
+          // Convert DB format to PredictionMarket
+          const dbMarkets: PredictionMarket[] = data.map((row) => ({
+            ...row,
+            created_at: new Date(row.created_at).getTime(),
+            open_at: new Date(row.open_at).getTime(),
+            freeze_at: row.freeze_at ? new Date(row.freeze_at).getTime() : 0,
+            close_at: new Date(row.close_at).getTime(),
+            resolve_at: row.resolve_at ? new Date(row.resolve_at).getTime() : 0,
+            resolved_at: row.resolved_at ? new Date(row.resolved_at).getTime() : undefined,
+            pool_total: Number(row.pool_total) || 0,
+            distributable_pool: Number(row.distributable_pool) || 0,
+            house_fee_percent: Number(row.house_fee_percent) || 0.05,
+            min_bet: Number(row.min_bet) || 1,
+            max_bet: Number(row.max_bet) || 10000,
+            max_payout: Number(row.max_payout) || 100000,
+            max_liability: Number(row.max_liability) || 500000,
+            volume: Number(row.pool_total) || 0,
+            tags: row.tags || [],
+            outcomes: row.outcomes || [],
+            source_config: row.source_config || { source_name: "", requires_manual_confirmation: false, requires_evidence_upload: false },
+            resolution_rule: row.resolution_rule || { expression: "", variables: [], outcome_map: {}, description: "" },
+            language: row.language || "pt-BR",
+            country: row.country || "BR",
+          }));
+
+          // Merge: DB markets first, then local (dedup by title)
+          const dbTitles = new Set(dbMarkets.map((m) => m.title.toLowerCase()));
+          const uniqueLocal = local.filter((m) => !dbTitles.has(m.title.toLowerCase()));
+          setMarkets([...dbMarkets, ...uniqueLocal]);
+          return;
+        }
+      } catch {
+        // Supabase not available, fall back to local
+      }
+
+      setMarkets(local);
+    }
+
     refresh();
-    const iv = setInterval(refresh, 5000);
+    const iv = setInterval(refresh, 10000);
     return () => clearInterval(iv);
   }, []);
 
