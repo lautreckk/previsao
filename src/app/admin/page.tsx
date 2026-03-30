@@ -82,8 +82,8 @@ export default function AdminDashboard() {
       if (wonData) {
         setWonBets(wonData.map((b: SupaBet) => ({
           ...b,
-          user_name: usersMap[b.user_id]?.name || "—",
-          user_email: usersMap[b.user_id]?.email || "—",
+          user_name: usersMap[b.user_id]?.name || "\u2014",
+          user_email: usersMap[b.user_id]?.email || "\u2014",
         })));
       }
 
@@ -96,8 +96,8 @@ export default function AdminDashboard() {
       if (betsData) {
         setRecentBets(betsData.map((b: SupaBet) => ({
           ...b,
-          user_name: usersMap[b.user_id]?.name || "—",
-          user_email: usersMap[b.user_id]?.email || "—",
+          user_name: usersMap[b.user_id]?.name || "\u2014",
+          user_email: usersMap[b.user_id]?.email || "\u2014",
         })));
       }
 
@@ -119,7 +119,14 @@ export default function AdminDashboard() {
     return () => clearInterval(iv);
   }, []);
 
-  if (!stats) return <div className="text-center py-20 text-[#8B95A8]">Carregando...</div>;
+  if (!stats) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-white/10 border-t-[#10b981] rounded-full animate-spin" />
+        <p className="text-sm text-white/40 tracking-wide">Carregando...</p>
+      </div>
+    </div>
+  );
 
   const pendingPix = pixTransactions.filter(p => p.status === "pending").length;
   const winnersToday = wonBets.filter(b => {
@@ -129,69 +136,127 @@ export default function AdminDashboard() {
   }).length;
 
   const kpis = [
-    { label: "Volume Hoje", value: `R$ ${stats.volumeToday.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "trending_up", color: "#00FFB8" },
-    { label: "Receita (Fee)", value: `R$ ${stats.feeToday.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "payments", color: "#FFC700" },
-    { label: "Depositos Hoje", value: `R$ ${todayDeposits.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "account_balance", color: "#5B9DFF" },
-    { label: "Exposicao Aberta", value: `R$ ${stats.totalExposure.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "shield", color: stats.totalExposure > 100000 ? "#FF5252" : "#00FFB8" },
-    { label: "Mercados Abertos", value: String(stats.openMarkets), icon: "storefront", color: "#5B9DFF" },
-    { label: "Apostas Hoje", value: String(stats.totalBetsToday), icon: "confirmation_number", color: "#00FFB8" },
-    { label: "Ganhadores Hoje", value: String(winnersToday), icon: "emoji_events", color: "#FFC700" },
-    { label: "Usuarios", value: String(userCount || stats.totalUsers), icon: "group", color: "#5B9DFF" },
-    { label: "PIX Pendentes", value: String(pendingPix), icon: "hourglass_top", color: pendingPix > 0 ? "#FFC700" : "#00FFB8" },
-    { label: "Alertas", value: String(stats.activeAlerts), icon: "notification_important", color: stats.activeAlerts > 0 ? "#FF5252" : "#00FFB8" },
+    { label: "Volume Hoje", value: `R$ ${stats.volumeToday.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "trending_up", color: "#10b981" },
+    { label: "Receita (Fee)", value: `R$ ${stats.feeToday.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "payments", color: "#f59e0b" },
+    { label: "Depositos Hoje", value: `R$ ${todayDeposits.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "account_balance", color: "#6366f1" },
+    { label: "Exposicao Aberta", value: `R$ ${stats.totalExposure.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "shield", color: stats.totalExposure > 100000 ? "#ef4444" : "#10b981" },
+    { label: "Mercados Abertos", value: String(stats.openMarkets), icon: "storefront", color: "#6366f1" },
+    { label: "Apostas Hoje", value: String(stats.totalBetsToday), icon: "confirmation_number", color: "#10b981" },
+    { label: "Ganhadores Hoje", value: String(winnersToday), icon: "emoji_events", color: "#f59e0b" },
+    { label: "Usuarios", value: String(userCount || stats.totalUsers), icon: "group", color: "#6366f1" },
+    { label: "PIX Pendentes", value: String(pendingPix), icon: "hourglass_top", color: pendingPix > 0 ? "#f59e0b" : "#10b981" },
+    { label: "Alertas", value: String(stats.activeAlerts), icon: "notification_important", color: stats.activeAlerts > 0 ? "#ef4444" : "#10b981" },
   ];
 
+  const now = new Date();
+  const greeting = `${now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`;
+  const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="font-headline font-black text-2xl tracking-tight">Dashboard</h2>
-        <div className="flex items-center gap-2 text-xs text-[#8B95A8]"><div className="w-2 h-2 rounded-full bg-[#00FFB8] animate-pulse" />Real-time 3s</div>
+    <div className="space-y-8 max-w-7xl pb-12">
+
+      {/* Header */}
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">Dashboard</h1>
+          <p className="text-sm text-white/40 mt-1 capitalize">{greeting}</p>
+        </div>
+        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#111827] border border-white/[0.06]">
+          <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
+          <span className="text-xs text-white/50 font-medium tracking-wide">Ao vivo &middot; {timeStr}</span>
+        </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {kpis.map((k) => (
-          <div key={k.label} className="bg-[#0a1222] rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#8B95A8]">{k.label}</span>
-              <span className="material-symbols-outlined text-lg" style={{ color: k.color }}>{k.icon}</span>
+          <div
+            key={k.label}
+            className="relative group rounded-2xl p-5 border border-white/[0.06] overflow-hidden transition-all duration-300 hover:border-white/[0.12] hover:shadow-lg"
+            style={{
+              background: `linear-gradient(135deg, #111827 0%, ${k.color}08 100%)`,
+            }}
+          >
+            {/* Subtle glow */}
+            <div
+              className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl opacity-[0.07] group-hover:opacity-[0.12] transition-opacity"
+              style={{ backgroundColor: k.color }}
+            />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">{k.label}</span>
+                <span
+                  className="material-symbols-outlined text-lg opacity-60"
+                  style={{ color: k.color }}
+                >
+                  {k.icon}
+                </span>
+              </div>
+              <p
+                className="text-2xl sm:text-[1.7rem] font-bold tracking-tight"
+                style={{ color: k.color, fontVariantNumeric: "tabular-nums" }}
+              >
+                {k.value}
+              </p>
             </div>
-            <p className="font-headline font-black text-xl" style={{ color: k.color }}>{k.value}</p>
           </div>
         ))}
       </div>
 
-      {/* WINNERS + PIX DEPOSITS */}
+      {/* Winners + PIX side-by-side */}
       <div className="grid lg:grid-cols-2 gap-6">
+
         {/* Recent Winners */}
-        <div className="bg-[#0a1222] rounded-2xl border border-white/5 overflow-hidden">
-          <div className="p-4 border-b border-white/5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#FFC700]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
-            <h3 className="font-headline font-bold text-sm uppercase tracking-wider">Ganhadores Recentes</h3>
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#f59e0b]/10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-base text-[#f59e0b]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">Ganhadores Recentes</h3>
+              <p className="text-[11px] text-white/30">{wonBets.length} resultados</p>
+            </div>
           </div>
-          <div className="max-h-96 overflow-y-auto divide-y divide-white/5">
+          <div className="max-h-[420px] overflow-y-auto">
             {wonBets.length === 0 ? (
-              <p className="p-6 text-center text-[#8B95A8] text-sm">Nenhum ganhador ainda</p>
-            ) : wonBets.slice(0, 15).map((b) => (
-              <div key={b.id} className="p-3 hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-[#FFC700]/20 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-black text-[#FFC700]">{(b.user_name || "?").charAt(0).toUpperCase()}</span>
+              <div className="py-12 text-center">
+                <span className="material-symbols-outlined text-3xl text-white/10 block mb-2">emoji_events</span>
+                <p className="text-sm text-white/30">Nenhum ganhador ainda</p>
+              </div>
+            ) : wonBets.slice(0, 15).map((b, i) => (
+              <div
+                key={b.id}
+                className="px-6 py-4 hover:bg-white/[0.02] transition-colors"
+                style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#f59e0b]/20 to-[#f59e0b]/5 flex items-center justify-center shrink-0 ring-1 ring-[#f59e0b]/20">
+                      <span className="text-sm font-bold text-[#f59e0b]">
+                        {(b.user_name || "?").charAt(0).toUpperCase()}
+                      </span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold truncate">{b.user_name}</p>
-                      <p className="text-[10px] text-[#8B95A8] truncate">{b.user_email}</p>
+                      <p className="text-sm font-semibold text-white truncate">{b.user_name}</p>
+                      <p className="text-[11px] text-white/30 truncate">{b.user_email}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-black text-[#00FFB8] font-headline">+R$ {Number(b.final_payout).toFixed(2)}</p>
-                    <p className="text-[10px] text-[#8B95A8]">apostou R$ {Number(b.amount).toFixed(2)}</p>
+                    <p className="text-sm font-bold text-[#10b981]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      +R$ {Number(b.final_payout).toFixed(2)}
+                    </p>
+                    <p className="text-[11px] text-white/30" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      apostou R$ {Number(b.amount).toFixed(2)}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] bg-[#00FFB8]/10 text-[#00FFB8] px-2 py-0.5 rounded-full font-bold">{b.outcome_label}</span>
-                  <span className="text-[10px] text-[#8B95A8]">{new Date(b.created_at).toLocaleString("pt-BR")}</span>
+                <div className="flex items-center gap-2 mt-2.5">
+                  <span className="text-[11px] bg-[#10b981]/10 text-[#10b981] px-2.5 py-1 rounded-full font-medium">
+                    {b.outcome_label}
+                  </span>
+                  <span className="text-[11px] text-white/25">
+                    {new Date(b.created_at).toLocaleString("pt-BR")}
+                  </span>
                 </div>
               </div>
             ))}
@@ -199,119 +264,373 @@ export default function AdminDashboard() {
         </div>
 
         {/* PIX Deposits */}
-        <div className="bg-[#0a1222] rounded-2xl border border-white/5 overflow-hidden">
-          <div className="p-4 border-b border-white/5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#5B9DFF]">pix</span>
-            <h3 className="font-headline font-bold text-sm uppercase tracking-wider">Depositos PIX</h3>
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#6366f1]/10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-base text-[#6366f1]">pix</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">Depositos PIX</h3>
+              <p className="text-[11px] text-white/30">{pixTransactions.length} transacoes</p>
+            </div>
           </div>
-          <div className="max-h-96 overflow-y-auto divide-y divide-white/5">
+          <div className="max-h-[420px] overflow-y-auto">
             {pixTransactions.length === 0 ? (
-              <p className="p-6 text-center text-[#8B95A8] text-sm">Nenhum deposito ainda</p>
-            ) : pixTransactions.slice(0, 15).map((tx) => (
-              <div key={tx.id} className="p-3 hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold truncate">{tx.user_email}</p>
-                    <p className="text-[10px] text-[#8B95A8] font-mono">{tx.id.slice(0, 20)}...</p>
+              <div className="py-12 text-center">
+                <span className="material-symbols-outlined text-3xl text-white/10 block mb-2">pix</span>
+                <p className="text-sm text-white/30">Nenhum deposito ainda</p>
+              </div>
+            ) : pixTransactions.slice(0, 15).map((tx, i) => (
+              <div
+                key={tx.id}
+                className="px-6 py-4 hover:bg-white/[0.02] transition-colors"
+                style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white truncate">{tx.user_email}</p>
+                    <p className="text-[11px] text-white/20 font-mono mt-0.5">{tx.id.slice(0, 20)}...</p>
                   </div>
-                  <div className="text-right shrink-0 flex items-center gap-3">
-                    <p className="text-sm font-black font-headline" style={{ color: tx.status === "paid" ? "#00FFB8" : "#FFC700" }}>R$ {Number(tx.amount).toFixed(2)}</p>
-                    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${tx.status === "paid" ? "bg-[#00FFB8]/10 text-[#00FFB8]" : "bg-[#FFC700]/10 text-[#FFC700]"}`}>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <p
+                      className="text-sm font-bold"
+                      style={{
+                        color: tx.status === "paid" ? "#10b981" : "#f59e0b",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      R$ {Number(tx.amount).toFixed(2)}
+                    </p>
+                    <span
+                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                        tx.status === "paid"
+                          ? "bg-[#10b981]/10 text-[#10b981]"
+                          : "bg-[#f59e0b]/10 text-[#f59e0b]"
+                      }`}
+                    >
                       {tx.status === "paid" ? "Pago" : "Pendente"}
                     </span>
                   </div>
                 </div>
-                <p className="text-[10px] text-[#8B95A8] mt-1">{new Date(tx.created_at).toLocaleString("pt-BR")}</p>
+                <p className="text-[11px] text-white/25 mt-1.5">
+                  {new Date(tx.created_at).toLocaleString("pt-BR")}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Category Breakdown */}
-      <div className="bg-[#0a1222] rounded-2xl border border-white/5 p-5">
-        <h3 className="font-headline font-bold text-sm uppercase tracking-wider mb-4">Volume por Categoria</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Category Breakdown -- horizontally scrollable on mobile */}
+      <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
+        <h3 className="text-sm font-semibold text-white mb-5">Volume por Categoria</h3>
+        <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
           {Object.entries(stats.catBreakdown).map(([cat, data]) => {
             const meta = CATEGORY_META[cat as MarketCategory];
             return (
-              <div key={cat} className="bg-[#0f1729] rounded-xl p-3 text-center">
-                <span className="material-symbols-outlined text-2xl mb-1 block" style={{ color: meta?.color || "#8B95A8" }}>{meta?.icon || "category"}</span>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#8B95A8]">{meta?.label || cat}</p>
-                <p className="font-headline font-black text-sm">{data.count} mkts</p>
-                <p className="text-[10px] text-[#8B95A8]">R$ {data.volume.toFixed(0)}</p>
+              <div
+                key={cat}
+                className="snap-start shrink-0 w-[140px] lg:w-auto rounded-xl p-4 text-center border border-white/[0.06] hover:border-white/[0.12] transition-colors"
+                style={{
+                  background: `linear-gradient(180deg, ${meta?.color || "#8B95A8"}08 0%, transparent 100%)`,
+                }}
+              >
+                <span
+                  className="material-symbols-outlined text-2xl mb-2 block"
+                  style={{ color: meta?.color || "#8B95A8" }}
+                >
+                  {meta?.icon || "category"}
+                </span>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-1">
+                  {meta?.label || cat}
+                </p>
+                <p className="text-lg font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {data.count} <span className="text-xs font-normal text-white/30">mkts</span>
+                </p>
+                <p className="text-[11px] text-white/30 mt-0.5" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  R$ {data.volume.toFixed(0)}
+                </p>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Markets Table */}
-      <div className="bg-[#0a1222] rounded-2xl border border-white/5 overflow-hidden">
-        <div className="p-4 border-b border-white/5 flex justify-between items-center">
-          <h3 className="font-headline font-bold text-sm uppercase tracking-wider">Mercados Ativos</h3>
+      {/* Markets -- Table on desktop, Cards on mobile */}
+      <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/[0.06] flex justify-between items-center">
+          <h3 className="text-sm font-semibold text-white">Mercados Ativos</h3>
+          <span className="text-[11px] text-white/30 font-medium">
+            {stats.markets.filter(m => !["resolved", "cancelled", "draft"].includes(m.status)).length} abertos
+          </span>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-[#8B95A8]">
-              <th className="text-left p-3">Mercado</th><th className="text-left p-3">Cat.</th><th className="text-right p-3">Pool</th><th className="text-center p-3">Outcomes</th><th className="text-center p-3">Resolucao</th><th className="text-center p-3">Status</th>
-            </tr></thead>
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                <th className="text-left px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">Mercado</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">Cat.</th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">Pool</th>
+                <th className="text-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">Outcomes</th>
+                <th className="text-center px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">Resolucao</th>
+                <th className="text-center px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">Status</th>
+              </tr>
+            </thead>
             <tbody>
               {stats.markets.filter(m => !["resolved", "cancelled", "draft"].includes(m.status)).map((m) => {
                 const meta = CATEGORY_META[m.category];
-                const stColor: Record<string, string> = { open: "bg-[#00FFB8]/10 text-[#00FFB8]", frozen: "bg-[#FFC700]/10 text-[#FFC700]", closed: "bg-[#FF5252]/10 text-[#FF5252]", awaiting_resolution: "bg-[#FFC700]/10 text-[#FFC700]", scheduled: "bg-[#5B9DFF]/10 text-[#5B9DFF]" };
+                const stColor: Record<string, string> = {
+                  open: "bg-[#10b981]/10 text-[#10b981]",
+                  frozen: "bg-[#f59e0b]/10 text-[#f59e0b]",
+                  closed: "bg-[#ef4444]/10 text-[#ef4444]",
+                  awaiting_resolution: "bg-[#f59e0b]/10 text-[#f59e0b]",
+                  scheduled: "bg-[#6366f1]/10 text-[#6366f1]",
+                };
                 return (
-                  <tr key={m.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="p-3"><div className="font-bold truncate max-w-[250px]">{m.title}</div><div className="text-[10px] text-[#8B95A8]">{m.short_description}</div></td>
-                    <td className="p-3"><span className="material-symbols-outlined text-sm mr-1" style={{ color: meta?.color }}>{meta?.icon}</span><span className="text-xs">{meta?.label}</span></td>
-                    <td className="p-3 text-right font-mono font-bold">R$ {m.pool_total.toFixed(0)}</td>
-                    <td className="p-3 text-center">{m.outcomes.map((o) => <span key={o.key} className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded mr-1" style={{ backgroundColor: o.color + "20", color: o.color }}>{o.label}: {o.payout_per_unit.toFixed(2)}x</span>)}</td>
-                    <td className="p-3 text-center"><span className={`text-[10px] font-bold uppercase ${m.resolution_type === "automatic" ? "text-[#00FFB8]" : m.resolution_type === "manual" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>{m.resolution_type}</span></td>
-                    <td className="p-3 text-center"><span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${stColor[m.status] || "bg-[#5A6478]/20 text-[#8B95A8]"}`}>{m.status}</span></td>
+                  <tr key={m.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-white truncate max-w-[280px]">{m.title}</div>
+                      <div className="text-[11px] text-white/30 mt-0.5 truncate max-w-[280px]">{m.short_description}</div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm" style={{ color: meta?.color }}>{meta?.icon}</span>
+                        <span className="text-xs text-white/50">{meta?.label}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-right font-mono font-bold text-white/80" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      R$ {m.pool_total.toFixed(0)}
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {m.outcomes.map((o) => (
+                          <span
+                            key={o.key}
+                            className="inline-block text-[11px] font-medium px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: o.color + "15", color: o.color }}
+                          >
+                            {o.label}: {o.payout_per_unit.toFixed(2)}x
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`text-[11px] font-semibold uppercase ${
+                        m.resolution_type === "automatic" ? "text-[#10b981]" : m.resolution_type === "manual" ? "text-[#ef4444]" : "text-[#f59e0b]"
+                      }`}>
+                        {m.resolution_type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-[11px] font-semibold uppercase px-2.5 py-1 rounded-full ${stColor[m.status] || "bg-white/5 text-white/40"}`}>
+                        {m.status}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-white/[0.04]">
+          {stats.markets.filter(m => !["resolved", "cancelled", "draft"].includes(m.status)).map((m) => {
+            const meta = CATEGORY_META[m.category];
+            const stColor: Record<string, string> = {
+              open: "bg-[#10b981]/10 text-[#10b981]",
+              frozen: "bg-[#f59e0b]/10 text-[#f59e0b]",
+              closed: "bg-[#ef4444]/10 text-[#ef4444]",
+              awaiting_resolution: "bg-[#f59e0b]/10 text-[#f59e0b]",
+              scheduled: "bg-[#6366f1]/10 text-[#6366f1]",
+            };
+            return (
+              <div key={m.id} className="px-5 py-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{m.title}</p>
+                    <p className="text-[11px] text-white/30 mt-0.5 truncate">{m.short_description}</p>
+                  </div>
+                  <span className={`text-[11px] font-semibold uppercase px-2.5 py-1 rounded-full shrink-0 ${stColor[m.status] || "bg-white/5 text-white/40"}`}>
+                    {m.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-[11px]">
+                  <div className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm" style={{ color: meta?.color }}>{meta?.icon}</span>
+                    <span className="text-white/40">{meta?.label}</span>
+                  </div>
+                  <span className="text-white/60 font-mono font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    R$ {m.pool_total.toFixed(0)}
+                  </span>
+                  <span className={`font-semibold uppercase ${
+                    m.resolution_type === "automatic" ? "text-[#10b981]" : m.resolution_type === "manual" ? "text-[#ef4444]" : "text-[#f59e0b]"
+                  }`}>
+                    {m.resolution_type}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {m.outcomes.map((o) => (
+                    <span
+                      key={o.key}
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: o.color + "15", color: o.color }}
+                    >
+                      {o.label}: {o.payout_per_unit.toFixed(2)}x
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Recent Bets + Alerts */}
+      {/* Recent Bets + Risk Alerts */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-[#0a1222] rounded-2xl border border-white/5 overflow-hidden">
-          <div className="p-4 border-b border-white/5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#00FFB8]">receipt_long</span>
-            <h3 className="font-headline font-bold text-sm uppercase tracking-wider">Apostas Recentes</h3>
+
+        {/* Recent Bets */}
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#10b981]/10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-base text-[#10b981]">receipt_long</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">Apostas Recentes</h3>
+              <p className="text-[11px] text-white/30">{recentBets.length} apostas</p>
+            </div>
           </div>
-          <div className="max-h-96 overflow-y-auto divide-y divide-white/5">
-            {recentBets.length === 0 ? <p className="p-4 text-[#8B95A8] text-sm text-center">Nenhuma</p> : recentBets.slice(0, 15).map((b) => (
-              <div key={b.id} className="p-3 hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-between">
+
+          {/* Desktop list */}
+          <div className="hidden sm:block max-h-[420px] overflow-y-auto">
+            {recentBets.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm text-white/30">Nenhuma aposta</p>
+              </div>
+            ) : recentBets.slice(0, 15).map((b, i) => (
+              <div
+                key={b.id}
+                className="px-6 py-4 hover:bg-white/[0.02] transition-colors"
+                style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+              >
+                <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-bold truncate">{b.user_name} <span className="text-[#8B95A8] font-normal text-[10px]">{b.user_email}</span></p>
-                    <p className="text-[10px] text-[#8B95A8] mt-0.5">{b.outcome_label}</p>
+                    <p className="text-sm font-semibold text-white truncate">
+                      {b.user_name}
+                      <span className="text-white/25 font-normal text-[11px] ml-2">{b.user_email}</span>
+                    </p>
+                    <p className="text-[11px] text-white/30 mt-0.5">{b.outcome_label}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-black font-headline">R$ {Number(b.amount).toFixed(2)}</p>
-                    <span className={`text-[10px] font-bold ${b.status === "won" ? "text-[#00FFB8]" : b.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>{b.status === "won" ? "Ganhou" : b.status === "lost" ? "Perdeu" : "Ativa"}</span>
+                    <p className="text-sm font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      R$ {Number(b.amount).toFixed(2)}
+                    </p>
+                    <span className={`text-[11px] font-semibold ${
+                      b.status === "won" ? "text-[#10b981]" : b.status === "lost" ? "text-[#ef4444]" : "text-[#f59e0b]"
+                    }`}>
+                      {b.status === "won" ? "Ganhou" : b.status === "lost" ? "Perdeu" : "Ativa"}
+                    </span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-        <div className="bg-[#0a1222] rounded-2xl border border-white/5 overflow-hidden">
-          <div className="p-4 border-b border-white/5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#FF5252]">warning</span>
-            <h3 className="font-headline font-bold text-sm uppercase tracking-wider">Alertas de Risco</h3>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {stats.alerts.length === 0 ? <div className="p-6 text-center"><span className="material-symbols-outlined text-3xl text-[#00FFB8] mb-2 block">verified_user</span><p className="text-sm text-[#8B95A8]">Sem alertas</p></div>
-            : stats.alerts.map((a) => (
-              <div key={a.id} className={`p-3 border-b border-white/5 border-l-4 ${a.severity === "critical" ? "border-l-[#FF5252]" : a.severity === "high" ? "border-l-[#FFC700]" : "border-l-[#5B9DFF]"}`}>
-                <p className="text-xs font-bold">{a.message}</p><p className="text-[10px] text-[#8B95A8]">{a.type}</p>
+
+          {/* Mobile cards */}
+          <div className="sm:hidden max-h-[420px] overflow-y-auto p-4 space-y-3">
+            {recentBets.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-white/30">Nenhuma aposta</p>
+              </div>
+            ) : recentBets.slice(0, 15).map((b) => (
+              <div
+                key={b.id}
+                className="rounded-xl border border-white/[0.06] p-4 space-y-2"
+                style={{
+                  background: `linear-gradient(135deg, #111827 0%, ${
+                    b.status === "won" ? "#10b981" : b.status === "lost" ? "#ef4444" : "#f59e0b"
+                  }06 100%)`,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-white truncate">{b.user_name}</p>
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                    b.status === "won"
+                      ? "bg-[#10b981]/10 text-[#10b981]"
+                      : b.status === "lost"
+                        ? "bg-[#ef4444]/10 text-[#ef4444]"
+                        : "bg-[#f59e0b]/10 text-[#f59e0b]"
+                  }`}>
+                    {b.status === "won" ? "Ganhou" : b.status === "lost" ? "Perdeu" : "Ativa"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-white/30">{b.outcome_label}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-white/25">{b.user_email}</p>
+                  <p className="text-sm font-bold text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    R$ {Number(b.amount).toFixed(2)}
+                  </p>
+                </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Risk Alerts */}
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#ef4444]/10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-base text-[#ef4444]">warning</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">Alertas de Risco</h3>
+              <p className="text-[11px] text-white/30">{stats.alerts.length} alertas</p>
+            </div>
+          </div>
+          <div className="max-h-[420px] overflow-y-auto">
+            {stats.alerts.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#10b981]/10 flex items-center justify-center mx-auto mb-3">
+                  <span className="material-symbols-outlined text-xl text-[#10b981]">verified_user</span>
+                </div>
+                <p className="text-sm font-medium text-white/50">Tudo limpo</p>
+                <p className="text-[11px] text-white/25 mt-1">Sem alertas ativos</p>
+              </div>
+            ) : stats.alerts.map((a, i) => {
+              const severityStyles: Record<string, { border: string; bg: string; icon: string; color: string }> = {
+                critical: { border: "border-l-[#ef4444]", bg: "bg-[#ef4444]/[0.03]", icon: "error", color: "#ef4444" },
+                high: { border: "border-l-[#f59e0b]", bg: "bg-[#f59e0b]/[0.03]", icon: "warning", color: "#f59e0b" },
+                medium: { border: "border-l-[#6366f1]", bg: "bg-[#6366f1]/[0.03]", icon: "info", color: "#6366f1" },
+              };
+              const style = severityStyles[a.severity] || severityStyles.medium;
+              return (
+                <div
+                  key={a.id}
+                  className={`px-6 py-4 border-l-[3px] ${style.border} ${style.bg}`}
+                  style={{ borderBottom: i < stats.alerts.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-base mt-0.5" style={{ color: style.color }}>
+                      {style.icon}
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-white">{a.message}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span
+                          className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: style.color + "15", color: style.color }}
+                        >
+                          {a.severity}
+                        </span>
+                        <span className="text-[11px] text-white/25">{a.type}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

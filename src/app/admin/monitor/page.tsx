@@ -6,6 +6,31 @@ import { generateRiskSnapshot } from "@/lib/engines/risk-engine";
 import { CATEGORY_META } from "@/lib/engines/types";
 import type { PredictionMarket, Bet, RiskAlert, RiskSnapshot, MarketCategory } from "@/lib/engines/types";
 
+function formatTime(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "agora";
+  if (diffMin < 60) return `${diffMin}m atras`;
+  const hours = d.getHours().toString().padStart(2, "0");
+  const mins = d.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${mins}`;
+}
+
+function RiskPill({ value, thresholds, format = "pct" }: { value: number; thresholds: [number, number]; format?: "pct" | "raw" }) {
+  const color =
+    value > thresholds[1] ? "bg-[#ef4444]/10 text-[#ef4444]" :
+    value > thresholds[0] ? "bg-[#f59e0b]/10 text-[#f59e0b]" :
+    "bg-[#10b981]/10 text-[#10b981]";
+  const label = format === "pct" ? `${value.toFixed(1)}%` : value.toFixed(1);
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-tight ${color}`}>
+      {label}
+    </span>
+  );
+}
+
 export default function AdminMonitor() {
   const [markets, setMarkets] = useState<PredictionMarket[]>([]);
   const [bets, setBets] = useState<Bet[]>([]);
@@ -31,80 +56,222 @@ export default function AdminMonitor() {
   const recentBets = [...bets].sort((a, b) => b.created_at - a.created_at).slice(0, 30);
 
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex items-center justify-between">
-        <h2 className="font-headline font-black text-2xl tracking-tight">Live Monitor</h2>
-        <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#FF6B5A] animate-pulse" /><span className="text-xs text-[#8B95A8] font-bold">REAL-TIME 2s</span></div>
-      </div>
+    <div className="min-h-screen" style={{ backgroundColor: "#0a0f1a" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {openMarkets.map((m) => {
-          const snap = snapshots[m.id];
-          if (!snap) return null;
-          const liabPct = snap.max_liability > 0 ? (snap.pool_total / snap.max_liability) * 100 : 0;
-          const isHighRisk = snap.imbalance_ratio > 0.6 || liabPct > 80;
-          const meta = CATEGORY_META[m.category as MarketCategory];
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-[22px] sm:text-[26px] font-semibold tracking-tight text-white">
+              Live Monitor
+            </h1>
+            <p className="text-[13px] text-white/40 mt-0.5">
+              {openMarkets.length} mercado{openMarkets.length !== 1 ? "s" : ""} ativo{openMarkets.length !== 1 ? "s" : ""} &middot; {bets.length} apostas
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 bg-[#111827] border border-white/[0.06] rounded-full px-3.5 py-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]" />
+            </span>
+            <span className="text-[11px] text-white/50 font-medium tracking-wide uppercase">Tempo real</span>
+          </div>
+        </div>
 
-          return (
-            <div key={m.id} className={`bg-[#0f1729] rounded-2xl p-5 border ${isHighRisk ? "border-[#FF6B5A]/40" : "border-white/5"}`}>
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="material-symbols-outlined text-sm" style={{ color: meta?.color }}>{meta?.icon}</span>
-                    <span className="text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">{meta?.label}</span>
-                  </div>
-                  <h4 className="font-bold font-headline text-sm">{m.title}</h4>
-                </div>
-                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${m.status === "open" ? "bg-[#00D4AA]/10 text-[#00D4AA]" : "bg-[#FFB800]/10 text-[#FFB800]"}`}>{m.status}</span>
-              </div>
+        {/* Market Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {openMarkets.map((m) => {
+            const snap = snapshots[m.id];
+            if (!snap) return null;
+            const liabPct = snap.max_liability > 0 ? (snap.pool_total / snap.max_liability) * 100 : 0;
+            const isHighRisk = snap.imbalance_ratio > 0.6 || liabPct > 80;
+            const meta = CATEGORY_META[m.category as MarketCategory];
 
-              {/* Outcome bars */}
-              <div className="space-y-1.5 mb-3">
-                {m.outcomes.map((o) => {
-                  const pct = m.pool_total > 0 ? (o.pool / m.pool_total) * 100 : 0;
-                  return (
-                    <div key={o.key} className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold w-16 truncate" style={{ color: o.color }}>{o.label}</span>
-                      <div className="flex-1 h-2 bg-[#212e4a] rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: o.color }} />
+            return (
+              <div
+                key={m.id}
+                className="group relative rounded-2xl border transition-all duration-300"
+                style={{
+                  backgroundColor: "#111827",
+                  borderColor: isHighRisk ? "rgba(239, 68, 68, 0.25)" : "rgba(255, 255, 255, 0.06)",
+                }}
+              >
+                {/* Subtle glow on high risk */}
+                {isHighRisk && (
+                  <div className="absolute inset-0 rounded-2xl opacity-20 pointer-events-none"
+                    style={{ boxShadow: "inset 0 0 40px rgba(239, 68, 68, 0.08)" }} />
+                )}
+
+                <div className="relative p-5 sm:p-6">
+                  {/* Card Header */}
+                  <div className="flex justify-between items-start mb-5">
+                    <div className="flex-1 min-w-0 pr-3">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span
+                          className="material-symbols-outlined text-[15px]"
+                          style={{ color: meta?.color }}
+                        >
+                          {meta?.icon}
+                        </span>
+                        <span className="text-[11px] font-medium text-white/35 uppercase tracking-widest">
+                          {meta?.label}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono text-[#8B95A8] w-20 text-right">R$ {o.pool.toFixed(0)} ({o.payout_per_unit.toFixed(2)}x)</span>
+                      <h3 className="text-[15px] font-semibold text-white leading-snug truncate">
+                        {m.title}
+                      </h3>
                     </div>
-                  );
-                })}
-              </div>
+                    <span
+                      className={`shrink-0 text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full tracking-wider ${
+                        m.status === "open"
+                          ? "bg-[#10b981]/10 text-[#10b981]"
+                          : "bg-[#f59e0b]/10 text-[#f59e0b]"
+                      }`}
+                    >
+                      {m.status === "open" ? "Aberto" : "Congelado"}
+                    </span>
+                  </div>
 
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div><p className="text-[10px] text-[#8B95A8] uppercase font-bold">Exposicao</p><p className={`font-headline font-black text-sm ${liabPct > 80 ? "text-[#FF6B5A]" : "text-white"}`}>{liabPct.toFixed(1)}%</p></div>
-                <div><p className="text-[10px] text-[#8B95A8] uppercase font-bold">Desequilibrio</p><p className={`font-headline font-black text-sm ${snap.imbalance_ratio > 0.6 ? "text-[#FFB800]" : "text-white"}`}>{(snap.imbalance_ratio * 100).toFixed(1)}%</p></div>
-                <div><p className="text-[10px] text-[#8B95A8] uppercase font-bold">Usuarios</p><p className="font-headline font-black text-sm text-white">{snap.unique_users}</p></div>
-              </div>
+                  {/* Outcome Distribution Bars */}
+                  <div className="overflow-x-auto -mx-5 sm:-mx-6 px-5 sm:px-6 pb-1">
+                    <div className="space-y-2.5 min-w-[280px] mb-5">
+                      {m.outcomes.map((o) => {
+                        const pct = m.pool_total > 0 ? (o.pool / m.pool_total) * 100 : 0;
+                        return (
+                          <div key={o.key} className="flex items-center gap-3">
+                            <span
+                              className="text-[11px] font-medium w-[72px] truncate shrink-0"
+                              style={{ color: o.color }}
+                            >
+                              {o.label}
+                            </span>
+                            <div className="flex-1 h-[7px] bg-white/[0.04] rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-700 ease-out"
+                                style={{
+                                  width: `${Math.max(pct, 1)}%`,
+                                  backgroundColor: o.color,
+                                  opacity: 0.8,
+                                }}
+                              />
+                            </div>
+                            <div className="text-right shrink-0 w-[88px]">
+                              <span className="text-[11px] font-medium text-white/50 tabular-nums">
+                                R$ {o.pool.toFixed(0)}
+                              </span>
+                              <span className="text-[10px] text-white/25 ml-1.5 tabular-nums">
+                                {o.payout_per_unit.toFixed(2)}x
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-              {snap.top_user_concentration > 0.2 && (
-                <div className="mt-3 bg-[#FFB800]/10 rounded-xl p-2 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FFB800] text-sm">warning</span>
-                  <span className="text-[10px] text-[#FFB800] font-bold">Concentracao top user: {(snap.top_user_concentration * 100).toFixed(1)}%</span>
+                  {/* Risk Indicators */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 bg-white/[0.03] rounded-xl px-3 py-2">
+                      <span className="text-[10px] text-white/30 uppercase tracking-wide font-medium">Exposicao</span>
+                      <RiskPill value={liabPct} thresholds={[50, 80]} />
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/[0.03] rounded-xl px-3 py-2">
+                      <span className="text-[10px] text-white/30 uppercase tracking-wide font-medium">Desequilibrio</span>
+                      <RiskPill value={snap.imbalance_ratio * 100} thresholds={[40, 60]} />
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/[0.03] rounded-xl px-3 py-2">
+                      <span className="text-[10px] text-white/30 uppercase tracking-wide font-medium">Usuarios</span>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-tight bg-[#3b82f6]/10 text-[#3b82f6]">
+                        {snap.unique_users}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Top User Concentration Warning */}
+                  {snap.top_user_concentration > 0.2 && (
+                    <div className="mt-4 flex items-center gap-2.5 bg-[#f59e0b]/[0.06] border border-[#f59e0b]/10 rounded-xl px-3.5 py-2.5">
+                      <span className="material-symbols-outlined text-[#f59e0b] text-[16px]">warning</span>
+                      <span className="text-[11px] text-[#f59e0b]/80 font-medium">
+                        Concentracao de usuario: {(snap.top_user_concentration * 100).toFixed(1)}% do pool
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
-        {openMarkets.length === 0 && <div className="col-span-2 text-center py-12 text-[#8B95A8]">Nenhum mercado aberto</div>}
-      </div>
-
-      {/* Bet Feed */}
-      <div className="bg-[#0f1729] rounded-2xl border border-white/5 overflow-hidden">
-        <div className="p-4 border-b border-white/5"><h3 className="font-headline font-bold text-sm uppercase tracking-wider">Feed de Apostas ({bets.length} total)</h3></div>
-        <div className="max-h-96 overflow-y-auto divide-y divide-white/5">
-          {recentBets.length === 0 ? <p className="p-6 text-center text-[#8B95A8] text-sm">Nenhuma aposta</p> : recentBets.map((b) => (
-            <div key={b.id} className="p-3 flex items-center justify-between hover:bg-white/5">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black bg-[#141d30]" style={{ color: "#00D4AA" }}>{b.outcome_key.slice(0, 2)}</div>
-                <div><p className="text-xs font-bold">{b.outcome_label}</p><p className="text-[10px] text-[#8B95A8]">{b.user_id.slice(0, 12)}... - {new Date(b.created_at).toLocaleTimeString("pt-BR")}</p></div>
               </div>
-              <div className="text-right"><p className="text-sm font-black font-headline">R$ {b.amount.toFixed(2)}</p><p className="text-[10px] text-[#8B95A8]">Est: R$ {b.payout_at_entry.toFixed(2)}</p></div>
+            );
+          })}
+
+          {openMarkets.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-20">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-white/20 text-xl">monitoring</span>
+              </div>
+              <p className="text-[13px] text-white/30 font-medium">Nenhum mercado aberto</p>
             </div>
-          ))}
+          )}
+        </div>
+
+        {/* Bet Feed */}
+        <div
+          className="rounded-2xl border overflow-hidden"
+          style={{ backgroundColor: "#111827", borderColor: "rgba(255, 255, 255, 0.06)" }}
+        >
+          {/* Feed Header */}
+          <div className="px-5 sm:px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <h2 className="text-[14px] font-semibold text-white tracking-tight">
+              Feed de Apostas
+            </h2>
+            <span className="text-[11px] text-white/30 font-medium tabular-nums">
+              {bets.length} total
+            </span>
+          </div>
+
+          {/* Bet Cards */}
+          <div className="max-h-[480px] overflow-y-auto">
+            {recentBets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <p className="text-[13px] text-white/25 font-medium">Nenhuma aposta registrada</p>
+              </div>
+            ) : (
+              <div className="p-3 sm:p-4 space-y-2">
+                {recentBets.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between rounded-xl px-4 py-3 transition-colors duration-200 hover:bg-white/[0.02]"
+                    style={{ backgroundColor: "rgba(255, 255, 255, 0.015)" }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-bold shrink-0"
+                        style={{
+                          backgroundColor: "rgba(16, 185, 129, 0.08)",
+                          color: "#10b981",
+                        }}
+                      >
+                        {b.outcome_key.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium text-white truncate">
+                          {b.outcome_label}
+                        </p>
+                        <p className="text-[11px] text-white/25 mt-0.5">
+                          {b.user_id.slice(0, 8)}&hellip; &middot; {formatTime(b.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 pl-4">
+                      <p className="text-[14px] font-semibold text-white tabular-nums">
+                        R$ {b.amount.toFixed(2)}
+                      </p>
+                      <p className="text-[11px] text-white/25 mt-0.5 tabular-nums">
+                        Est. R$ {b.payout_at_entry.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
