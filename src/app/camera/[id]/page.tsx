@@ -143,7 +143,7 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         autoPlay
         muted
         playsInline
-        className={`absolute inset-0 w-full h-full object-cover rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
+        className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
       />
 
       {/* Worker frame fallback */}
@@ -151,7 +151,7 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         <img
           src={frameUrl}
           alt="Camera ao vivo"
-          className="absolute inset-0 w-full h-full object-cover rounded-lg bg-black"
+          className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
           onError={() => {}}
         />
       )}
@@ -365,9 +365,9 @@ function RoundHistory({ marketId }: { marketId: string }) {
 }
 
 /* ─── Main Page ─── */
-export default function CameraMarketPage() {
-  const params = useParams();
-  const marketId = params.id as string;
+export { CameraMarketView };
+
+function CameraMarketView({ marketId }: { marketId: string }) {
   const { market, currentRound, currentCount, odds, loading, lastResult } = useCameraMarket(marketId);
   const { user, refreshUser } = useUser();
 
@@ -424,12 +424,12 @@ export default function CameraMarketPage() {
   const closedPredictions = myPredictions.filter((p) => p.status !== "open");
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white overflow-x-hidden">
+    <div className="h-screen bg-[#080d1a] text-white overflow-hidden">
       {/* ─── DESKTOP: 3-column layout like Palpitano ─── */}
-      <div className="flex flex-col lg:flex-row min-h-screen">
+      <div className="flex flex-col lg:flex-row h-screen">
 
         {/* ─── LEFT COLUMN: Stream + Betting ─── */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
 
           {/* Top bar: Title + Timer */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-[#1a2a3a] bg-[#0d1525]">
@@ -581,7 +581,7 @@ export default function CameraMarketPage() {
         </div>
 
         {/* ─── MIDDLE COLUMN: Positions + Bet form ─── */}
-        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0a1222]">
+        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0a1222] overflow-hidden">
           {/* Tabs */}
           {selectedType ? (
             /* Bet form when type is selected */
@@ -704,7 +704,7 @@ export default function CameraMarketPage() {
         </div>
 
         {/* ─── RIGHT COLUMN: Chat ao Vivo ─── */}
-        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0d1525] h-screen lg:h-auto">
+        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0d1525] overflow-hidden">
           <InlineChat />
         </div>
       </div>

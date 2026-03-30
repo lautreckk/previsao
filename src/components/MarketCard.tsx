@@ -22,7 +22,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
   const probs = calcImpliedProbabilities(market.outcomes);
 
   return (
-    <Link href={isClosed ? "#" : `/evento/${market.id}`} className={`block ${isClosed ? "pointer-events-none opacity-50" : ""}`}>
+    <Link href={isClosed ? "#" : market.stream_url ? `/camera` : `/evento/${market.id}`} className={`block ${isClosed ? "pointer-events-none opacity-50" : ""}`}>
       <div className="bg-[#1a2332] rounded-xl border border-[#2a3444] hover:border-[#3a4454] transition-all h-full flex flex-col">
         {/* Category tag */}
         <div className="px-3 pt-3">

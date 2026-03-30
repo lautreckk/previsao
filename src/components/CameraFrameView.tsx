@@ -47,7 +47,7 @@ export default function CameraFrameView({
           <img
             src={frameUrl}
             alt="Camera ao vivo"
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+            className="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
             style={{ opacity: hasFrame === true ? 1 : 0.3 }}
             onLoad={() => { setHasFrame(true); }}
             onError={() => {
