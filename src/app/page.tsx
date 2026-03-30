@@ -76,15 +76,42 @@ const chatMessages = [
   "essa do clima ta facil", "quem apostou no flamengo?",
 ];
 
+// Avatar colors per user (deterministic from name)
+const AVATAR_COLORS = [
+  "from-[#FF6B6B] to-[#EE5A24]", "from-[#00D4AA] to-[#00B894]",
+  "from-[#6C5CE7] to-[#A29BFE]", "from-[#FDCB6E] to-[#F39C12]",
+  "from-[#00CEFF] to-[#0984E3]", "from-[#FD79A8] to-[#E84393]",
+  "from-[#55E6C1] to-[#58B19F]", "from-[#FF9FF3] to-[#F368E0]",
+];
+function avatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+// Badge tiers based on fake prediction count
+const BADGES: { min: number; icon: string; color: string; label: string }[] = [
+  { min: 100, icon: "local_fire_department", color: "text-[#FF6B6B]", label: "Top" },
+  { min: 50, icon: "bolt", color: "text-[#FDCB6E]", label: "Ativo" },
+  { min: 20, icon: "trending_up", color: "text-[#00D4AA]", label: "Regular" },
+];
+function getUserBadge(text: string) {
+  const match = text.match(/(\d+)\s*previsoes/);
+  const count = match ? parseInt(match[1]) : 0;
+  return BADGES.find((b) => count >= b.min) || null;
+}
+
 export default function Home() {
   const { user } = useUser();
   const [markets, setMarkets] = useState<PredictionMarket[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"closing" | "hot">("closing");
   const [search, setSearch] = useState("");
-  const [chatMsgs, setChatMsgs] = useState<{ user: string; text: string; id: number }[]>([]);
+  const [chatMsgs, setChatMsgs] = useState<{ user: string; text: string; id: number; ts: number }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   const onlineCount = useRef(620 + Math.floor(Math.random() * 40));
 
   useEffect(() => {
@@ -97,10 +124,12 @@ export default function Home() {
 
   // Seed chat messages
   useEffect(() => {
+    const now = Date.now();
     const initial = Array.from({ length: 8 }, (_, i) => ({
       user: chatUsers[i % chatUsers.length],
       text: chatMessages[i % chatMessages.length],
       id: i,
+      ts: now - (8 - i) * 30000,
     }));
     setChatMsgs(initial);
   }, []);
@@ -108,21 +137,34 @@ export default function Home() {
   // Auto chat messages
   useEffect(() => {
     const iv = setInterval(() => {
-      const user = chatUsers[Math.floor(Math.random() * chatUsers.length)];
+      const u = chatUsers[Math.floor(Math.random() * chatUsers.length)];
       const text = chatMessages[Math.floor(Math.random() * chatMessages.length)];
-      setChatMsgs((prev) => [...prev.slice(-50), { user, text, id: Date.now() }]);
+      setChatMsgs((prev) => [...prev.slice(-50), { user: u, text, id: Date.now(), ts: Date.now() }]);
+      if (!isAtBottom) setUnreadCount((c) => c + 1);
     }, 4000 + Math.random() * 6000);
     return () => clearInterval(iv);
-  }, []);
+  }, [isAtBottom]);
 
+  // Smart auto-scroll: only if user is at bottom
   useEffect(() => {
-    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
-  }, [chatMsgs]);
+    if (isAtBottom) {
+      chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [chatMsgs, isAtBottom]);
+
+  const handleChatScroll = useCallback(() => {
+    const el = chatRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    setIsAtBottom(atBottom);
+    if (atBottom) setUnreadCount(0);
+  }, []);
 
   const sendChat = useCallback(() => {
     if (!chatInput.trim()) return;
-    setChatMsgs((prev) => [...prev.slice(-50), { user: user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce", text: chatInput.trim(), id: Date.now() }]);
+    setChatMsgs((prev) => [...prev.slice(-50), { user: user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce", text: chatInput.trim(), id: Date.now(), ts: Date.now() }]);
     setChatInput("");
+    setIsAtBottom(true);
   }, [chatInput, user]);
 
   const now = Date.now();
@@ -225,37 +267,87 @@ export default function Home() {
         </main>
 
         {/* CHAT SIDEBAR - desktop only */}
-        <aside className="hidden lg:flex flex-col w-80 xl:w-96 border-l border-[#2a3444] bg-[#0d1525] sticky top-14 h-[calc(100vh-56px)]">
+        <aside className="hidden lg:flex flex-col w-80 xl:w-96 border-l border-[#2a3444] bg-[#0d1525] sticky top-14 h-[calc(100vh-56px)] relative">
           {/* Chat header */}
-          <div className="px-4 py-3 border-b border-[#2a3444] flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#8B95A8] text-lg">chevron_right</span>
-              <h3 className="font-black text-sm uppercase tracking-wider">Chat ao Vivo</h3>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-[#00D4AA]" />
-              <span className="text-xs text-[#00D4AA] font-bold">{onlineCount.current} online</span>
+          <div className="px-4 py-3 border-b border-[#2a3444] shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#00D4AA]/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[#00D4AA] text-base">forum</span>
+                </div>
+                <div>
+                  <h3 className="font-black text-sm uppercase tracking-wider leading-none">Chat ao Vivo</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D4AA]" /></span>
+                    <span className="text-[10px] text-[#00D4AA] font-bold">{onlineCount.current} online</span>
+                  </div>
+                </div>
+              </div>
+              <button className="w-8 h-8 rounded-lg bg-[#1a2332] flex items-center justify-center text-[#5A6478] hover:text-white hover:bg-[#2a3444] transition-colors">
+                <span className="material-symbols-outlined text-base">settings</span>
+              </button>
             </div>
           </div>
 
           {/* Chat messages */}
-          <div ref={chatRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4 no-scrollbar">
-            {chatMsgs.map((msg) => (
-              <div key={msg.id}>
-                <p className="text-[#00D4AA] font-bold text-sm">{msg.user}</p>
-                <p className="text-[#c8cdd4] text-sm">{msg.text}</p>
-              </div>
-            ))}
+          <div ref={chatRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 no-scrollbar relative">
+            {chatMsgs.map((msg, idx) => {
+              const prevMsg = idx > 0 ? chatMsgs[idx - 1] : null;
+              const isGrouped = prevMsg?.user === msg.user;
+              const badge = getUserBadge(msg.text);
+              const timeAgo = Math.max(0, Math.floor((Date.now() - msg.ts) / 60000));
+              const timeStr = timeAgo === 0 ? "agora" : `${timeAgo}min`;
+
+              return (
+                <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1a2332]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
+                  {/* Avatar */}
+                  {!isGrouped ? (
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[11px] font-black text-white shrink-0 mt-0.5`}>
+                      {msg.user.replace("@", "").charAt(0).toUpperCase()}
+                    </div>
+                  ) : (
+                    <div className="w-8 shrink-0" />
+                  )}
+                  {/* Content */}
+                  <div className="min-w-0 flex-1">
+                    {!isGrouped && (
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-[#00D4AA] font-bold text-xs truncate">{msg.user}</span>
+                        {badge && (
+                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-[#1a2332] border border-[#2a3444] ${badge.color}`}>
+                            <span className="material-symbols-outlined" style={{ fontSize: "10px" }}>{badge.icon}</span>
+                            <span className="text-[8px] font-black uppercase">{badge.label}</span>
+                          </span>
+                        )}
+                        <span className="text-[10px] text-[#3a4a5a] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">{timeStr}</span>
+                      </div>
+                    )}
+                    <p className="text-[13px] text-[#c8cdd4] break-words leading-relaxed">{msg.text}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
+          {/* New messages indicator */}
+          {!isAtBottom && unreadCount > 0 && (
+            <button
+              onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnreadCount(0); }}
+              className="absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#00D4AA] text-[#003D2E] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(0,212,170,0.4)] hover:shadow-[0_4px_20px_rgba(0,212,170,0.6)] transition-all animate-bounce"
+            >
+              <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+              {unreadCount} {unreadCount === 1 ? "nova mensagem" : "novas mensagens"}
+            </button>
+          )}
+
           {/* Chat input */}
-          <div className="px-4 py-3 border-t border-[#2a3444] shrink-0">
-            <div className="flex items-center gap-2">
-              <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-[#1a2332] rounded-lg px-4 py-2.5 text-sm text-white border border-[#2a3444] outline-none placeholder-[#5A6478]" />
-              <button className="text-[#5A6478] hover:text-white"><span className="material-symbols-outlined text-xl">mood</span></button>
-              <button onClick={sendChat} className="text-[#5A6478] hover:text-[#00D4AA]"><span className="material-symbols-outlined text-xl">send</span></button>
+          <div className="px-3 py-3 border-t border-[#2a3444] shrink-0 bg-[#0a1020]">
+            <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
+              <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2.5 text-sm text-white outline-none placeholder-[#5A6478]" />
+              <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
+              <button onClick={sendChat} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
             </div>
-            <p className="text-[10px] text-[#5A6478] mt-1.5">Seja respeitoso. Siga as <span className="text-[#00D4AA]">regras da comunidade</span></p>
+            <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70 hover:text-[#00D4AA] cursor-pointer">regras da comunidade</span></p>
           </div>
         </aside>
       </div>
