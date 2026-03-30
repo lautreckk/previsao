@@ -4,18 +4,20 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxeW1hbG1iYnR6ZG5wYm5lZWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MjUzNDYsImV4cCI6MjA5MDIwMTM0Nn0.Mj_L0h3HGfG4X22Qb3f53oeipNXa91nIGW5-J_zl-kM"
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 );
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { market_id, round_id, predicted_min, predicted_max, amount, user_id } = body;
+    const { market_id, prediction_type, amount, user_id } = body;
 
-    if (!market_id || !user_id || predicted_min === undefined || predicted_max === undefined || !amount) {
+    if (!market_id || !user_id || !prediction_type || !amount) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
-
+    if (prediction_type !== "over" && prediction_type !== "under") {
+      return NextResponse.json({ error: "prediction_type must be 'over' or 'under'" }, { status: 400 });
+    }
     if (amount < 1) {
       return NextResponse.json({ error: "Valor minimo R$ 1,00" }, { status: 400 });
     }
@@ -26,25 +28,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Saldo insuficiente" }, { status: 400 });
     }
 
-    // Check market is open
-    const { data: market } = await supabase.from("camera_markets").select("status").eq("id", market_id).maybeSingle();
-    if (!market || market.status !== "open") {
-      return NextResponse.json({ error: "Mercado nao esta aberto" }, { status: 400 });
+    // Check market is in betting phase
+    const { data: market } = await supabase
+      .from("camera_markets")
+      .select("phase, current_threshold, round_number")
+      .eq("id", market_id)
+      .maybeSingle();
+
+    if (!market || market.phase !== "betting") {
+      return NextResponse.json({ error: "Previsoes encerradas para esta rodada" }, { status: 400 });
     }
 
-    // Get current round
-    let activeRoundId = round_id;
-    if (!activeRoundId) {
-      const { data: round } = await supabase
-        .from("camera_rounds")
-        .select("id")
-        .eq("market_id", market_id)
-        .is("resolved_at", null)
-        .order("round_number", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      activeRoundId = round?.id;
+    // Get active round
+    const roundId = `cr_${market_id}_${market.round_number}`;
+    const { data: round } = await supabase
+      .from("camera_rounds")
+      .select("pool_over, pool_under, total_pool")
+      .eq("id", roundId)
+      .maybeSingle();
+
+    if (!round) {
+      return NextResponse.json({ error: "Rodada nao encontrada" }, { status: 400 });
     }
+
+    // Calculate current odds before this bet
+    const poolOver = Number(round.pool_over) + (prediction_type === "over" ? amount : 0);
+    const poolUnder = Number(round.pool_under) + (prediction_type === "under" ? amount : 0);
+    const totalPool = poolOver + poolUnder;
+    const myPool = prediction_type === "over" ? poolOver : poolUnder;
+    const oddsAtEntry = myPool > 0 ? (totalPool * 0.95) / myPool : 1;
 
     // Debit balance
     const newBalance = Number(user.balance) - amount;
@@ -52,22 +64,37 @@ export async function POST(request: NextRequest) {
 
     // Insert prediction
     const predId = `cpred_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const { data: prediction, error } = await supabase.from("camera_predictions").insert({
-      id: predId,
-      user_id,
-      market_id,
-      round_id: activeRoundId || null,
-      predicted_min,
-      predicted_max,
-      amount_brl: amount,
-      status: "open",
-    }).select().single();
+    const { data: prediction, error } = await supabase
+      .from("camera_predictions")
+      .insert({
+        id: predId,
+        user_id,
+        market_id,
+        round_id: roundId,
+        prediction_type,
+        threshold: market.current_threshold,
+        amount_brl: amount,
+        odds_at_entry: Math.round(oddsAtEntry * 100) / 100,
+        status: "open",
+      })
+      .select()
+      .single();
 
     if (error) {
       // Rollback balance
       await supabase.from("users").update({ balance: Number(user.balance) }).eq("id", user_id);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Update round pools
+    await supabase
+      .from("camera_rounds")
+      .update({
+        pool_over: poolOver,
+        pool_under: poolUnder,
+        total_pool: totalPool,
+      })
+      .eq("id", roundId);
 
     // Ledger entry
     await supabase.from("ledger").insert({
@@ -77,10 +104,30 @@ export async function POST(request: NextRequest) {
       amount: -amount,
       balance_after: newBalance,
       reference_id: predId,
-      description: `Previsao Camera: ${predicted_min}-${predicted_max} veiculos`,
+      description: `Previsao Camera: ${prediction_type.toUpperCase()} ${market.current_threshold} veiculos`,
     });
 
-    return NextResponse.json({ prediction, newBalance });
+    // Broadcast updated odds (fire-and-forget)
+    supabase.channel(`cars-stream-${market_id}`).send({
+      type: "broadcast",
+      event: "odds.update",
+      payload: {
+        pool_over: poolOver,
+        pool_under: poolUnder,
+        total_pool: totalPool,
+        odds_over: poolOver > 0 ? Math.round(((totalPool * 0.95) / poolOver) * 100) / 100 : 0,
+        odds_under: poolUnder > 0 ? Math.round(((totalPool * 0.95) / poolUnder) * 100) / 100 : 0,
+      },
+    });
+
+    return NextResponse.json({
+      prediction,
+      newBalance,
+      odds: {
+        over: poolOver > 0 ? Math.round(((totalPool * 0.95) / poolOver) * 100) / 100 : 0,
+        under: poolUnder > 0 ? Math.round(((totalPool * 0.95) / poolUnder) * 100) / 100 : 0,
+      },
+    });
   } catch (error) {
     console.error("[camera/predict] Error:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

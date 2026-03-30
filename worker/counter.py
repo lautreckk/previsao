@@ -120,7 +120,7 @@ def main():
     p.add_argument("--supabase-url", default="")
     p.add_argument("--supabase-key", default="")
     p.add_argument("--confidence", type=float, default=0.35)
-    p.add_argument("--count-interval", type=int, default=5)
+    p.add_argument("--count-interval", type=int, default=2)
     p.add_argument("--frame-interval", type=int, default=2)
     p.add_argument("--model", default="yolov8n.pt")
     args = p.parse_args()

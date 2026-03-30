@@ -53,7 +53,7 @@ export default function RootLayout({
           />
         </noscript>
       </head>
-      <body className="font-body antialiased overflow-x-hidden max-w-[100vw]">
+      <body suppressHydrationWarning className="font-body antialiased overflow-x-hidden max-w-[100vw]">
         <UserProvider>
           {children}
         </UserProvider>

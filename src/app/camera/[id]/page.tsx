@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useCameraMarket } from "@/hooks/useCameraMarket";
 import { useUser } from "@/lib/UserContext";
 import BottomNav from "@/components/BottomNav";
 import Link from "next/link";
 
-function CountdownTimer({ endsAt }: { endsAt: string }) {
-  const [timeLeft, setTimeLeft] = useState("");
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
+
+/* ─── Countdown Timer ─── */
+function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
+  const [timeLeft, setTimeLeft] = useState("--:--");
 
   useEffect(() => {
     const tick = () => {
@@ -24,66 +27,369 @@ function CountdownTimer({ endsAt }: { endsAt: string }) {
   }, [endsAt]);
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-3xl font-black font-headline text-white tracking-wider">{timeLeft}</span>
-      <div className="flex flex-col text-[10px] text-[#8B95A8] uppercase tracking-widest leading-tight">
-        <span>MINS</span><span>SECS</span>
+    <div className="flex flex-col items-center">
+      {label && <span className="text-[9px] uppercase tracking-widest text-[#8B95A8] font-bold">{label}</span>}
+      <span className="text-3xl font-black text-[#FF5252] tabular-nums animate-pulse">{timeLeft}</span>
+    </div>
+  );
+}
+
+/* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
+function LiveStream({ marketId, streamUrl, count }: { marketId: string; streamUrl: string; count: number }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
+  const [frameTs, setFrameTs] = useState(Date.now());
+
+  // Try HLS first, fallback to frame after 8s or on error
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let hls: { destroy: () => void; loadSource: (url: string) => void; startLoad: () => void } | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout>;
+
+    // Fallback to frame mode after timeout
+    fallbackTimer = setTimeout(() => {
+      if (mode === "loading") setMode("frame");
+    }, 8000);
+
+    async function setup() {
+      if (!video) return;
+      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = streamUrl;
+        video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
+      } else {
+        const { default: Hls } = await import("hls.js");
+        if (Hls.isSupported()) {
+          const h = new Hls({ enableWorker: true, lowLatencyMode: true, liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 5 });
+          h.loadSource(streamUrl);
+          h.attachMedia(video);
+          h.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
+          });
+          h.on(Hls.Events.ERROR, (_event: unknown, data: { fatal: boolean }) => {
+            if (data.fatal) setMode("frame");
+          });
+          hls = h;
+        } else {
+          setMode("frame");
+        }
+      }
+    }
+
+    setup();
+    return () => { hls?.destroy(); clearTimeout(fallbackTimer); };
+  }, [streamUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh frame every 2s in frame mode
+  useEffect(() => {
+    if (mode !== "frame") return;
+    const iv = setInterval(() => setFrameTs(Date.now()), 2000);
+    return () => clearInterval(iv);
+  }, [mode]);
+
+  // Draw green counting line overlay
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const draw = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      canvas.width = w;
+      canvas.height = h;
+      ctx.clearRect(0, 0, w, h);
+
+      const lineY = Math.floor(h * 0.55);
+      // Green dashed counting line
+      ctx.setLineDash([12, 8]);
+      ctx.strokeStyle = "#00FF00";
+      ctx.lineWidth = 2;
+      ctx.shadowColor = "#00FF00";
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.moveTo(0, lineY);
+      ctx.lineTo(w, lineY);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Direction arrows
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#00FF00";
+      for (let x = 60; x < w; x += 100) {
+        ctx.beginPath();
+        ctx.moveTo(x, lineY - 5);
+        ctx.lineTo(x + 12, lineY);
+        ctx.lineTo(x, lineY + 5);
+        ctx.fill();
+      }
+
+      // Label
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillStyle = "#00FF00";
+      ctx.shadowColor = "#000";
+      ctx.shadowBlur = 3;
+      ctx.fillText("ZONA DE CONTAGEM", 10, lineY - 8);
+    };
+
+    draw();
+    const resizeHandler = () => draw();
+    window.addEventListener("resize", resizeHandler);
+    const iv = setInterval(draw, 3000);
+    return () => { clearInterval(iv); window.removeEventListener("resize", resizeHandler); };
+  }, []);
+
+  const frameUrl = `${SUPABASE_URL}/storage/v1/object/public/camera-frames/${marketId}/latest.jpg?t=${frameTs}`;
+
+  return (
+    <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+      {/* HLS video (hidden in frame mode) */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className={`absolute inset-0 w-full h-full object-cover rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
+      />
+
+      {/* Worker frame fallback (with green line + bounding boxes already drawn) */}
+      {mode === "frame" && (
+        <img
+          src={frameUrl}
+          alt="Camera ao vivo"
+          className="absolute inset-0 w-full h-full object-cover rounded-lg bg-black"
+          onError={() => {}}
+        />
+      )}
+
+      {/* Green line canvas overlay (only on HLS mode, frame already has it) */}
+      {mode === "hls" && (
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full rounded-lg pointer-events-none z-[5]"
+        />
+      )}
+
+      {/* Loading spinner */}
+      {mode === "loading" && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-[#00FFB8] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-[10px] text-[#8B95A8]">Conectando camera...</p>
+          </div>
+        </div>
+      )}
+
+      {/* AO VIVO badge */}
+      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full">
+        <span className="w-2 h-2 rounded-full bg-[#FF5252] animate-pulse" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
+      </div>
+
+      {/* Mode indicator */}
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#00FFB8]/20">
+        <span className="text-[10px] font-bold text-[#00FFB8] uppercase tracking-widest">
+          {mode === "hls" ? "STREAM AO VIVO" : mode === "frame" ? "IA YOLO" : "..."}
+        </span>
+      </div>
+
+      {/* Count overlay */}
+      <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#00FFB8]/30">
+        <p className="text-[8px] uppercase tracking-widest text-[#8B95A8] font-bold">Contagem Atual</p>
+        <p className="text-3xl font-black text-[#00FFB8] tabular-nums leading-none">{count}</p>
       </div>
     </div>
   );
 }
 
-function StreamEmbed({ url, type }: { url: string; type: string }) {
-  if (type === "youtube") {
-    // Extract YouTube video ID
-    const match = url.match(/(?:v=|\/embed\/|youtu\.be\/|\/live\/)([a-zA-Z0-9_-]+)/);
-    const videoId = match ? match[1] : url;
-    return (
-      <iframe
-        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0`}
-        className="w-full aspect-video rounded-xl"
-        allow="autoplay; encrypted-media"
-        allowFullScreen
-      />
-    );
-  }
+/* ─── Mini Chat (inline, like Palpitano) ─── */
+const FAKE_USERS = ["@daisajubes","@luccasomaior","@tfrfryypaciho2007","@gabrielfenknupp","@hugoascni","@lucaselquezf1a","@diagramasjai","@clamentecorreia","@eimarolvlx0d42","@rofrsdaimoda"];
+const FAKE_MSGS = [
+  "boa tarde tropa, btc nos 5m ta com cara de descer, barlera puxando frt",
+  "under vamooo","irl em c, 2K nisso aq e pq tem dinheiro sobrando, slc",
+  "mds irmao como tu poe 2k nisso eu coloquei 30","eu vendo a minha plo",
+  "nao faco apostas altas, perdi 250 mil no betano","under vamoooo",
+  "po mh site me deslogou, um aro pro entrar, n consegui pegar odd boa",
+  "over over over","30 segundos pra executar o bglh",
+  "Cuida rapaziadaa na proxima pode ir pesado no verde",
+  "GRUPO TELEGRAM OPERANDO 100% ACERTIVO! PESQUISEM @RODOVIASINAIS",
+  "Acabei de sacar 200 calu na hora","to vendo a linha 3k n vai cair",
+  "aq passa mais de 50 carros","menos","dol mai","aq e o over",
+  "mais carros agora","ta vindo","presta atencao na linha verde",
+];
 
-  // HLS/RTSP fallback - show as video tag or placeholder
+interface ChatMsg { id: string; user: string; text: string; time: string }
+
+function InlineChat() {
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const { user } = useUser();
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    // Seed initial messages
+    const seed: ChatMsg[] = [];
+    for (let i = 0; i < 8; i++) {
+      seed.push({
+        id: `s${i}`,
+        user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
+        text: FAKE_MSGS[Math.floor(Math.random() * FAKE_MSGS.length)],
+        time: `${Math.floor(Math.random() * 60)} previsoes`,
+      });
+    }
+    setMessages(seed);
+  }, []);
+
+  // Auto-generate messages
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (Math.random() > 0.4) {
+        setMessages((prev) => [
+          ...prev.slice(-40),
+          {
+            id: `f${Date.now()}`,
+            user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
+            text: FAKE_MSGS[Math.floor(Math.random() * FAKE_MSGS.length)],
+            time: `${Math.floor(Math.random() * 500)} previsoes`,
+          },
+        ]);
+      }
+    }, 5000 + Math.random() * 5000);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = () => {
+    if (!input.trim() || !user) return;
+    setMessages((prev) => [
+      ...prev.slice(-40),
+      { id: `u${Date.now()}`, user: `@${user.name.split(" ")[0].toLowerCase()}`, text: input.trim(), time: "agora" },
+    ]);
+    setInput("");
+  };
+
+  const onlineCount = 420 + Math.floor(Math.random() * 80);
+
   return (
-    <div className="w-full aspect-video rounded-xl bg-[#0a1222] flex items-center justify-center">
-      <video src={url} autoPlay muted playsInline className="w-full h-full rounded-xl object-cover" />
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a2a3a]">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-black text-white uppercase tracking-wider">CHAT AO VIVO</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#00FFB8] animate-pulse" />
+          <span className="text-[10px] text-[#8B95A8]">{onlineCount} online</span>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3 min-h-0">
+        {messages.map((msg) => (
+          <div key={msg.id}>
+            <span className="text-xs font-bold text-[#00FFB8]">{msg.user}</span>
+            <span className="text-[10px] text-[#8B95A8] ml-1.5">· {msg.time}</span>
+            <p className="text-sm text-gray-300 break-words leading-snug">{msg.text}</p>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="px-4 py-3 border-t border-[#1a2a3a]">
+        {user ? (
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Enviar mensagem..."
+              className="flex-1 bg-[#111827] rounded-full px-4 py-2.5 text-sm text-white outline-none border border-[#1e2a3a] focus:border-[#00FFB8]/40 placeholder-[#8B95A8]"
+            />
+            <button onClick={send} className="w-10 h-10 rounded-full bg-[#00FFB8] text-[#003D2E] flex items-center justify-center shrink-0 active:scale-95">
+              <span className="material-symbols-outlined text-sm">send</span>
+            </button>
+          </div>
+        ) : (
+          <p className="text-center text-sm text-[#8B95A8]">
+            <a href="/login" className="text-[#00FFB8] font-bold">Faca login</a> para enviar mensagens
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
-const RANGES = [
-  { min: 0, max: 5 }, { min: 6, max: 10 }, { min: 11, max: 15 },
-  { min: 16, max: 20 }, { min: 21, max: 25 }, { min: 26, max: 30 },
-  { min: 31, max: 35 }, { min: 36, max: 40 }, { min: 41, max: 50 },
-  { min: 51, max: 999 },
-];
+/* ─── Round History ─── */
+function RoundHistory({ marketId }: { marketId: string }) {
+  const [history, setHistory] = useState<
+    { id: string; round_number: number; final_count: number; threshold: number }[]
+  >([]);
 
+  useEffect(() => {
+    import("@/lib/supabase").then(({ supabase }) => {
+      supabase
+        .from("camera_rounds")
+        .select("id, round_number, final_count, threshold")
+        .eq("market_id", marketId)
+        .not("resolved_at", "is", null)
+        .order("round_number", { ascending: false })
+        .limit(10)
+        .then(({ data }) => { if (data) setHistory(data); });
+    });
+  }, [marketId]);
+
+  if (history.length === 0) return null;
+
+  return (
+    <div className="px-4 py-3 border-t border-[#1a2a3a]">
+      <p className="text-[10px] uppercase tracking-widest font-bold text-[#8B95A8] mb-2">Historico</p>
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {history.map((r) => {
+          const isOver = (r.final_count || 0) > (r.threshold || 0);
+          return (
+            <div key={r.id} className={`flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg text-[10px] font-bold ${isOver ? "bg-[#00FFB8]/10 text-[#00FFB8]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
+              <span>#{r.round_number}</span>
+              <span className="text-xs font-black">{r.final_count}</span>
+              <span className="text-[8px] opacity-70">{isOver ? "OVER" : "UNDER"} {r.threshold}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Page ─── */
 export default function CameraMarketPage() {
   const params = useParams();
   const marketId = params.id as string;
-  const { market, currentRound, currentCount, loading } = useCameraMarket(marketId);
+  const { market, currentRound, currentCount, odds, loading, lastResult } = useCameraMarket(marketId);
   const { user, refreshUser } = useUser();
 
-  const [selectedRange, setSelectedRange] = useState<{ min: number; max: number } | null>(null);
+  const [selectedType, setSelectedType] = useState<"over" | "under" | null>(null);
   const [betAmount, setBetAmount] = useState("");
   const [placing, setPlacing] = useState(false);
   const [betMsg, setBetMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
-  const [myPredictions, setMyPredictions] = useState<{ id: string; predicted_min: number; predicted_max: number; amount_brl: number; status: string }[]>([]);
+  const [tab, setTab] = useState<"posicoes" | "aberto" | "encerradas">("posicoes");
+  const [myPredictions, setMyPredictions] = useState<
+    { id: string; prediction_type: string; threshold: number; amount_brl: number; odds_at_entry: number; payout: number; status: string }[]
+  >([]);
 
-  // Load user predictions
   useEffect(() => {
     if (!user || !marketId) return;
     const load = async () => {
       const res = await fetch(`/api/camera/predict?market_id=${marketId}&user_id=${user.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.predictions) setMyPredictions(data.predictions);
-      }
+      if (res.ok) { const data = await res.json(); if (data.predictions) setMyPredictions(data.predictions); }
     };
     load();
     const iv = setInterval(load, 10000);
@@ -91,119 +397,171 @@ export default function CameraMarketPage() {
   }, [user, marketId]);
 
   const placePrediction = useCallback(async () => {
-    if (!user || !selectedRange || !betAmount || Number(betAmount) < 1) return;
+    if (!user || !selectedType || !betAmount || Number(betAmount) < 1) return;
     setPlacing(true); setBetMsg(null);
     try {
       const res = await fetch("/api/camera/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          market_id: marketId,
-          round_id: currentRound?.id,
-          predicted_min: selectedRange.min,
-          predicted_max: selectedRange.max,
-          amount: Number(betAmount),
-          user_id: user.id,
-        }),
+        body: JSON.stringify({ market_id: marketId, prediction_type: selectedType, amount: Number(betAmount), user_id: user.id }),
       });
       const data = await res.json();
       if (res.ok && data.prediction) {
-        setBetMsg({ text: `Previsao feita! ${selectedRange.min}-${selectedRange.max} veiculos`, type: "success" });
-        setSelectedRange(null); setBetAmount("");
-        refreshUser();
+        setBetMsg({ text: `Previsao ${selectedType.toUpperCase()} confirmada!`, type: "success" });
+        setSelectedType(null); setBetAmount(""); refreshUser();
         setMyPredictions((prev) => [data.prediction, ...prev]);
       } else {
         setBetMsg({ text: data.error || "Erro ao fazer previsao", type: "error" });
       }
-    } catch {
-      setBetMsg({ text: "Erro de conexao", type: "error" });
-    }
+    } catch { setBetMsg({ text: "Erro de conexao", type: "error" }); }
     setPlacing(false);
-  }, [user, selectedRange, betAmount, marketId, currentRound, refreshUser]);
+  }, [user, selectedType, betAmount, marketId, refreshUser]);
 
   if (loading) return <div className="min-h-screen bg-[#080d1a] flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#00FFB8] border-t-transparent rounded-full animate-spin" /></div>;
   if (!market) return <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-[#8B95A8]">Mercado nao encontrado</div>;
 
-  const isOpen = market.status === "open";
+  const isBetting = market.phase === "betting";
+  const isObservation = market.phase === "observation";
+  const isActive = isBetting || isObservation;
+  const threshold = market.current_threshold;
+
+  const openPredictions = myPredictions.filter((p) => p.status === "open");
+  const closedPredictions = myPredictions.filter((p) => p.status !== "open");
 
   return (
     <div className="min-h-screen bg-[#080d1a] text-white overflow-x-hidden">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0d1525]/95 backdrop-blur-xl border-b border-[#1a2a3a] px-4 h-14 flex items-center gap-3">
-        <Link href="/" className="text-[#00FFB8]"><span className="material-symbols-outlined">arrow_back</span></Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-bold font-headline truncate">{market.title}</h1>
-          <p className="text-[10px] text-[#8B95A8]">{market.city}</p>
-        </div>
-        {currentRound?.ended_at && <CountdownTimer endsAt={currentRound.ended_at} />}
-      </header>
+      {/* ─── DESKTOP: 3-column layout like Palpitano ─── */}
+      <div className="flex flex-col lg:flex-row min-h-screen">
 
-      <div className="flex flex-col lg:flex-row">
-        {/* Left: Stream + Counter */}
-        <div className="flex-1 p-4 space-y-4">
-          {/* Live badge + title */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {isOpen && (
-                <span className="inline-flex items-center gap-1.5 bg-[#FF5252]/20 text-[#FF5252] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-[#FF5252] animate-pulse" />AO VIVO
-                </span>
-              )}
-              <h2 className="text-lg font-black font-headline">{market.title}</h2>
-            </div>
-          </div>
+        {/* ─── LEFT COLUMN: Stream + Betting ─── */}
+        <div className="flex-1 flex flex-col min-w-0">
 
-          {/* Stream */}
-          <div className="relative">
-            <StreamEmbed url={market.stream_url} type={market.stream_type} />
-          </div>
-
-          {/* Counter */}
-          <div className="flex items-center justify-between bg-[#0a1222] rounded-2xl p-5 border border-[#1a2a3a]">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-[#8B95A8] font-bold mb-1">Contagem Atual</p>
-              <p className="text-5xl font-black font-headline text-[#00FFB8]">{currentCount}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-widest text-[#8B95A8] font-bold mb-1">Previsoes Encerram Em</p>
-              {currentRound?.ended_at ? (
-                <CountdownTimer endsAt={currentRound.ended_at} />
-              ) : (
-                <p className="text-xl font-bold text-[#FFC700]">Aguardando...</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Prediction Panel */}
-        <div className="w-full lg:w-[400px] p-4 lg:border-l border-[#1a2a3a]">
-          <div className="bg-[#0a1222] rounded-2xl border border-[#1a2a3a] overflow-hidden">
-            <div className="p-4 border-b border-[#1a2a3a]">
-              <h3 className="font-headline font-black text-sm uppercase tracking-wider">Fazer Previsao</h3>
-              <p className="text-[10px] text-[#8B95A8] mt-1">Quantos veiculos vao passar?</p>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Range selector */}
-              <div>
-                <p className="text-[10px] text-[#8B95A8] uppercase tracking-widest font-bold mb-2">Faixa de veiculos</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {RANGES.map((r) => (
-                    <button
-                      key={`${r.min}-${r.max}`}
-                      onClick={() => setSelectedRange(r)}
-                      disabled={!isOpen}
-                      className={`py-3 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                        selectedRange?.min === r.min && selectedRange?.max === r.max
-                          ? "bg-[#00FFB8] text-[#003D2E] shadow-[0_0_15px_rgba(0,255,184,0.3)]"
-                          : "bg-[#111827] text-white border border-[#1e2a3a] hover:border-[#00FFB8]/40 disabled:opacity-40"
-                      }`}
-                    >
-                      {r.max === 999 ? `${r.min}+` : `${r.min} - ${r.max}`}
-                    </button>
-                  ))}
+          {/* Top bar: Title + Timer */}
+          <header className="flex items-center justify-between px-4 py-3 border-b border-[#1a2a3a] bg-[#0d1525]">
+            <div className="flex items-center gap-3 min-w-0">
+              <Link href="/" className="text-[#00FFB8] shrink-0">
+                <span className="material-symbols-outlined">arrow_back</span>
+              </Link>
+              <div className="min-w-0">
+                <h1 className="text-sm font-bold truncate">Rodovia (5 minutos): quantos carros?</h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {isActive && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-[#FF5252]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF5252] animate-pulse" />
+                      AO VIVO
+                    </span>
+                  )}
+                  {/* Camera status dots */}
+                  <div className="flex gap-1">
+                    {[1,2,3,4,5,6,7].map((i) => (
+                      <span key={i} className={`w-2 h-2 rounded-full ${i <= 3 ? "bg-[#00FFB8]" : "bg-[#8B95A8]/30"}`} />
+                    ))}
+                  </div>
                 </div>
               </div>
+            </div>
+            {isActive && market.phase_ends_at && (
+              <CountdownTimer endsAt={market.phase_ends_at} />
+            )}
+          </header>
+
+          {/* Counter + Phase label */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[#1a2a3a] bg-[#0a1222]">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-[#8B95A8] uppercase tracking-widest font-bold">Contagem atual:</span>
+              <span className="text-2xl font-black text-[#00FFB8] tabular-nums">{currentCount}</span>
+            </div>
+            <div>
+              {isBetting && (
+                <span className="text-[10px] font-black text-[#FF5252] uppercase tracking-widest animate-pulse">
+                  Previsoes encerram em: {market.phase_ends_at && <CountdownInline endsAt={market.phase_ends_at} />}
+                </span>
+              )}
+              {isObservation && (
+                <span className="text-[10px] font-black text-[#FFC700] uppercase tracking-widest">
+                  Previsoes encerradas
+                </span>
+              )}
+              {market.phase === "waiting" && (
+                <span className="text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">
+                  Aguardando rodada...
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Live HLS stream */}
+          <div className="px-4 pt-3">
+            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} />
+          </div>
+
+          {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}
+          <div className="px-4 py-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setSelectedType("over")}
+                disabled={!isBetting}
+                className={`py-4 rounded-xl text-center transition-all active:scale-95 border-2 ${
+                  selectedType === "over"
+                    ? "bg-[#00FFB8]/20 border-[#00FFB8] text-[#00FFB8] shadow-[0_0_20px_rgba(0,255,184,0.15)]"
+                    : "bg-[#111827] border-[#1e2a3a] text-white hover:border-[#00FFB8]/40 disabled:opacity-40"
+                }`}
+              >
+                <span className="text-xs font-bold opacity-70">Mais de {threshold}</span>
+                <span className={`block text-lg font-black ${selectedType === "over" ? "text-[#00FFB8]" : "text-[#00FFB8]"}`}>
+                  {odds.over > 0 ? `(${odds.over.toFixed(2)}x)` : "(--x)"}
+                </span>
+              </button>
+              <button
+                onClick={() => setSelectedType("under")}
+                disabled={!isBetting}
+                className={`py-4 rounded-xl text-center transition-all active:scale-95 border-2 ${
+                  selectedType === "under"
+                    ? "bg-[#FF5252]/20 border-[#FF5252] text-[#FF5252] shadow-[0_0_20px_rgba(255,82,82,0.15)]"
+                    : "bg-[#111827] border-[#1e2a3a] text-white hover:border-[#FF5252]/40 disabled:opacity-40"
+                }`}
+              >
+                <span className="text-xs font-bold opacity-70">Ate {threshold}</span>
+                <span className={`block text-lg font-black ${selectedType === "under" ? "text-[#FF5252]" : "text-[#FF5252]"}`}>
+                  {odds.under > 0 ? `(${odds.under.toFixed(2)}x)` : "(--x)"}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Round history */}
+          <RoundHistory marketId={marketId} />
+
+          {/* Last result toast */}
+          {lastResult && (
+            <div className={`mx-4 mb-3 rounded-xl p-3 border text-center text-sm ${
+              lastResult.result === "over"
+                ? "bg-[#00FFB8]/10 border-[#00FFB8]/30 text-[#00FFB8]"
+                : "bg-[#FF5252]/10 border-[#FF5252]/30 text-[#FF5252]"
+            }`}>
+              Resultado: <span className="font-black">{lastResult.final_count}</span> veiculos — {lastResult.result.toUpperCase()} (threshold {lastResult.threshold}) — {lastResult.payout_multiplier.toFixed(2)}x
+            </div>
+          )}
+        </div>
+
+        {/* ─── MIDDLE COLUMN: Positions + Bet form ─── */}
+        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0a1222]">
+          {/* Tabs */}
+          {selectedType ? (
+            /* Bet form when type is selected */
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase tracking-wider">
+                  {selectedType === "over" ? "Mais de" : "Ate"} {threshold}
+                </h3>
+                <button onClick={() => setSelectedType(null)} className="text-[#8B95A8] hover:text-white">
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              </div>
+
+              <p className="text-[10px] text-[#8B95A8]">
+                Selecione uma opcao ao lado para fazer sua previsao.
+              </p>
 
               {/* Amount */}
               <div>
@@ -217,66 +575,123 @@ export default function CameraMarketPage() {
                 </div>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8B95A8] font-bold">R$</span>
-                  <input
-                    type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)}
-                    placeholder="0" min="1"
-                    className="w-full bg-[#0a0f1a] rounded-xl pl-12 pr-4 py-3 text-white text-lg font-black outline-none border border-[#1e2a3a] focus:border-[#00FFB8]/40"
-                  />
+                  <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="0" min="1" className="w-full bg-[#0a0f1a] rounded-xl pl-12 pr-4 py-3 text-white text-lg font-black outline-none border border-[#1e2a3a] focus:border-[#00FFB8]/40" />
                 </div>
-                {user && <p className="text-[10px] text-[#8B95A8] mt-1">Saldo: R$ {user.balance.toFixed(2)}</p>}
+                {user && <p className="text-[10px] text-[#8B95A8] mt-1">Saldo: R$ {Number(user.balance).toFixed(2)}</p>}
               </div>
 
-              {/* Potential win */}
-              {selectedRange && betAmount && Number(betAmount) > 0 && (
-                <div className="flex items-center justify-between bg-[#111827] rounded-xl p-3 border border-[#1e2a3a]">
-                  <span className="text-xs text-[#8B95A8]">Para ganhar</span>
-                  <span className="text-lg font-black text-[#FFC700] font-headline">R$ {(Number(betAmount) * 2).toFixed(2)}</span>
-                </div>
-              )}
-
-              {/* Bet message */}
               {betMsg && (
                 <div className={`rounded-xl p-3 text-xs font-bold text-center ${betMsg.type === "success" ? "bg-[#00FFB8]/10 text-[#00FFB8]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
                   {betMsg.text}
                 </div>
               )}
 
-              {/* Place button */}
               <button
                 onClick={placePrediction}
-                disabled={!isOpen || !selectedRange || !betAmount || Number(betAmount) < 1 || placing || !user}
-                className="w-full py-4 rounded-xl bg-[#00FFB8] text-[#003D2E] font-black font-headline text-sm uppercase tracking-wider hover:bg-[#00FFB8]/90 active:scale-[0.98] transition-all disabled:opacity-40"
+                disabled={!isBetting || !betAmount || Number(betAmount) < 1 || placing || !user}
+                className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 ${
+                  selectedType === "under" ? "bg-[#FF5252] text-white" : "bg-[#00FFB8] text-[#003D2E]"
+                }`}
               >
-                {!user ? "Faca login para prever" : placing ? "Enviando..." : selectedRange ? `Prever ${selectedRange.max === 999 ? `${selectedRange.min}+` : `${selectedRange.min}-${selectedRange.max}`} veiculos` : "Selecione uma faixa"}
+                {!user ? "Faca login" : placing ? "Enviando..." : `${selectedType === "over" ? "MAIS DE" : "ATE"} ${threshold} — R$ ${betAmount || "0"}`}
               </button>
             </div>
-
-            {/* My predictions */}
-            {myPredictions.length > 0 && (
-              <div className="border-t border-[#1a2a3a]">
-                <div className="p-4">
-                  <h4 className="text-[10px] uppercase tracking-widest font-bold text-[#8B95A8] mb-3">Minhas Previsoes</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {myPredictions.map((p) => (
+          ) : (
+            /* Positions tabs */
+            <>
+              <div className="flex border-b border-[#1a2a3a]">
+                {(["posicoes", "aberto", "encerradas"] as const).map((t) => (
+                  <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#00FFB8] border-b-2 border-[#00FFB8]" : "text-[#8B95A8]"}`}>
+                    {t === "posicoes" ? "Posicoes" : t === "aberto" ? "Em aberto" : "Encerradas"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {tab === "posicoes" && (
+                  <div className="text-center text-[#8B95A8] py-8">
+                    <p className="text-sm">Faca login para visualizar suas posicoes.</p>
+                    {!user && <Link href="/login" className="text-[#00FFB8] text-sm font-bold mt-2 inline-block">Entrar</Link>}
+                    {user && myPredictions.length === 0 && <p className="text-xs mt-2">Nenhuma previsao feita ainda.</p>}
+                    {user && myPredictions.length > 0 && (
+                      <div className="space-y-2 mt-4 text-left">
+                        {myPredictions.slice(0, 10).map((p) => (
+                          <div key={p.id} className="flex items-center justify-between bg-[#111827] rounded-lg p-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#00FFB8]/15 text-[#00FFB8]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
+                                {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
+                              </span>
+                              <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#00FFB8]" : p.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>
+                                {p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : p.status === "lost" ? "PERDEU" : `@${Number(p.odds_at_entry).toFixed(2)}x`}
+                              </span>
+                            </div>
+                            <span className="text-xs font-bold">R$ {Number(p.amount_brl).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {tab === "aberto" && (
+                  <div className="space-y-2">
+                    {openPredictions.length === 0 && <p className="text-center text-[#8B95A8] text-sm py-8">Nenhuma previsao em aberto.</p>}
+                    {openPredictions.map((p) => (
                       <div key={p.id} className="flex items-center justify-between bg-[#111827] rounded-lg p-2.5">
-                        <div>
-                          <span className="text-xs font-bold">{p.predicted_min}-{p.predicted_max > 900 ? "\u221E" : p.predicted_max}</span>
-                          <span className={`text-[10px] ml-2 font-bold ${p.status === "won" ? "text-[#00FFB8]" : p.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>
-                            {p.status === "won" ? "GANHOU" : p.status === "lost" ? "PERDEU" : "ABERTA"}
-                          </span>
-                        </div>
-                        <span className="text-xs font-bold">R$ {Number(p.amount_brl).toFixed(2)}</span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#00FFB8]/15 text-[#00FFB8]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
+                          {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold} @{Number(p.odds_at_entry).toFixed(2)}x
+                        </span>
+                        <span className="text-xs font-bold text-[#FFC700]">R$ {Number(p.amount_brl).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+                {tab === "encerradas" && (
+                  <div className="space-y-2">
+                    {closedPredictions.length === 0 && <p className="text-center text-[#8B95A8] text-sm py-8">Nenhuma previsao encerrada.</p>}
+                    {closedPredictions.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between bg-[#111827] rounded-lg p-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#00FFB8]/15 text-[#00FFB8]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
+                            {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
+                          </span>
+                          <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#00FFB8]" : "text-[#FF5252]"}`}>
+                            {p.status === "won" ? "GANHOU" : "PERDEU"}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold">{p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : `R$ ${Number(p.amount_brl).toFixed(2)}`}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
+        </div>
+
+        {/* ─── RIGHT COLUMN: Chat ao Vivo ─── */}
+        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0d1525] h-screen lg:h-auto">
+          <InlineChat />
         </div>
       </div>
 
       <div className="lg:hidden"><BottomNav /></div>
     </div>
   );
+}
+
+/* ─── Inline countdown (small, no animation) ─── */
+function CountdownInline({ endsAt }: { endsAt: string }) {
+  const [t, setT] = useState("--:--");
+  useEffect(() => {
+    const tick = () => {
+      const diff = new Date(endsAt).getTime() - Date.now();
+      if (diff <= 0) { setT("00:00"); return; }
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setT(`${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [endsAt]);
+  return <span className="tabular-nums">{t}</span>;
 }

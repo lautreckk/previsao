@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
 
     // Type 1: Individual vehicle detection event
     if (event_type === "vehicle.detected" && vehicle_id) {
-      // Broadcast to realtime channel
-      await supabase.channel(`cars-stream-${market_id}`).send({
+      // Broadcast to realtime channel (fire-and-forget)
+      supabase.channel(`cars-stream-${market_id}`).send({
         type: "broadcast",
         event: "vehicle.detected",
         payload: {
@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
         .update({ current_count: count, updated_at: timestamp || new Date().toISOString() })
         .eq("id", market_id);
 
-      // Broadcast count sync
-      await supabase.channel(`cars-stream-${market_id}`).send({
+      // Broadcast count sync (fire-and-forget)
+      supabase.channel(`cars-stream-${market_id}`).send({
         type: "broadcast",
         event: "count.sync",
         payload: { count, timestamp },
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Type 3: Round reset
     if (event_type === "round.reset") {
       countCache.set(market_id, 0);
-      await supabase.channel(`cars-stream-${market_id}`).send({
+      supabase.channel(`cars-stream-${market_id}`).send({
         type: "broadcast",
         event: "round.reset",
         payload: {},
