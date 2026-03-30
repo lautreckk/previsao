@@ -18,17 +18,7 @@ const DEFAULT_ADMINS: AdminCredential[] = [
 ];
 
 function getAdminUsers(): AdminCredential[] {
-  if (typeof window === "undefined") return DEFAULT_ADMINS;
-  try {
-    const stored = JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || "null");
-    if (!stored || stored.length === 0) {
-      localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(DEFAULT_ADMINS));
-      return DEFAULT_ADMINS;
-    }
-    return stored;
-  } catch {
-    return DEFAULT_ADMINS;
-  }
+  return DEFAULT_ADMINS;
 }
 
 export function adminLogin(email: string, password: string): { success: boolean; admin?: AdminCredential; error?: string } {
