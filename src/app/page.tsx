@@ -11,37 +11,87 @@ import { useChat, avatarColor, getUserBadge } from "@/lib/ChatContext";
 import type { PredictionMarket, MarketCategory } from "@/lib/engines/types";
 import { supabase } from "@/lib/supabase";
 
-// ---- WINNERS TICKER ----
-const FAKE_WINNERS = [
-  { name: "LUCAS", game: "BBB 26", amount: "R$ 2.450,00" },
-  { name: "TIAGO", game: "BTC 5min", amount: "R$ 16.432,20" },
-  { name: "ANA CLARA", game: "Dolar Diario", amount: "R$ 890,50" },
-  { name: "PEDRO H.", game: "Flamengo", amount: "R$ 5.200,00" },
-  { name: "GABRIELA", game: "Clima SP", amount: "R$ 1.320,00" },
-  { name: "MARCOS", game: "Rodovia 5min", amount: "R$ 9.580,20" },
-  { name: "JULIANA", game: "Anitta", amount: "R$ 3.750,00" },
-  { name: "RAFAELA", game: "Petroleo", amount: "R$ 7.890,00" },
-  { name: "CARLOS", game: "Shakira", amount: "R$ 4.100,00" },
-  { name: "FERNANDA", game: "Champions", amount: "R$ 12.300,00" },
-  { name: "DIEGO", game: "IBOVESPA", amount: "R$ 6.540,00" },
-  { name: "BRUNA", game: "BBB 26", amount: "R$ 8.200,00" },
-  { name: "RODRIGO", game: "Neymar", amount: "R$ 2.100,00" },
-  { name: "CAMILA", game: "Virginia", amount: "R$ 1.800,00" },
-  { name: "FELIPE", game: "ETH 5min", amount: "R$ 11.250,00" },
-  { name: "AMANDA", game: "Carlinhos", amount: "R$ 950,00" },
+// ---- WINNERS TICKER (real data from Supabase) ----
+const FALLBACK_WINNERS = [
+  { name: "LUCAS", amount: "R$ 2.450,00", time: "12:30" },
+  { name: "TIAGO", amount: "R$ 16.432,20", time: "12:15" },
+  { name: "ANA CLARA", amount: "R$ 890,50", time: "11:58" },
+  { name: "PEDRO H.", amount: "R$ 5.200,00", time: "11:42" },
+  { name: "GABRIELA", amount: "R$ 1.320,00", time: "11:30" },
+  { name: "MARCOS", amount: "R$ 9.580,20", time: "11:18" },
+  { name: "JULIANA", amount: "R$ 3.750,00", time: "10:55" },
+  { name: "RAFAELA", amount: "R$ 7.890,00", time: "10:40" },
 ];
 
+interface WinnerItem {
+  name: string;
+  amount: string | number;
+  time: string;
+}
+
 function WinnersTicker() {
+  const [winners, setWinners] = useState<WinnerItem[]>(FALLBACK_WINNERS);
   const [offset, setOffset] = useState(0);
+
+  // Fetch real winners from Supabase ledger
+  useEffect(() => {
+    async function fetchWinners() {
+      try {
+        const { data } = await supabase
+          .from("ledger")
+          .select("user_id, amount, description, created_at")
+          .eq("type", "bet_won")
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (data && data.length > 0) {
+          setWinners(data.map((w) => ({
+            name: (w.description?.split(":")[0] || "Usuario").toUpperCase(),
+            amount: `R$ ${Number(w.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+            time: new Date(w.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          })));
+        }
+      } catch {
+        // Keep fallback winners on error
+      }
+    }
+    fetchWinners();
+    const interval = setInterval(fetchWinners, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Realtime: new wins appear instantly
+  useEffect(() => {
+    const channel = supabase.channel("winners-ticker")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "ledger",
+        filter: "type=eq.bet_won",
+      }, (payload) => {
+        const row = payload.new as { user_id?: string; amount?: number; description?: string; created_at?: string };
+        if (row.amount) {
+          const newWinner: WinnerItem = {
+            name: (row.description?.split(":")[0] || "Usuario").toUpperCase(),
+            amount: `R$ ${Number(row.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+            time: new Date(row.created_at || Date.now()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          };
+          setWinners((prev) => [newWinner, ...prev.slice(0, 19)]);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   useEffect(() => {
     const iv = setInterval(() => setOffset((o) => o + 1), 30);
     return () => clearInterval(iv);
   }, []);
 
   // Double the array for seamless loop
-  const items = [...FAKE_WINNERS, ...FAKE_WINNERS];
-  const itemWidth = 280; // approx width per item
-  const totalWidth = FAKE_WINNERS.length * itemWidth;
+  const items = [...winners, ...winners];
+  const itemWidth = 280;
+  const totalWidth = winners.length * itemWidth;
   const translateX = -(offset % totalWidth);
 
   return (
@@ -53,8 +103,8 @@ function WinnersTicker() {
               {w.name.charAt(0)}
             </div>
             <span className="text-white font-black text-xs">{w.name}</span>
-            <span className="text-[#5A6478] text-[10px]">{w.game}</span>
-            <span className="text-[#00FFB8] font-black text-xs">{w.amount}</span>
+            <span className="text-[#5A6478] text-[10px]">{w.time}</span>
+            <span className="text-[#00FFB8] font-black text-xs">{typeof w.amount === "number" ? `R$ ${w.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : w.amount}</span>
           </div>
         ))}
       </div>
@@ -267,8 +317,8 @@ export default function Home() {
                         onClick={() => { setSearch(""); setSearchFocused(false); }}
                         className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1a2332] transition-colors"
                       >
-                        {m.image_url ? (
-                          <img src={m.image_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                        {m.banner_url ? (
+                          <img src={m.banner_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
                         ) : (
                           <div className="w-8 h-8 rounded-md bg-[#1a2332] flex items-center justify-center shrink-0">
                             <span className="material-symbols-outlined text-[#5A6478] text-sm">monitoring</span>
@@ -332,8 +382,8 @@ export default function Home() {
                       onClick={() => { setSearch(""); setSearchFocused(false); }}
                       className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1a2332] transition-colors"
                     >
-                      {m.image_url ? (
-                        <img src={m.image_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                      {m.banner_url ? (
+                        <img src={m.banner_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
                       ) : (
                         <div className="w-8 h-8 rounded-md bg-[#1a2332] flex items-center justify-center shrink-0">
                           <span className="material-symbols-outlined text-[#5A6478] text-sm">monitoring</span>

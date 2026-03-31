@@ -117,6 +117,25 @@ export async function POST(request: NextRequest) {
       description: `Previsao: ${outcome_label || outcome_key} em ${market.title}`,
     });
 
+    // Broadcast odds update via Supabase Realtime
+    try {
+      const broadcastChannel = supabase.channel(`market-${market_id}`);
+      await broadcastChannel.send({
+        type: "broadcast",
+        event: "odds.update",
+        payload: {
+          marketId: market_id,
+          outcomes: updatedOutcomes,
+          pool_total: newTotal,
+          _ts: Date.now(),
+        },
+      });
+      await supabase.removeChannel(broadcastChannel);
+    } catch (broadcastErr) {
+      // Non-blocking: log but don't fail the bet
+      console.error("[markets/bet] Broadcast error:", broadcastErr);
+    }
+
     return NextResponse.json({
       ok: true,
       bet: { id: betId, payout_at_entry: payoutPerUnit },

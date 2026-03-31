@@ -787,6 +787,26 @@ export async function resolveExpiredMarkets(): Promise<{
         }
       }
 
+      // Broadcast market resolved via Supabase Realtime
+      try {
+        const broadcastChannel = supabase.channel(`market-${market.id}`);
+        await broadcastChannel.send({
+          type: "broadcast",
+          event: "market.resolved",
+          payload: {
+            marketId: market.id,
+            winningKey,
+            payoutPerUnit,
+            title: market.title,
+            _ts: Date.now(),
+          },
+        });
+        await supabase.removeChannel(broadcastChannel);
+      } catch (broadcastErr) {
+        // Non-blocking: log but don't fail the resolution
+        console.error("[auto-markets] Broadcast error:", broadcastErr);
+      }
+
       results.push({
         market_id: market.id,
         title: market.title,

@@ -7,6 +7,8 @@ import { initializeStore, getMarket, placeBetFull, tickAllMarkets } from "@/lib/
 import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { CATEGORY_META } from "@/lib/engines/types";
 import BottomNav from "@/components/BottomNav";
+import { LivePriceDisplay } from "@/components/LivePriceDisplay";
+import { MarketResultBanner } from "@/components/MarketResultBanner";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -107,6 +109,23 @@ export default function EventoPage() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"posicoes" | "aberto" | "encerradas">("posicoes");
   const [placing, setPlacing] = useState(false);
+  const [flashKeys, setFlashKeys] = useState<Record<string, "up" | "down">>({});
+  const [isResolved, setIsResolved] = useState(false);
+
+  // Derive live price symbol from market title
+  const getLivePriceInfo = useCallback((m: PredictionMarket | null) => {
+    if (!m) return null;
+    const t = m.title.toLowerCase();
+    if (t.includes("bitcoin") || t.includes("btc")) return { symbol: "BTC", category: "crypto" };
+    if (t.includes("ethereum") || t.includes("eth")) return { symbol: "ETH", category: "crypto" };
+    if (t.includes("dolar") || t.includes("dólar")) return { symbol: "USD/BRL", category: "forex" };
+    if (t.includes("petr4")) return { symbol: "PETR4", category: "stocks" };
+    if (t.includes("clima") || t.includes("°c")) {
+      const cityMatch = m.title.match(/(?:Clima|Temperatura)\s+(?:em\s+)?(\w+)/i);
+      return { symbol: cityMatch?.[1] || "Sao Paulo", category: "weather" };
+    }
+    return null;
+  }, []);
 
   useEffect(() => {
     const id = params.id as string;
@@ -136,6 +155,45 @@ export default function EventoPage() {
     return () => clearInterval(iv);
   }, [params.id]);
 
+  // Supabase Realtime: live odds & resolution updates
+  useEffect(() => {
+    if (!market?.id) return;
+    const channel = supabase.channel(`market-${market.id}`)
+      .on("broadcast", { event: "odds.update" }, (payload: { payload?: { outcomes?: typeof market.outcomes; pool_total?: number } }) => {
+        if (payload.payload?.outcomes) {
+          const newOutcomes = payload.payload.outcomes;
+          setMarket((prev) => {
+            if (!prev) return prev;
+            // Determine flash direction per outcome
+            const flashes: Record<string, "up" | "down"> = {};
+            newOutcomes.forEach((no) => {
+              const old = prev.outcomes.find((o) => o.key === no.key);
+              if (old && no.payout_per_unit !== old.payout_per_unit) {
+                flashes[no.key] = no.payout_per_unit > old.payout_per_unit ? "up" : "down";
+              }
+            });
+            if (Object.keys(flashes).length > 0) {
+              setFlashKeys(flashes);
+              setTimeout(() => setFlashKeys({}), 600);
+            }
+            return {
+              ...prev,
+              outcomes: newOutcomes,
+              pool_total: payload.payload?.pool_total ?? prev.pool_total,
+            };
+          });
+        }
+      })
+      .on("broadcast", { event: "market.resolved" }, (payload: { payload?: { winning_outcome_key?: string } }) => {
+        setIsResolved(true);
+        if (payload.payload?.winning_outcome_key) {
+          setMarket((prev) => prev ? { ...prev, status: "resolved" as const, winning_outcome_key: payload.payload?.winning_outcome_key } : prev);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [market?.id]);
+
   if (!market) return (
     <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white">
       <div className="text-center"><span className="material-symbols-outlined text-5xl text-[#8B95A8]">error</span><p className="mt-2 text-[#8B95A8]">Mercado nao encontrado</p><button onClick={() => router.push("/")} className="mt-4 text-[#00D4AA] font-bold">Voltar</button></div>
@@ -147,6 +205,7 @@ export default function EventoPage() {
   const simulation = selected && betAmount ? simulateBet(market, selected.key, parseFloat(betAmount) || 0) : null;
   const probabilities = calcImpliedProbabilities(market.outcomes);
   const isOpen = market.status === "open";
+  const livePriceInfo = getLivePriceInfo(market);
   const now = Date.now();
   const timeLeft = market.close_at - now;
   const isSupabaseMarket = market.id.startsWith("mkt_");
@@ -199,11 +258,23 @@ export default function EventoPage() {
             {user && <Link href="/perfil" className="bg-[#1a2332] border border-[#2a3444] px-3 py-1.5 rounded-lg text-sm font-bold text-[#00D4AA]">R$ {user.balance.toFixed(2)}</Link>}
           </header>
 
+          {/* Result Banner (resolved markets) */}
+          {(market.status === "resolved" || isResolved) && (
+            <MarketResultBanner market={market} />
+          )}
+
           {/* Banner */}
           {market.banner_url && (
             <div className="relative w-full h-48 lg:h-64 overflow-hidden shrink-0">
               <img src={market.banner_url} alt={market.title} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#080d1a] via-[#080d1a]/40 to-transparent" />
+            </div>
+          )}
+
+          {/* Live Price (crypto/economy/weather) */}
+          {livePriceInfo && (
+            <div className="px-5 pt-3">
+              <LivePriceDisplay symbol={livePriceInfo.symbol} category={livePriceInfo.category} />
             </div>
           )}
 
@@ -277,14 +348,16 @@ export default function EventoPage() {
                     <button
                       onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
                       disabled={!isOpen}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${isActive ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] hover:bg-[#00D4AA]/20"} disabled:opacity-40`}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${isActive ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] hover:bg-[#00D4AA]/20"} disabled:opacity-40 ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/30" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/20" : ""}`}
+                      style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
                     >
                       <span className="block">Sim</span>
                       <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"}</span>
                     </button>
                     <button
                       disabled={!isOpen}
-                      className="flex-1 py-2.5 rounded-lg text-xs font-black bg-[#FF5252]/10 text-[#FF5252] hover:bg-[#FF5252]/20 transition-all disabled:opacity-40"
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-black bg-[#FF5252]/10 text-[#FF5252] hover:bg-[#FF5252]/20 transition-all disabled:opacity-40 ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/30" : ""} ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/20" : ""}`}
+                      style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
                     >
                       <span className="block">Nao</span>
                       <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? ((market.pool_total * 0.95) / Math.max((market.pool_total - o.pool) || 1, 1)).toFixed(2) + "x" : "—"}</span>
