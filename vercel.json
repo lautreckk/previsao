@@ -3,6 +3,18 @@
     {
       "path": "/api/cron/generate-markets",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/live-rounds",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/snapshots",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-markets",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
