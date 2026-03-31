@@ -342,10 +342,10 @@ export default function Home() {
       <WinnersTicker />
 
       {/* PROMO BANNER */}
-      <div className="px-4 lg:px-6 py-3">
+      <div className="px-4 lg:px-6 py-3 max-w-screen-xl mx-auto">
         <Link href="/criar-conta">
-          <div className="relative w-full rounded-2xl overflow-hidden group cursor-pointer hover:shadow-[0_0_40px_rgba(0,212,170,0.3)] transition-all border border-[#00D4AA]/20">
-            <img src="/banner-promo.png" alt="Aqui tudo que voce sabe vira dinheiro! Jogue a partir de R$10" className="w-full h-auto rounded-2xl" />
+          <div className="relative w-full rounded-2xl overflow-hidden group cursor-pointer hover:shadow-[0_0_40px_rgba(0,212,170,0.3)] transition-all border border-[#00D4AA]/20 max-h-[200px] sm:max-h-[260px] lg:max-h-[320px]">
+            <img src="/banner-promo.png" alt="Aqui tudo que voce sabe vira dinheiro! Jogue a partir de R$10" className="w-full h-full object-cover rounded-2xl" />
           </div>
         </Link>
       </div>
