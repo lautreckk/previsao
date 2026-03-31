@@ -100,7 +100,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
   else timeStr = `${Math.floor(timeLeft / 604800000)} sem.`;
 
   const probs = calcImpliedProbabilities(market.outcomes);
-  const isCamera = market.id.startsWith("cam_");
+  const isCamera = !!market.stream_url || market.id.startsWith("cam_");
 
   return (
     <Link href={isClosed ? "#" : isCamera ? `/camera/${market.id}` : `/evento/${market.id}`} className={`block ${isClosed ? "pointer-events-none opacity-50" : ""}`}>

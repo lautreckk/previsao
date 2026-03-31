@@ -259,8 +259,8 @@ export default function Home() {
     }
 
     // "Encerram em breve" and "Relampago": sort by closing time
-    const aIsLive = a.id.startsWith("cam_");
-    const bIsLive = b.id.startsWith("cam_");
+    const aIsLive = !!a.stream_url || a.id.startsWith("cam_");
+    const bIsLive = !!b.stream_url || b.id.startsWith("cam_");
     if (aIsLive !== bIsLive) return aIsLive ? 1 : -1;
     return a.close_at - b.close_at;
   });
@@ -291,7 +291,7 @@ export default function Home() {
               return results.length > 0 ? (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
                   {results.map((m) => {
-                    const isCam = m.id.startsWith("cam_");
+                    const isCam = !!m.stream_url || m.id.startsWith("cam_");
                     const href = isCam ? `/camera/${m.id}` : `/evento/${m.id}`;
                     return (
                       <Link
