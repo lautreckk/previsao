@@ -5,12 +5,14 @@ import { cached } from "../../_lib/cache";
 import type { PriceData } from "../../_lib/types";
 
 // Forex pairs available via Binance (USDT-based) + AwesomeAPI for traditional forex
-const FOREX_PAIRS: Record<string, { source: "binance" | "awesome"; symbol: string; name: string }> = {
-  "USD/BRL": { source: "binance", symbol: "USDTBRL", name: "Dolar Americano" },
+// All pairs use AwesomeAPI (free, no key, no region block)
+// Binance is blocked in some Vercel regions (HTTP 451)
+const FOREX_PAIRS: Record<string, { source: "awesome"; symbol: string; name: string }> = {
+  "USD/BRL": { source: "awesome", symbol: "USD-BRL", name: "Dolar Americano" },
   "EUR/BRL": { source: "awesome", symbol: "EUR-BRL", name: "Euro" },
   "GBP/BRL": { source: "awesome", symbol: "GBP-BRL", name: "Libra Esterlina" },
-  "BTC/BRL": { source: "binance", symbol: "BTCBRL", name: "Bitcoin" },
-  "ETH/BRL": { source: "binance", symbol: "ETHBRL", name: "Ethereum" },
+  "BTC/BRL": { source: "awesome", symbol: "BTC-BRL", name: "Bitcoin" },
+  "ETH/BRL": { source: "awesome", symbol: "ETH-BRL", name: "Ethereum" },
   "EUR/USD": { source: "awesome", symbol: "EUR-USD", name: "Euro/Dolar" },
   "JPY/BRL": { source: "awesome", symbol: "JPY-BRL", name: "Iene Japones" },
   "ARS/BRL": { source: "awesome", symbol: "ARS-BRL", name: "Peso Argentino" },
@@ -75,10 +77,7 @@ export async function GET(request: NextRequest) {
         const { data: ticker, cached: wasCached, fetched_at } = await cached(
           `forex_${pair}`,
           30, // 30s cache for forex
-          () =>
-            config.source === "binance"
-              ? fetchBinanceForex(config.symbol)
-              : fetchAwesomeApi(config.symbol)
+          () => fetchAwesomeApi(config.symbol)
         );
 
         const price: PriceData = {

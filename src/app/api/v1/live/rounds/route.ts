@@ -63,21 +63,49 @@ const ROUND_CONFIGS: Record<string, {
   },
 };
 
+// CoinGecko IDs for live round symbols
+const CG_IDS: Record<string, string> = {
+  BTC: "bitcoin", ETH: "ethereum", SOL: "solana",
+};
+
 async function fetchCurrentPrice(config: typeof ROUND_CONFIGS[string]): Promise<number> {
-  if (config.source === "binance" && config.binance_symbol) {
+  const cgId = CG_IDS[config.symbol];
+
+  // Try CoinGecko first (works globally, no region block)
+  if (cgId) {
+    try {
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+      if (res.ok) {
+        const json = await res.json();
+        const price = json[cgId]?.usd;
+        if (price) return price;
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Try AwesomeAPI for forex pairs
+  try {
+    const awesomeSymbol = config.symbol.includes("/")
+      ? config.symbol.replace("/", "-")
+      : `${config.symbol}-USD`;
+    const res = await fetch(`https://economia.awesomeapi.com.br/json/last/${awesomeSymbol}`);
+    if (res.ok) {
+      const json = await res.json();
+      const key = awesomeSymbol.replace("-", "");
+      if (json[key]?.bid) return parseFloat(json[key].bid);
+    }
+  } catch { /* fall through */ }
+
+  // Last resort: Binance (may fail in some Vercel regions)
+  if (config.binance_symbol) {
     const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${config.binance_symbol}`);
-    if (!res.ok) throw new Error(`Binance price error: ${res.status}`);
-    const data = await res.json();
-    return parseFloat(data.price);
+    if (res.ok) {
+      const data = await res.json();
+      return parseFloat(data.price);
+    }
   }
-  if (config.source === "awesome" && config.awesome_symbol) {
-    const res = await fetch(`https://economia.awesomeapi.com.br/json/last/${config.awesome_symbol}`);
-    if (!res.ok) throw new Error(`AwesomeAPI error: ${res.status}`);
-    const json = await res.json();
-    const key = config.awesome_symbol.replace("-", "");
-    return parseFloat(json[key].bid);
-  }
-  throw new Error("No price source configured");
+
+  throw new Error(`No price available for ${config.symbol}`);
 }
 
 function isWithinSchedule(config: typeof ROUND_CONFIGS[string]): boolean {

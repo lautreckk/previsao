@@ -4,55 +4,100 @@ import { apiSuccess, apiError, validateApiKey } from "../../_lib/auth";
 import { cached } from "../../_lib/cache";
 import type { PriceData } from "../../_lib/types";
 
-// Binance symbol mapping
-const CRYPTO_MAP: Record<string, { binance: string; name: string }> = {
-  BTC: { binance: "BTCUSDT", name: "Bitcoin" },
-  ETH: { binance: "ETHUSDT", name: "Ethereum" },
-  SOL: { binance: "SOLUSDT", name: "Solana" },
-  BNB: { binance: "BNBUSDT", name: "Binance Coin" },
-  XRP: { binance: "XRPUSDT", name: "Ripple" },
-  ADA: { binance: "ADAUSDT", name: "Cardano" },
-  DOGE: { binance: "DOGEUSDT", name: "Dogecoin" },
-  DOT: { binance: "DOTUSDT", name: "Polkadot" },
-  AVAX: { binance: "AVAXUSDT", name: "Avalanche" },
-  MATIC: { binance: "MATICUSDT", name: "Polygon" },
-  LINK: { binance: "LINKUSDT", name: "Chainlink" },
-  UNI: { binance: "UNIUSDT", name: "Uniswap" },
-  SHIB: { binance: "SHIBUSDT", name: "Shiba Inu" },
-  LTC: { binance: "LTCUSDT", name: "Litecoin" },
-  NEAR: { binance: "NEARUSDT", name: "NEAR Protocol" },
+// CoinGecko IDs (free, no key, no region block)
+const CRYPTO_MAP: Record<string, { cgId: string; name: string; binance?: string }> = {
+  BTC: { cgId: "bitcoin", name: "Bitcoin", binance: "BTCUSDT" },
+  ETH: { cgId: "ethereum", name: "Ethereum", binance: "ETHUSDT" },
+  SOL: { cgId: "solana", name: "Solana", binance: "SOLUSDT" },
+  BNB: { cgId: "binancecoin", name: "Binance Coin", binance: "BNBUSDT" },
+  XRP: { cgId: "ripple", name: "Ripple", binance: "XRPUSDT" },
+  ADA: { cgId: "cardano", name: "Cardano", binance: "ADAUSDT" },
+  DOGE: { cgId: "dogecoin", name: "Dogecoin", binance: "DOGEUSDT" },
+  DOT: { cgId: "polkadot", name: "Polkadot", binance: "DOTUSDT" },
+  AVAX: { cgId: "avalanche-2", name: "Avalanche", binance: "AVAXUSDT" },
+  MATIC: { cgId: "matic-network", name: "Polygon", binance: "MATICUSDT" },
+  LINK: { cgId: "chainlink", name: "Chainlink", binance: "LINKUSDT" },
+  UNI: { cgId: "uniswap", name: "Uniswap", binance: "UNIUSDT" },
+  SHIB: { cgId: "shiba-inu", name: "Shiba Inu", binance: "SHIBUSDT" },
+  LTC: { cgId: "litecoin", name: "Litecoin", binance: "LTCUSDT" },
+  NEAR: { cgId: "near", name: "NEAR Protocol", binance: "NEARUSDT" },
 };
 
-// USD/BRL rate for conversion
-async function getUsdBrlRate(): Promise<number> {
-  const { data } = await cached("usd_brl_rate", 60, async () => {
-    const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=USDTBRL");
-    if (!res.ok) return 5.5; // fallback
-    const json = await res.json();
-    return parseFloat(json.price);
+// CoinGecko free API (no key needed, 30 req/min)
+async function fetchCoinGeckoPrices(symbols: string[], currency: string): Promise<Record<string, {
+  price: number; change24h: number; changePercent24h: number;
+  high24h: number; low24h: number; volume24h: number; marketCap: number;
+}>> {
+  const ids = symbols.map((s) => CRYPTO_MAP[s]?.cgId).filter(Boolean).join(",");
+  const vsCurrency = currency.toLowerCase();
+
+  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vsCurrency}&ids=${ids}&order=market_cap_desc&sparkline=false&price_change_percentage=24h`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
   });
-  return data;
+
+  if (!res.ok) {
+    throw new Error(`CoinGecko error: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  const result: Record<string, {
+    price: number; change24h: number; changePercent24h: number;
+    high24h: number; low24h: number; volume24h: number; marketCap: number;
+  }> = {};
+
+  for (const coin of data) {
+    // Find our symbol key by cgId
+    const sym = Object.entries(CRYPTO_MAP).find(([, v]) => v.cgId === coin.id)?.[0];
+    if (sym) {
+      result[sym] = {
+        price: coin.current_price || 0,
+        change24h: coin.price_change_24h || 0,
+        changePercent24h: coin.price_change_percentage_24h || 0,
+        high24h: coin.high_24h || 0,
+        low24h: coin.low_24h || 0,
+        volume24h: coin.total_volume || 0,
+        marketCap: coin.market_cap || 0,
+      };
+    }
+  }
+
+  return result;
 }
 
-async function fetchBinanceTicker(symbol: string): Promise<{
-  price: number;
-  change: number;
-  changePercent: number;
-  high: number;
-  low: number;
-  volume: number;
-}> {
-  const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
-  if (!res.ok) throw new Error(`Binance error for ${symbol}: ${res.status}`);
-  const d = await res.json();
-  return {
-    price: parseFloat(d.lastPrice),
-    change: parseFloat(d.priceChange),
-    changePercent: parseFloat(d.priceChangePercent),
-    high: parseFloat(d.highPrice),
-    low: parseFloat(d.lowPrice),
-    volume: parseFloat(d.quoteVolume),
-  };
+// Binance fallback (may be blocked in some Vercel regions)
+async function fetchBinancePrices(symbols: string[]): Promise<Record<string, {
+  price: number; change24h: number; changePercent24h: number;
+  high24h: number; low24h: number; volume24h: number; marketCap: number;
+}>> {
+  const result: Record<string, {
+    price: number; change24h: number; changePercent24h: number;
+    high24h: number; low24h: number; volume24h: number; marketCap: number;
+  }> = {};
+
+  await Promise.all(
+    symbols.map(async (sym) => {
+      const binanceSymbol = CRYPTO_MAP[sym]?.binance;
+      if (!binanceSymbol) return;
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`);
+        if (!res.ok) return;
+        const d = await res.json();
+        result[sym] = {
+          price: parseFloat(d.lastPrice),
+          change24h: parseFloat(d.priceChange),
+          changePercent24h: parseFloat(d.priceChangePercent),
+          high24h: parseFloat(d.highPrice),
+          low24h: parseFloat(d.lowPrice),
+          volume24h: parseFloat(d.quoteVolume),
+          marketCap: 0,
+        };
+      } catch { /* skip */ }
+    })
+  );
+
+  return result;
 }
 
 /**
@@ -62,7 +107,8 @@ async function fetchBinanceTicker(symbol: string): Promise<{
  *   symbols  - comma-separated (default: BTC,ETH,SOL)
  *   currency - BRL or USD (default: BRL)
  *
- * Example: /api/v1/prices/crypto?symbols=BTC,ETH,SOL&currency=BRL
+ * Uses CoinGecko (global, free) as primary source.
+ * Falls back to Binance if CoinGecko is rate-limited.
  */
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request);
@@ -73,45 +119,49 @@ export async function GET(request: NextRequest) {
   const currency = (searchParams.get("currency") || "BRL").toUpperCase();
   const symbols = symbolsParam.split(",").map((s) => s.trim().toUpperCase());
 
-  // Validate symbols
   const invalid = symbols.filter((s) => !CRYPTO_MAP[s]);
   if (invalid.length > 0) {
     return apiError(`Unknown symbols: ${invalid.join(", ")}. Available: ${Object.keys(CRYPTO_MAP).join(", ")}`, 400);
   }
 
   try {
-    const usdBrl = currency === "BRL" ? await getUsdBrlRate() : 1;
-
-    const results = await Promise.all(
-      symbols.map(async (sym) => {
-        const config = CRYPTO_MAP[sym];
-        const { data: ticker, cached: wasCached, fetched_at } = await cached(
-          `crypto_${sym}`,
-          10, // 10s cache
-          () => fetchBinanceTicker(config.binance)
-        );
-
-        const price: PriceData = {
-          symbol: sym,
-          name: config.name,
-          price: parseFloat((ticker.price * usdBrl).toFixed(2)),
-          currency,
-          change_24h: parseFloat((ticker.change * usdBrl).toFixed(2)),
-          change_percent_24h: parseFloat(ticker.changePercent.toFixed(2)),
-          high_24h: parseFloat((ticker.high * usdBrl).toFixed(2)),
-          low_24h: parseFloat((ticker.low * usdBrl).toFixed(2)),
-          volume_24h: parseFloat((ticker.volume * usdBrl).toFixed(0)),
-          source: "binance",
-          updated_at: fetched_at,
-        };
-
-        return { ...price, _cached: wasCached };
-      })
+    const cacheKey = `crypto_${symbols.sort().join(",")}_${currency}`;
+    const { data: prices, cached: wasCached, fetched_at } = await cached(
+      cacheKey,
+      15, // 15s cache
+      async () => {
+        // Try CoinGecko first (works globally)
+        try {
+          return await fetchCoinGeckoPrices(symbols, currency);
+        } catch (cgErr) {
+          console.warn("[crypto] CoinGecko failed, trying Binance:", cgErr);
+          // Fallback to Binance (may fail in some regions)
+          return await fetchBinancePrices(symbols);
+        }
+      }
     );
+
+    const results: (PriceData & { _cached: boolean })[] = symbols.map((sym) => {
+      const p = prices[sym];
+      return {
+        symbol: sym,
+        name: CRYPTO_MAP[sym].name,
+        price: p ? parseFloat(p.price.toFixed(2)) : 0,
+        currency,
+        change_24h: p ? parseFloat(p.change24h.toFixed(2)) : 0,
+        change_percent_24h: p ? parseFloat(p.changePercent24h.toFixed(2)) : 0,
+        high_24h: p ? parseFloat(p.high24h.toFixed(2)) : 0,
+        low_24h: p ? parseFloat(p.low24h.toFixed(2)) : 0,
+        volume_24h: p ? Math.round(p.volume24h) : 0,
+        market_cap: p?.marketCap || undefined,
+        source: "coingecko",
+        updated_at: fetched_at,
+        _cached: wasCached,
+      };
+    });
 
     return apiSuccess(results, {
       currency,
-      usd_brl_rate: currency === "BRL" ? usdBrl : undefined,
       available_symbols: Object.keys(CRYPTO_MAP),
     });
   } catch (err) {

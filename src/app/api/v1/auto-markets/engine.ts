@@ -30,30 +30,42 @@ interface MarketTemplate {
   tier: "curto" | "medio" | "longo";
 }
 
-// ---- Crypto Price Helpers ----
+// ---- Crypto Price Helpers (CoinGecko + AwesomeAPI, no Binance) ----
+
+async function getCryptoPrice(cgId: string): Promise<number> {
+  // CoinGecko (global, no region block)
+  try {
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+    if (res.ok) {
+      const d = await res.json();
+      return d[cgId]?.usd || 0;
+    }
+  } catch { /* fall through */ }
+  return 0;
+}
 
 async function getBtcPrice(): Promise<number> {
-  const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
-  const d = await res.json();
-  return parseFloat(d.price);
+  return getCryptoPrice("bitcoin");
 }
 
 async function getEthPrice(): Promise<number> {
-  const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
-  const d = await res.json();
-  return parseFloat(d.price);
+  return getCryptoPrice("ethereum");
 }
 
 async function getSolPrice(): Promise<number> {
-  const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT");
-  const d = await res.json();
-  return parseFloat(d.price);
+  return getCryptoPrice("solana");
 }
 
 async function getUsdBrl(): Promise<number> {
-  const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=USDTBRL");
-  const d = await res.json();
-  return parseFloat(d.price);
+  // AwesomeAPI (free, no key, works globally)
+  try {
+    const res = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+    if (res.ok) {
+      const d = await res.json();
+      return parseFloat(d.USDBRL?.bid || "5.5");
+    }
+  } catch { /* fall through */ }
+  return 5.5; // fallback
 }
 
 async function getWeather(cityId: number): Promise<{ temp: number; humidity: number; description: string }> {

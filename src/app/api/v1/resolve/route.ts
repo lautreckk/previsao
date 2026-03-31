@@ -116,14 +116,36 @@ async function resolveCryptoUpDown(
   const openPrice = params.open_price as number;
   if (!openPrice) throw new Error("open_price is required");
 
-  const binanceSymbol = `${symbol}USDT`;
-  const { data: ticker } = await cached(`resolve_crypto_${symbol}`, 5, async () => {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`);
-    if (!res.ok) throw new Error(`Binance error: ${res.status}`);
-    return res.json();
+  // CoinGecko ID map
+  const cgIds: Record<string, string> = {
+    BTC: "bitcoin", ETH: "ethereum", SOL: "solana", BNB: "binancecoin",
+    XRP: "ripple", ADA: "cardano", DOGE: "dogecoin", DOT: "polkadot",
+    AVAX: "avalanche-2", LINK: "chainlink", USDT: "tether",
+  };
+  const cgId = cgIds[symbol] || symbol.toLowerCase();
+
+  const { data: cgData } = await cached(`resolve_crypto_${symbol}`, 10, async () => {
+    // Try CoinGecko first (works globally)
+    try {
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+      if (res.ok) {
+        const json = await res.json();
+        return { price: json[cgId]?.usd || 0, source: "coingecko" };
+      }
+    } catch { /* fall through */ }
+    // Fallback to AwesomeAPI for BRL pairs
+    try {
+      const res = await fetch(`https://economia.awesomeapi.com.br/json/last/${symbol}-USD`);
+      if (res.ok) {
+        const json = await res.json();
+        const key = `${symbol}USD`;
+        return { price: parseFloat(json[key]?.bid || "0"), source: "awesomeapi" };
+      }
+    } catch { /* fall through */ }
+    throw new Error(`Could not fetch price for ${symbol}`);
   });
 
-  const closePrice = parseFloat(ticker.price);
+  const closePrice = cgData.price;
   const diff = closePrice - openPrice;
 
   let winningKey: string | null = null;
