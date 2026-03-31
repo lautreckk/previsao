@@ -8,6 +8,7 @@ import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel"
 import { CATEGORY_META } from "@/lib/engines/types";
 import BottomNav from "@/components/BottomNav";
 import { LivePriceDisplay } from "@/components/LivePriceDisplay";
+import { LivePriceChart } from "@/components/LivePriceChart";
 import { MarketResultBanner } from "@/components/MarketResultBanner";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
@@ -278,8 +279,16 @@ export default function EventoPage() {
 
           {/* Live Price (crypto/economy/weather) */}
           {livePriceInfo && (
-            <div className="px-5 pt-3">
+            <div className="px-5 pt-3 space-y-3">
               <LivePriceDisplay symbol={livePriceInfo.symbol} category={livePriceInfo.category} />
+              <LivePriceChart
+                symbol={livePriceInfo.symbol}
+                category={livePriceInfo.category}
+                openPrice={
+                  (market.source_config?.custom_params?.open_price as number) ??
+                  undefined
+                }
+              />
             </div>
           )}
 
