@@ -30,27 +30,15 @@ export function LivePriceDisplay({
 
   const fetchPrice = useCallback(async () => {
     try {
-      const endpoint =
-        category === "crypto"
-          ? `/api/v1/prices/crypto?symbols=${symbol}&currency=BRL`
-          : category === "economy"
-            ? `/api/v1/prices/forex?symbols=${symbol}&currency=BRL`
-            : `/api/v1/prices/stocks?symbols=${symbol}&currency=BRL`;
+      // Use public /api/prices endpoint (no auth required)
+      const endpoint = `/api/prices?symbol=${encodeURIComponent(symbol)}&category=${encodeURIComponent(category)}`;
 
-      const headers: Record<string, string> = {};
-      if (apiKey) {
-        headers["x-api-key"] = apiKey;
-      }
-
-      const res = await fetch(endpoint, { headers });
+      const res = await fetch(endpoint);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
 
-      const data = await res.json();
-
-      // Extract price from response — handle common API shapes
-      const entry = data?.data?.[symbol] ?? data?.[symbol] ?? data;
+      const entry = await res.json();
       if (!entry?.price && entry?.price !== 0) return;
 
       const newPrice = Number(entry.price);
@@ -67,9 +55,9 @@ export function LivePriceDisplay({
       prevPriceRef.current = newPrice;
       setPriceData({
         price: newPrice,
-        change_24h: Number(entry.change_24h ?? 0),
-        change_pct_24h: Number(entry.change_pct_24h ?? 0),
-        currency: "BRL",
+        change_24h: Number(entry.change_24h ?? entry.change_percent_24h ?? 0),
+        change_pct_24h: Number(entry.change_pct_24h ?? entry.change_percent_24h ?? 0),
+        currency: entry.currency || "BRL",
       });
       setError(null);
     } catch (err) {

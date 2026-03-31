@@ -118,11 +118,16 @@ export default function EventoPage() {
     const t = m.title.toLowerCase();
     if (t.includes("bitcoin") || t.includes("btc")) return { symbol: "BTC", category: "crypto" };
     if (t.includes("ethereum") || t.includes("eth")) return { symbol: "ETH", category: "crypto" };
-    if (t.includes("dolar") || t.includes("dólar")) return { symbol: "USD/BRL", category: "forex" };
+    if (t.includes("solana") || t.includes("sol:")) return { symbol: "SOL", category: "crypto" };
+    if (t.includes("dolar") || t.includes("dólar") || t.includes("usd")) return { symbol: "USD-BRL", category: "forex" };
     if (t.includes("petr4")) return { symbol: "PETR4", category: "stocks" };
-    if (t.includes("clima") || t.includes("°c")) {
-      const cityMatch = m.title.match(/(?:Clima|Temperatura)\s+(?:em\s+)?(\w+)/i);
-      return { symbol: cityMatch?.[1] || "Sao Paulo", category: "weather" };
+    if (t.includes("vale3")) return { symbol: "VALE3", category: "stocks" };
+    if (t.includes("itub4")) return { symbol: "ITUB4", category: "stocks" };
+    // Weather: detect city from title
+    if (t.includes("°c") || t.includes("chove") || t.includes("maxima") || m.category === "weather") {
+      const cities = ["sao paulo", "rio de janeiro", "brasilia", "curitiba", "belo horizonte", "porto alegre", "fortaleza", "salvador", "florianopolis", "recife", "manaus"];
+      const found = cities.find((c) => t.includes(c));
+      return { symbol: found || "sao paulo", category: "weather" };
     }
     return null;
   }, []);
