@@ -525,9 +525,9 @@ export default function Home() {
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <span className="text-[#00D4AA] font-bold text-xs truncate">{msg.user}</span>
                           {badge && (
-                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-[#1a2332] border border-[#2a3444] ${badge.color}`}>
-                              <span className="material-symbols-outlined" style={{ fontSize: "10px" }}>{badge.icon}</span>
-                              <span className="text-[8px] font-black uppercase">{badge.label}</span>
+                            <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#1a2332] border border-[#2a3444] ${badge.color}`}>
+                              <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>{badge.icon}</span>
+                              <span className="text-[9px] font-black uppercase">{badge.label}</span>
                             </span>
                           )}
                           <span className="text-[10px] text-[#3a4a5a] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">{timeStr}</span>
@@ -553,12 +553,21 @@ export default function Home() {
 
             {/* Chat input */}
             <div className="px-3 py-3 border-t border-[#2a3444] shrink-0 bg-[#0a1020]">
-              <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
-                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2.5 text-sm text-white outline-none placeholder-[#5A6478]" />
-                <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
-                <button onClick={sendChat} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
-              </div>
-              <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70 hover:text-[#00D4AA] cursor-pointer">regras da comunidade</span></p>
+              {user ? (
+                <>
+                  <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
+                    <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2.5 text-sm text-white outline-none placeholder-[#5A6478]" />
+                    <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
+                    <button onClick={sendChat} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+                  </div>
+                  <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70 hover:text-[#00D4AA] cursor-pointer">regras da comunidade</span></p>
+                </>
+              ) : (
+                <div className="text-center py-2">
+                  <p className="text-xs text-[#5A6478] mb-2">Faca login para participar do chat</p>
+                  <Link href="/login" className="inline-block px-4 py-2 rounded-lg bg-[#00D4AA]/10 text-[#00D4AA] text-xs font-bold border border-[#00D4AA]/30 hover:bg-[#00D4AA]/20 transition-colors">Entrar</Link>
+                </div>
+              )}
             </div>
           </aside>
         ) : null}

@@ -7,6 +7,7 @@ import { initializeStore, getMarket, placeBetFull, tickAllMarkets } from "@/lib/
 import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { CATEGORY_META } from "@/lib/engines/types";
 import BottomNav from "@/components/BottomNav";
+import LiveChat from "@/components/LiveChat";
 import { LivePriceDisplay } from "@/components/LivePriceDisplay";
 import LivePriceChart from "@/components/LivePriceChart";
 import { MarketResultBanner } from "@/components/MarketResultBanner";
@@ -87,12 +88,20 @@ function EventChat() {
         </button>
       )}
       <div className="px-3 py-2.5 border-t border-[#2a3444] shrink-0 bg-[#0a1020]">
-        <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder-[#5A6478]" />
-          <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
-          <button onClick={send} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
-        </div>
-        <p className="text-[10px] text-[#3a4a5a] mt-1 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70">regras da comunidade</span></p>
+        {user ? (
+          <>
+            <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
+              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder-[#5A6478]" />
+              <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
+              <button onClick={send} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+            </div>
+            <p className="text-[10px] text-[#3a4a5a] mt-1 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70">regras da comunidade</span></p>
+          </>
+        ) : (
+          <div className="text-center py-1.5">
+            <p className="text-[11px] text-[#5A6478]">Faca <a href="/login" className="text-[#00D4AA] font-bold">login</a> para participar do chat</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -113,6 +122,7 @@ export default function EventoPage() {
   const [placing, setPlacing] = useState(false);
   const [flashKeys, setFlashKeys] = useState<Record<string, "up" | "down">>({});
   const [isResolved, setIsResolved] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   // Derive live price symbol from market title
   const getLivePriceInfo = useCallback((m: PredictionMarket | null) => {
@@ -489,16 +499,24 @@ export default function EventoPage() {
                 {!user ? (
                   <Link href="/login" className="block w-full py-4 rounded-xl bg-[#00D4AA] text-[#003D2E] font-black text-sm text-center uppercase tracking-wider">Faca login para apostar</Link>
                 ) : (
-                  <button onClick={() => {
-                    const amt = parseFloat(betAmount);
-                    if (!amt || amt <= 0) { setError("Valor invalido"); return; }
-                    if (user.balance < amt) { setError("Saldo insuficiente"); return; }
-                    setShowConfirm(true);
-                  }} disabled={!betAmount || parseFloat(betAmount) <= 0}
-                    className="w-full py-4 rounded-xl bg-[#00D4AA] text-[#003D2E] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 shadow-[0_4px_20px_rgba(0,212,170,0.3)]"
-                  >
-                    Comprar {selected.label}
-                  </button>
+                  <div>
+                    <button onClick={() => {
+                      const amt = parseFloat(betAmount);
+                      if (!amt || amt <= 0) { setError("Valor invalido"); return; }
+                      if (user.balance < amt) { setError("Saldo insuficiente"); return; }
+                      setShowConfirm(true);
+                    }} disabled={!betAmount || parseFloat(betAmount) <= 0}
+                      className="w-full py-4 rounded-xl bg-[#00D4AA] text-[#003D2E] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(0,212,170,0.3)]"
+                    >
+                      Comprar {selected.label}
+                    </button>
+                    {(!betAmount || parseFloat(betAmount) <= 0) && (
+                      <p className="text-[10px] text-[#5A6478] text-center mt-2 flex items-center justify-center gap-1">
+                        <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>info</span>
+                        Insira um valor acima para apostar
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -513,14 +531,24 @@ export default function EventoPage() {
                 ))}
               </div>
               <div className="flex-1 overflow-y-auto p-4">
-                <div className="text-center text-[#5A6478] py-8">
+                <div className="text-center py-8">
                   {!user ? (
-                    <>
-                      <p className="text-sm">Faca login para visualizar suas posicoes.</p>
-                      <Link href="/login" className="text-[#00D4AA] text-sm font-bold mt-2 inline-block">Entrar</Link>
-                    </>
+                    <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-6">
+                      <div className="w-14 h-14 rounded-2xl bg-[#00D4AA]/10 flex items-center justify-center mx-auto mb-3">
+                        <span className="material-symbols-outlined text-[#00D4AA] text-2xl">account_circle</span>
+                      </div>
+                      <p className="text-sm text-white font-bold mb-1">Faca login para comecar</p>
+                      <p className="text-xs text-[#5A6478] mb-4">Veja suas posicoes, historico e gerencie suas previsoes.</p>
+                      <Link href="/login" className="inline-block px-6 py-2.5 rounded-lg bg-[#00D4AA] text-[#003D2E] text-sm font-black uppercase tracking-wider hover:bg-[#00D4AA]/90 active:scale-95 transition-all">Entrar</Link>
+                    </div>
                   ) : (
-                    <p className="text-xs">Selecione um resultado para fazer sua previsao.</p>
+                    <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-6">
+                      <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
+                        <span className="material-symbols-outlined text-[#5A6478] text-2xl">touch_app</span>
+                      </div>
+                      <p className="text-sm text-white font-bold mb-1">Nenhuma posicao ainda</p>
+                      <p className="text-xs text-[#5A6478]">Selecione um resultado ao lado para fazer sua previsao.</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -555,6 +583,15 @@ export default function EventoPage() {
       )}
 
       {betPlaced && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-[#00D4AA] text-[#003D2E] px-6 py-3 rounded-xl font-black text-sm shadow-[0_4px_20px_rgba(0,212,170,0.4)]">Previsao realizada!</div>}
+
+      {/* Mobile chat FAB */}
+      <button
+        onClick={() => setMobileChatOpen(true)}
+        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-[#00D4AA] text-[#003D2E] flex items-center justify-center shadow-[0_4px_20px_rgba(0,212,170,0.4)] hover:scale-105 active:scale-95 transition-all"
+      >
+        <span className="material-symbols-outlined text-lg">forum</span>
+      </button>
+      <LiveChat isOpen={mobileChatOpen} onClose={() => setMobileChatOpen(false)} />
 
       <div className="lg:hidden"><BottomNav /></div>
     </div>

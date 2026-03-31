@@ -3,10 +3,6 @@ import { UserProvider } from "@/lib/UserContext";
 import { ChatProvider } from "@/lib/ChatContext";
 import Script from "next/script";
 import "./globals.css";
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Winify - Transforme seus palpites em dinheiro",
@@ -25,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={cn("dark", "font-sans", geist.variable)}>
+    <html lang="pt-BR" className="dark">
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,800&family=Be+Vietnam+Pro:wght@400;500;700;900&display=swap"
