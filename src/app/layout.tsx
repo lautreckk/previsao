@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { UserProvider } from "@/lib/UserContext";
+import { ChatProvider } from "@/lib/ChatContext";
 import Script from "next/script";
 import "./globals.css";
 
@@ -55,7 +56,9 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning className="font-body antialiased overflow-x-hidden max-w-[100vw]">
         <UserProvider>
-          {children}
+          <ChatProvider>
+            {children}
+          </ChatProvider>
         </UserProvider>
       </body>
     </html>

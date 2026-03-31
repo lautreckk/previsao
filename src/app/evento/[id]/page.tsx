@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
+import { useChat, avatarColor } from "@/lib/ChatContext";
 import { initializeStore, getMarket, placeBetFull, tickAllMarkets } from "@/lib/engines/store";
 import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { CATEGORY_META } from "@/lib/engines/types";
@@ -11,38 +12,23 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import type { PredictionMarket } from "@/lib/engines/types";
 
-/* ─── Chat (reused from home) ─── */
-const chatUsers = ["@renandouglas1903","@victorturito08","@suelicapela10","@ronaldopvneto","@moisesmesquita0702","@allansilsou","@carvalho280922","@kaueeduardokj","@grasymatheus157","@richardbatista2501","@kellysonjean","@dieguinunicoo"];
-const chatMessages = ["explica isso petista","Alguem explica como funciona isso aqui","o site demora dms pra ir a aposta mn","podde ir under com forca agr","Over","over","Oxi","Paga meu pix que e bom nada","O contador voltou?","Oque e underrr?","??","bora lucrar","acertei 5 seguidas","quem apostou no sim?","to indo de nao","alguem mais ta aqui?"];
-
-const AVATAR_COLORS = ["from-[#FF6B6B] to-[#EE5A24]","from-[#00D4AA] to-[#00B894]","from-[#6C5CE7] to-[#A29BFE]","from-[#FDCB6E] to-[#F39C12]","from-[#00CEFF] to-[#0984E3]","from-[#FD79A8] to-[#E84393]","from-[#55E6C1] to-[#58B19F]","from-[#FF9FF3] to-[#F368E0]"];
-function avatarColor(name: string) { let h = 0; for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h); return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]; }
-
+/* ─── Chat (uses global ChatContext) ─── */
 function EventChat() {
-  const [msgs, setMsgs] = useState<{ user: string; text: string; id: number; ts: number }[]>([]);
+  const { messages: msgs, sendMessage, onlineCount } = useChat();
   const [input, setInput] = useState("");
   const { user } = useUser();
   const chatRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unread, setUnread] = useState(0);
-  const onlineCount = useRef(550 + Math.floor(Math.random() * 60));
+  const prevCount = useRef(msgs.length);
 
   useEffect(() => {
-    const now = Date.now();
-    setMsgs(Array.from({ length: 8 }, (_, i) => ({ user: chatUsers[i % chatUsers.length], text: chatMessages[i % chatMessages.length], id: i, ts: now - (8 - i) * 25000 })));
-  }, []);
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      const u = chatUsers[Math.floor(Math.random() * chatUsers.length)];
-      const t = chatMessages[Math.floor(Math.random() * chatMessages.length)];
-      setMsgs((p) => [...p.slice(-50), { user: u, text: t, id: Date.now(), ts: Date.now() }]);
-      if (!isAtBottom) setUnread((c) => c + 1);
-    }, 4000 + Math.random() * 6000);
-    return () => clearInterval(iv);
-  }, [isAtBottom]);
-
-  useEffect(() => { if (isAtBottom) chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); }, [msgs, isAtBottom]);
+    if (msgs.length > prevCount.current && !isAtBottom) {
+      setUnread((c) => c + (msgs.length - prevCount.current));
+    }
+    prevCount.current = msgs.length;
+    if (isAtBottom) chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
+  }, [msgs, isAtBottom]);
 
   const handleScroll = useCallback(() => {
     const el = chatRef.current;
@@ -54,7 +40,8 @@ function EventChat() {
 
   const send = () => {
     if (!input.trim()) return;
-    setMsgs((p) => [...p.slice(-50), { user: user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce", text: input.trim(), id: Date.now(), ts: Date.now() }]);
+    const username = user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce";
+    sendMessage(input.trim(), username);
     setInput(""); setIsAtBottom(true);
   };
 
@@ -67,7 +54,7 @@ function EventChat() {
             <span className="text-xs font-black text-white uppercase tracking-wider">CHAT AO VIVO</span>
             <div className="flex items-center gap-1 mt-0.5">
               <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00D4AA]" /></span>
-              <span className="text-[9px] text-[#00D4AA] font-bold">{onlineCount.current} online</span>
+              <span className="text-[9px] text-[#00D4AA] font-bold">{onlineCount} online</span>
             </div>
           </div>
         </div>

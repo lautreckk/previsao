@@ -7,6 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import { initializeStore, getMarkets, tickAllMarkets } from "@/lib/engines/store";
 import { CATEGORY_META } from "@/lib/engines/types";
 import { useUser } from "@/lib/UserContext";
+import { useChat, avatarColor, getUserBadge } from "@/lib/ChatContext";
 import type { PredictionMarket, MarketCategory } from "@/lib/engines/types";
 import { supabase } from "@/lib/supabase";
 
@@ -61,61 +62,21 @@ function WinnersTicker() {
   );
 }
 
-// Chat mock data
-const chatUsers = [
-  "@renandouglas1903", "@victorturito08", "@suelicapela10", "@ronaldopvneto",
-  "@moisesmesquita0702", "@allansilsou", "@carvalho280922", "@kaueeduardokj",
-  "@pedrohenrique99", "@julianacosta12", "@felipematos_", "@brunasantos777",
-];
-const chatMessages = [
-  "under,gg - 83 previsoes", "Desgeaca de mulher soe for mulher - 1 previsoes",
-  "mensagem apagada", "GG - 5 previsoes", "So pesquisar no telegram - 27 previsoes",
-  "tu e mlk so 3 prev willian - 68 previsoes", "quem foi de under ta maluko - 135 previsoes",
-  "grupo telegram operando 100% acertivo! pesquisem @rodoviasinais",
-  "ENTAO EU SOU LOUCO - 55 previsoes", "estamos jogando juntos no grupo do telegram!! entrem @rodoviasinais",
-  "bora lucrar galera", "acertei 5 seguidas", "alguem mais ta no btc?",
-  "essa do clima ta facil", "quem apostou no flamengo?",
-];
-
-// Avatar colors per user (deterministic from name)
-const AVATAR_COLORS = [
-  "from-[#FF6B6B] to-[#EE5A24]", "from-[#00D4AA] to-[#00B894]",
-  "from-[#6C5CE7] to-[#A29BFE]", "from-[#FDCB6E] to-[#F39C12]",
-  "from-[#00CEFF] to-[#0984E3]", "from-[#FD79A8] to-[#E84393]",
-  "from-[#55E6C1] to-[#58B19F]", "from-[#FF9FF3] to-[#F368E0]",
-];
-function avatarColor(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-// Badge tiers based on fake prediction count
-const BADGES: { min: number; icon: string; color: string; label: string }[] = [
-  { min: 100, icon: "local_fire_department", color: "text-[#FF6B6B]", label: "Top" },
-  { min: 50, icon: "bolt", color: "text-[#FDCB6E]", label: "Ativo" },
-  { min: 20, icon: "trending_up", color: "text-[#00D4AA]", label: "Regular" },
-];
-function getUserBadge(text: string) {
-  const match = text.match(/(\d+)\s*previsoes/);
-  const count = match ? parseInt(match[1]) : 0;
-  return BADGES.find((b) => count >= b.min) || null;
-}
+// Chat utilities imported from ChatContext
 
 export default function Home() {
   const { user } = useUser();
+  const { messages: chatMsgs, sendMessage, onlineCount } = useChat();
   const [markets, setMarkets] = useState<PredictionMarket[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"closing" | "relampago" | "hot">("closing");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-  const [chatMsgs, setChatMsgs] = useState<{ user: string; text: string; id: number; ts: number }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const onlineCount = useRef(620 + Math.floor(Math.random() * 40));
   const [chatOpen, setChatOpen] = useState(true);
   const catScrollRef = useRef<HTMLDivElement>(null);
   const [catScrollState, setCatScrollState] = useState<{ left: boolean; right: boolean }>({ left: false, right: true });
@@ -180,31 +141,15 @@ export default function Home() {
     return () => clearInterval(iv);
   }, []);
 
-  // Seed chat messages
+  // Track unread when new messages arrive and user isn't at bottom
+  const prevMsgCount = useRef(chatMsgs.length);
   useEffect(() => {
-    const now = Date.now();
-    const initial = Array.from({ length: 8 }, (_, i) => ({
-      user: chatUsers[i % chatUsers.length],
-      text: chatMessages[i % chatMessages.length],
-      id: i,
-      ts: now - (8 - i) * 30000,
-    }));
-    setChatMsgs(initial);
-  }, []);
+    if (chatMsgs.length > prevMsgCount.current && !isAtBottom) {
+      setUnreadCount((c) => c + (chatMsgs.length - prevMsgCount.current));
+    }
+    prevMsgCount.current = chatMsgs.length;
 
-  // Auto chat messages
-  useEffect(() => {
-    const iv = setInterval(() => {
-      const u = chatUsers[Math.floor(Math.random() * chatUsers.length)];
-      const text = chatMessages[Math.floor(Math.random() * chatMessages.length)];
-      setChatMsgs((prev) => [...prev.slice(-50), { user: u, text, id: Date.now(), ts: Date.now() }]);
-      if (!isAtBottom) setUnreadCount((c) => c + 1);
-    }, 4000 + Math.random() * 6000);
-    return () => clearInterval(iv);
-  }, [isAtBottom]);
-
-  // Smart auto-scroll: only if user is at bottom
-  useEffect(() => {
+    // Auto-scroll if at bottom
     if (isAtBottom) {
       chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
     }
@@ -248,10 +193,11 @@ export default function Home() {
 
   const sendChat = useCallback(() => {
     if (!chatInput.trim()) return;
-    setChatMsgs((prev) => [...prev.slice(-50), { user: user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce", text: chatInput.trim(), id: Date.now(), ts: Date.now() }]);
+    const username = user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce";
+    sendMessage(chatInput.trim(), username);
     setChatInput("");
     setIsAtBottom(true);
-  }, [chatInput, user]);
+  }, [chatInput, user, sendMessage]);
 
   const now = Date.now();
   const openMarkets = markets.filter((m) => ["open", "frozen", "closed", "awaiting_resolution"].includes(m.status));
@@ -484,7 +430,7 @@ export default function Home() {
                     <h3 className="font-black text-sm uppercase tracking-wider leading-none">Chat ao Vivo</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D4AA]" /></span>
-                      <span className="text-[10px] text-[#00D4AA] font-bold">{onlineCount.current} online</span>
+                      <span className="text-[10px] text-[#00D4AA] font-bold">{onlineCount} online</span>
                     </div>
                   </div>
                 </div>
