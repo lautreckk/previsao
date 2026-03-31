@@ -227,7 +227,7 @@ export default function EventoPage() {
               <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: meta?.color }}>{meta?.label}</span>
               {market.subcategory && <span className="text-[10px] text-[#5A6478]">/ {market.subcategory}</span>}
             </div>
-            <h1 className="text-xl lg:text-2xl font-black leading-tight mb-1">{market.title}</h1>
+            <h1 className="text-xl lg:text-2xl font-black leading-tight mb-1 line-clamp-2 lg:line-clamp-none">{market.title}</h1>
             {market.short_description && <p className="text-sm text-[#8B95A8] mb-3">{market.short_description}</p>}
             <div className="flex items-center gap-3 flex-wrap mb-4">
               <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
@@ -274,28 +274,35 @@ export default function EventoPage() {
               const prob = probabilities.find((p) => p.key === o.key);
               const isActive = selectedOutcome === o.key;
               return (
-                <div key={o.key} className={`flex items-center gap-3 bg-[#0d1525] rounded-xl border p-3 transition-all ${isActive ? "border-[#00D4AA]/50 bg-[#00D4AA]/5" : "border-[#1a2a3a] hover:border-[#2a3a4a]"}`}>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ backgroundColor: o.color + "15", color: o.color }}>
-                    {o.key.slice(0, 2).toUpperCase()}
+                <div key={o.key} className={`bg-[#0d1525] rounded-xl border p-3 transition-all ${isActive ? "border-[#00D4AA]/50 bg-[#00D4AA]/5" : "border-[#1a2a3a] hover:border-[#2a3a4a]"}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ backgroundColor: o.color + "15", color: o.color }}>
+                      {o.key.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold text-sm block truncate">{o.label}</span>
+                      <span className="text-[10px] text-[#5A6478]">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
+                    </div>
+                    <button className="text-[#5A6478] hover:text-white transition-colors hidden lg:block"><span className="material-symbols-outlined text-lg">expand_more</span></button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-bold text-sm block">{o.label}</span>
-                    <span className="text-[10px] text-[#5A6478]">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
+                  {/* Action buttons - row on desktop, full width on mobile */}
+                  <div className="flex gap-2 mt-2.5">
+                    <button
+                      onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
+                      disabled={!isOpen}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${isActive ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] hover:bg-[#00D4AA]/20"} disabled:opacity-40`}
+                    >
+                      <span className="block">Sim</span>
+                      <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"}</span>
+                    </button>
+                    <button
+                      disabled={!isOpen}
+                      className="flex-1 py-2.5 rounded-lg text-xs font-black bg-[#FF5252]/10 text-[#FF5252] hover:bg-[#FF5252]/20 transition-all disabled:opacity-40"
+                    >
+                      <span className="block">Nao</span>
+                      <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? ((market.pool_total * 0.95) / Math.max((market.pool_total - o.pool) || 1, 1)).toFixed(2) + "x" : "—"}</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
-                    disabled={!isOpen}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${isActive ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] hover:bg-[#00D4AA]/20"} disabled:opacity-40`}
-                  >
-                    Sim ({o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"})
-                  </button>
-                  <button
-                    disabled={!isOpen}
-                    className="px-4 py-2 rounded-lg text-xs font-black bg-[#FF5252]/10 text-[#FF5252] hover:bg-[#FF5252]/20 transition-all disabled:opacity-40"
-                  >
-                    Nao ({o.payout_per_unit > 0 ? ((market.pool_total * 0.95) / Math.max((market.pool_total - o.pool) || 1, 1)).toFixed(2) + "x" : "—"})
-                  </button>
-                  <button className="text-[#5A6478] hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">expand_more</span></button>
                 </div>
               );
             })}
@@ -303,7 +310,7 @@ export default function EventoPage() {
         </div>
 
         {/* ─── MIDDLE: Bet form + Positions ─── */}
-        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0a1222] overflow-hidden">
+        <div className="w-full lg:w-[340px] lg:border-l border-t lg:border-t-0 border-[#1a2a3a] flex flex-col bg-[#0a1222] overflow-hidden lg:max-h-screen">
           {selected ? (
             <div className="flex-1 overflow-y-auto">
               {/* Bet header */}
@@ -351,16 +358,16 @@ export default function EventoPage() {
                     <div className="flex-1 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <span className="text-[#8B95A8] text-lg font-bold">R$</span>
-                        <input type="number" value={betAmount} onChange={(e) => { setBetAmount(e.target.value); setError(""); }} placeholder="0" className="bg-transparent text-center text-3xl font-black text-white outline-none w-32 tabular-nums" />
+                        <input type="number" value={betAmount} onChange={(e) => { setBetAmount(e.target.value); setError(""); }} placeholder="0" className="bg-transparent text-center text-2xl sm:text-3xl font-black text-white outline-none w-24 sm:w-32 tabular-nums" />
                       </div>
                     </div>
                     <button onClick={() => setBetAmount(String((parseFloat(betAmount) || 0) + 1))} className="w-10 h-10 rounded-lg bg-[#1a2a3a] text-[#8B95A8] hover:text-white flex items-center justify-center text-lg font-bold">+</button>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="grid grid-cols-5 gap-1.5">
                     {[1, 10, 50, 100].map((v) => (
-                      <button key={v} onClick={() => setBetAmount(String(v))} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${betAmount === String(v) ? "bg-[#00D4AA]/20 text-[#00D4AA] border border-[#00D4AA]/40" : "bg-[#1a2a3a] text-[#8B95A8] hover:text-white"}`}>{v}</button>
+                      <button key={v} onClick={() => setBetAmount(String(v))} className={`py-2.5 rounded-lg text-xs font-bold transition-all ${betAmount === String(v) ? "bg-[#00D4AA]/20 text-[#00D4AA] border border-[#00D4AA]/40" : "bg-[#1a2a3a] text-[#8B95A8] hover:text-white"}`}>{v}</button>
                     ))}
-                    <button onClick={() => user && setBetAmount(String(Math.floor(user.balance)))} className="flex-1 py-2 rounded-lg text-xs font-bold bg-[#1a2a3a] text-[#8B95A8] hover:text-white">MAX</button>
+                    <button onClick={() => user && setBetAmount(String(Math.floor(user.balance)))} className="py-2.5 rounded-lg text-xs font-bold bg-[#1a2a3a] text-[#8B95A8] hover:text-white">MAX</button>
                   </div>
                 </div>
 

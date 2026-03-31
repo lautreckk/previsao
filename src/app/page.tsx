@@ -116,6 +116,9 @@ export default function Home() {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const onlineCount = useRef(620 + Math.floor(Math.random() * 40));
+  const [chatOpen, setChatOpen] = useState(true);
+  const catScrollRef = useRef<HTMLDivElement>(null);
+  const [catScrollState, setCatScrollState] = useState<{ left: boolean; right: boolean }>({ left: false, right: true });
 
   useEffect(() => {
     initializeStore();
@@ -224,6 +227,24 @@ export default function Home() {
     setIsAtBottom(atBottom);
     if (atBottom) setUnreadCount(0);
   }, []);
+
+  const updateCatScroll = useCallback(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    setCatScrollState({
+      left: el.scrollLeft > 8,
+      right: el.scrollLeft < el.scrollWidth - el.clientWidth - 8,
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    updateCatScroll();
+    const ro = new ResizeObserver(updateCatScroll);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateCatScroll]);
 
   const sendChat = useCallback(() => {
     if (!chatInput.trim()) return;
@@ -338,6 +359,57 @@ export default function Home() {
         </div>
       </header>
 
+      {/* MOBILE SEARCH - visible only on small screens */}
+      <div className="sm:hidden px-4 pt-3 pb-1">
+        <div className="relative" ref={searchRef}>
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6478] text-sm">search</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            placeholder="Buscar mercados..."
+            className="w-full bg-[#0d1525] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white border border-[#2a3444] outline-none focus:border-[#00D4AA]/40 placeholder-[#5A6478]"
+          />
+          {search.length > 0 && searchFocused && (() => {
+            const results = openMarkets
+              .filter((m) => m.title.toLowerCase().includes(search.toLowerCase()))
+              .slice(0, 6);
+            return results.length > 0 ? (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
+                {results.map((m) => {
+                  const isCam = !!m.stream_url || m.id.startsWith("cam_");
+                  const href = isCam ? `/camera/${m.id}` : `/evento/${m.id}`;
+                  return (
+                    <Link
+                      key={m.id}
+                      href={href}
+                      onClick={() => { setSearch(""); setSearchFocused(false); }}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1a2332] transition-colors"
+                    >
+                      {m.image_url ? (
+                        <img src={m.image_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-md bg-[#1a2332] flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-[#5A6478] text-sm">monitoring</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">{m.title}</p>
+                        <p className="text-xs text-[#5A6478]">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 z-[60] px-4 py-3 text-center text-sm text-[#5A6478]">
+                Nenhum mercado encontrado
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
       {/* WINNERS TICKER */}
       <WinnersTicker />
 
@@ -353,16 +425,28 @@ export default function Home() {
       <div className="flex">
         {/* MAIN CONTENT */}
         <main className="flex-1 min-w-0">
-          {/* Categories row */}
-          <div className="px-4 lg:px-6 py-3 flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-[#2a3444]">
-            <button onClick={() => setActiveCategory("all")} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === "all" ? "bg-[#00FFB8]/10 border border-[#00FFB8]/40 text-[#00FFB8]" : "text-[#8B95A8] hover:text-white"}`}>
-              <span className="material-symbols-outlined text-sm">dashboard</span>Todos
-            </button>
-            {catEntries.map(([key, meta]) => (
-              <button key={key} onClick={() => setActiveCategory(key)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === key ? "bg-[#00FFB8]/10 border border-[#00FFB8]/40 text-[#00FFB8]" : "text-[#8B95A8] hover:text-white"}`}>
-                <span className="material-symbols-outlined text-sm">{meta.icon}</span>{meta.label}
+          {/* Categories row with scroll indicators */}
+          <div className="relative border-b border-[#2a3444]">
+            {catScrollState.left && (
+              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0d1525] to-transparent z-10 pointer-events-none" />
+            )}
+            {catScrollState.right && (
+              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#0d1525] to-transparent z-10 pointer-events-none" />
+            )}
+            <div
+              ref={catScrollRef}
+              onScroll={updateCatScroll}
+              className="px-4 lg:px-6 py-3 flex items-center gap-1 overflow-x-auto no-scrollbar"
+            >
+              <button onClick={() => setActiveCategory("all")} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === "all" ? "bg-[#00FFB8]/10 border border-[#00FFB8]/40 text-[#00FFB8]" : "text-[#8B95A8] hover:text-white"}`}>
+                <span className="material-symbols-outlined text-sm">dashboard</span>Todos
               </button>
-            ))}
+              {catEntries.map(([key, meta]) => (
+                <button key={key} onClick={() => setActiveCategory(key)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === key ? "bg-[#00FFB8]/10 border border-[#00FFB8]/40 text-[#00FFB8]" : "text-[#8B95A8] hover:text-white"}`}>
+                  <span className="material-symbols-outlined text-sm">{meta.icon}</span>{meta.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Sub tabs */}
@@ -374,7 +458,7 @@ export default function Home() {
             <button onClick={() => setActiveTab("hot")} className={`font-semibold pb-1 transition-all ${activeTab === "hot" ? "text-white border-b-2 border-white" : "text-[#5A6478]"}`}>Em Alta</button>
           </div>
 
-          {/* GRID 4 columns */}
+          {/* GRID - responsive columns */}
           <div className="p-4 lg:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-24 lg:pb-6">
             {sorted.map((m) => <MarketCard key={m.id} market={m} />)}
             {sorted.length === 0 && (
@@ -386,90 +470,103 @@ export default function Home() {
           </div>
         </main>
 
-        {/* CHAT SIDEBAR - desktop only */}
-        <aside className="hidden lg:flex flex-col w-80 xl:w-96 border-l border-[#2a3444] bg-[#0d1525] sticky top-14 h-[calc(100vh-56px)] relative">
-          {/* Chat header */}
-          <div className="px-4 py-3 border-b border-[#2a3444] shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#00D4AA]/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[#00D4AA] text-base">forum</span>
-                </div>
-                <div>
-                  <h3 className="font-black text-sm uppercase tracking-wider leading-none">Chat ao Vivo</h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D4AA]" /></span>
-                    <span className="text-[10px] text-[#00D4AA] font-bold">{onlineCount.current} online</span>
+        {/* CHAT SIDEBAR - desktop only, collapsible */}
+        {chatOpen ? (
+          <aside className="hidden xl:flex flex-col w-80 2xl:w-96 border-l border-[#2a3444] bg-[#0d1525] sticky top-14 h-[calc(100vh-56px)] relative">
+            {/* Chat header */}
+            <div className="px-4 py-3 border-b border-[#2a3444] shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#00D4AA]/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[#00D4AA] text-base">forum</span>
                   </div>
-                </div>
-              </div>
-              <button className="w-8 h-8 rounded-lg bg-[#1a2332] flex items-center justify-center text-[#5A6478] hover:text-white hover:bg-[#2a3444] transition-colors">
-                <span className="material-symbols-outlined text-base">settings</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Chat messages */}
-          <div ref={chatRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 no-scrollbar relative">
-            {chatMsgs.map((msg, idx) => {
-              const prevMsg = idx > 0 ? chatMsgs[idx - 1] : null;
-              const isGrouped = prevMsg?.user === msg.user;
-              const badge = getUserBadge(msg.text);
-              const timeAgo = Math.max(0, Math.floor((Date.now() - msg.ts) / 60000));
-              const timeStr = timeAgo === 0 ? "agora" : `${timeAgo}min`;
-
-              return (
-                <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1a2332]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
-                  {/* Avatar */}
-                  {!isGrouped ? (
-                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[11px] font-black text-white shrink-0 mt-0.5`}>
-                      {msg.user.replace("@", "").charAt(0).toUpperCase()}
+                  <div>
+                    <h3 className="font-black text-sm uppercase tracking-wider leading-none">Chat ao Vivo</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D4AA]" /></span>
+                      <span className="text-[10px] text-[#00D4AA] font-bold">{onlineCount.current} online</span>
                     </div>
-                  ) : (
-                    <div className="w-8 shrink-0" />
-                  )}
-                  {/* Content */}
-                  <div className="min-w-0 flex-1">
-                    {!isGrouped && (
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[#00D4AA] font-bold text-xs truncate">{msg.user}</span>
-                        {badge && (
-                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-[#1a2332] border border-[#2a3444] ${badge.color}`}>
-                            <span className="material-symbols-outlined" style={{ fontSize: "10px" }}>{badge.icon}</span>
-                            <span className="text-[8px] font-black uppercase">{badge.label}</span>
-                          </span>
-                        )}
-                        <span className="text-[10px] text-[#3a4a5a] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">{timeStr}</span>
-                      </div>
-                    )}
-                    <p className="text-[13px] text-[#c8cdd4] break-words leading-relaxed">{msg.text}</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* New messages indicator */}
-          {!isAtBottom && unreadCount > 0 && (
-            <button
-              onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnreadCount(0); }}
-              className="absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#00D4AA] text-[#003D2E] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(0,212,170,0.4)] hover:shadow-[0_4px_20px_rgba(0,212,170,0.6)] transition-all animate-bounce"
-            >
-              <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
-              {unreadCount} {unreadCount === 1 ? "nova mensagem" : "novas mensagens"}
-            </button>
-          )}
-
-          {/* Chat input */}
-          <div className="px-3 py-3 border-t border-[#2a3444] shrink-0 bg-[#0a1020]">
-            <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
-              <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2.5 text-sm text-white outline-none placeholder-[#5A6478]" />
-              <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
-              <button onClick={sendChat} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+                <button onClick={() => setChatOpen(false)} className="w-8 h-8 rounded-lg bg-[#1a2332] flex items-center justify-center text-[#5A6478] hover:text-white hover:bg-[#2a3444] transition-colors" title="Minimizar chat">
+                  <span className="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+              </div>
             </div>
-            <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70 hover:text-[#00D4AA] cursor-pointer">regras da comunidade</span></p>
-          </div>
-        </aside>
+
+            {/* Chat messages */}
+            <div ref={chatRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 no-scrollbar relative">
+              {chatMsgs.map((msg, idx) => {
+                const prevMsg = idx > 0 ? chatMsgs[idx - 1] : null;
+                const isGrouped = prevMsg?.user === msg.user;
+                const badge = getUserBadge(msg.text);
+                const timeAgo = Math.max(0, Math.floor((Date.now() - msg.ts) / 60000));
+                const timeStr = timeAgo === 0 ? "agora" : `${timeAgo}min`;
+
+                return (
+                  <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1a2332]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
+                    {/* Avatar */}
+                    {!isGrouped ? (
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[11px] font-black text-white shrink-0 mt-0.5`}>
+                        {msg.user.replace("@", "").charAt(0).toUpperCase()}
+                      </div>
+                    ) : (
+                      <div className="w-8 shrink-0" />
+                    )}
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      {!isGrouped && (
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[#00D4AA] font-bold text-xs truncate">{msg.user}</span>
+                          {badge && (
+                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-[#1a2332] border border-[#2a3444] ${badge.color}`}>
+                              <span className="material-symbols-outlined" style={{ fontSize: "10px" }}>{badge.icon}</span>
+                              <span className="text-[8px] font-black uppercase">{badge.label}</span>
+                            </span>
+                          )}
+                          <span className="text-[10px] text-[#3a4a5a] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">{timeStr}</span>
+                        </div>
+                      )}
+                      <p className="text-[13px] text-[#c8cdd4] break-words leading-relaxed">{msg.text}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* New messages indicator */}
+            {!isAtBottom && unreadCount > 0 && (
+              <button
+                onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnreadCount(0); }}
+                className="absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#00D4AA] text-[#003D2E] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(0,212,170,0.4)] hover:shadow-[0_4px_20px_rgba(0,212,170,0.6)] transition-all animate-bounce"
+              >
+                <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+                {unreadCount} {unreadCount === 1 ? "nova mensagem" : "novas mensagens"}
+              </button>
+            )}
+
+            {/* Chat input */}
+            <div className="px-3 py-3 border-t border-[#2a3444] shrink-0 bg-[#0a1020]">
+              <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
+                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2.5 text-sm text-white outline-none placeholder-[#5A6478]" />
+                <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
+                <button onClick={sendChat} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+              </div>
+              <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70 hover:text-[#00D4AA] cursor-pointer">regras da comunidade</span></p>
+            </div>
+          </aside>
+        ) : null}
+
+        {/* Chat FAB - visible on lg when chat sidebar is hidden, or when collapsed */}
+        <button
+          onClick={() => setChatOpen(!chatOpen)}
+          className={`hidden lg:flex ${chatOpen ? "xl:hidden" : ""} fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#00D4AA] text-[#003D2E] items-center justify-center shadow-[0_4px_20px_rgba(0,212,170,0.4)] hover:shadow-[0_4px_30px_rgba(0,212,170,0.6)] hover:scale-105 active:scale-95 transition-all`}
+        >
+          <span className="material-symbols-outlined text-xl">{chatOpen ? "close" : "forum"}</span>
+          {!chatOpen && unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF5252] rounded-full text-white text-[10px] font-black flex items-center justify-center">{unreadCount > 9 ? "9+" : unreadCount}</span>
+          )}
+        </button>
       </div>
 
       {/* Mobile only bottom nav */}

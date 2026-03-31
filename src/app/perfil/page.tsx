@@ -28,9 +28,12 @@ export default function PerfilPage() {
   return (
     <div className="min-h-screen bg-surface-dim text-on-surface pb-32 overflow-x-hidden w-full max-w-[100vw]">
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex justify-between items-center px-4 h-16 overflow-hidden">
-        <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="Winify" className="h-16 w-auto" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.back()} className="lg:hidden text-[#00D4AA] p-1"><span className="material-symbols-outlined">arrow_back</span></button>
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/logo.png" alt="Winify" className="h-16 w-auto" />
+          </Link>
+        </div>
         <div className="bg-surface-container-highest px-4 py-1.5 rounded-full border border-white/5 flex items-center gap-2">
           <span className="text-[#00D4AA] font-bold font-headline tracking-tight text-sm">R$ {user.balance.toFixed(2)}</span>
           <span className="material-symbols-outlined text-[#00D4AA] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
