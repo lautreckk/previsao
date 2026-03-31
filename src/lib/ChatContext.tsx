@@ -74,6 +74,31 @@ const FALLBACK_MESSAGES = [
   { user: "@fer_mg", text: "achei que ia perder mas deu gg" },
 ];
 
+// Detect if a message needs a bot reply
+function shouldReply(text: string): boolean {
+  const lower = text.toLowerCase();
+  // Questions
+  if (lower.includes("?")) return true;
+  const questionWords = ["como", "o que", "qual", "quem", "onde", "quando", "porque", "pq", "oq", "quanto", "funciona", "explica", "ajuda", "alguem"];
+  if (questionWords.some((w) => lower.includes(w))) return true;
+  // Negative sentiment
+  const negativeWords = ["golpe", "scam", "roubo", "fraude", "nao paga", "n paga", "nao funciona", "lixo", "porcaria", "pessimo", "horrivel", "furada", "piramide", "bot", "fake", "mentira", "enganando", "calote", "cuidado", "nao confio", "n confio", "perdi tudo", "roubando"];
+  if (negativeWords.some((w) => lower.includes(w))) return true;
+  return false;
+}
+
+// Fallback replies for when AI is unavailable
+const FALLBACK_REPLIES_QUESTION = [
+  { user: "@lucas_mod", text: "e simples mano, escolhe o mercado, aposta se vai subir ou descer e pronto" },
+  { user: "@ana_sp22", text: "eu comecei semana passada, bem facil de usar" },
+  { user: "@pedro_rj", text: "bota pouco no inicio pra pegar o jeito" },
+];
+const FALLBACK_REPLIES_NEGATIVE = [
+  { user: "@cadu_sp", text: "eu ja saquei varias vezes irmao, paga normal" },
+  { user: "@mari_bh22", text: "calma bro, demora um pouquinho mas cai sim" },
+  { user: "@thiago_pr", text: "eu tb achava no inicio mas fiz 3 saques ja kkk" },
+];
+
 const MAX_MESSAGES = 60;
 
 export function ChatProvider({ children }: { children: ReactNode }) {
@@ -82,6 +107,57 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const messageQueue = useRef<{ user: string; text: string }[]>([]);
   const fetchingRef = useRef(false);
   const initializedRef = useRef(false);
+  const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Add a message to chat (used by both auto and reply systems)
+  const addMessage = useCallback((user: string, text: string) => {
+    const now = Date.now();
+    setMessages((prev) => [
+      ...prev.slice(-(MAX_MESSAGES - 1)),
+      { user, text, id: now + Math.random(), ts: now },
+    ]);
+  }, []);
+
+  // Fetch contextual replies for a user message
+  const fetchReplies = useCallback(async (message: string, username: string) => {
+    try {
+      const res = await fetch("/api/chat/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, username }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.replies?.length > 0) {
+          // Schedule replies with delays
+          for (const reply of data.replies) {
+            const timer = setTimeout(() => {
+              addMessage(reply.user, reply.text);
+            }, (reply.delay || 3) * 1000);
+            replyTimers.current.push(timer);
+          }
+          return;
+        }
+      }
+    } catch {
+      // Fallback below
+    }
+
+    // Fallback: use static replies
+    const lower = message.toLowerCase();
+    const isNegative = ["golpe", "scam", "roubo", "nao paga", "n paga", "lixo", "fraude", "piramide", "fake", "calote", "roubando"].some((w) => lower.includes(w));
+    const fallbacks = isNegative ? FALLBACK_REPLIES_NEGATIVE : FALLBACK_REPLIES_QUESTION;
+    const count = 1 + Math.floor(Math.random() * 2); // 1-2 replies
+    const shuffled = [...fallbacks].sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+      const reply = shuffled[i];
+      const timer = setTimeout(() => {
+        addMessage(reply.user, reply.text);
+      }, (3 + i * 4) * 1000);
+      replyTimers.current.push(timer);
+    }
+  }, [addMessage]);
 
   // Fetch a batch of AI-generated messages
   const fetchBatch = useCallback(async () => {
@@ -110,7 +186,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (messageQueue.current.length > 0) {
       return messageQueue.current.shift()!;
     }
-    // Fallback: pick random from static list
     return FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
   }, []);
 
@@ -119,7 +194,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    // Seed with some fallback messages immediately (so chat isn't empty)
     const now = Date.now();
     const initial: ChatMessage[] = [];
     const shuffled = [...FALLBACK_MESSAGES].sort(() => Math.random() - 0.5);
@@ -133,48 +207,42 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       });
     }
     setMessages(initial);
-
-    // Fetch AI batch in background (will be used for future messages)
     fetchBatch();
   }, [fetchBatch]);
 
+  // Cleanup reply timers on unmount
+  useEffect(() => {
+    return () => {
+      replyTimers.current.forEach(clearTimeout);
+    };
+  }, []);
+
   // Auto-add messages at random intervals
   useEffect(() => {
-    const addRandomMessage = () => {
-      const msg = getNextMessage();
-      const now = Date.now();
-      setMessages((prev) => [
-        ...prev.slice(-(MAX_MESSAGES - 1)),
-        { user: msg.user, text: msg.text, id: now + Math.random(), ts: now },
-      ]);
-    };
-
     const iv = setInterval(() => {
-      addRandomMessage();
+      const msg = getNextMessage();
+      addMessage(msg.user, msg.text);
 
-      // Refetch batch when queue is running low
       if (messageQueue.current.length < 3) {
         fetchBatch();
       }
     }, 4000 + Math.random() * 6000);
 
     return () => clearInterval(iv);
-  }, [getNextMessage, fetchBatch]);
+  }, [getNextMessage, fetchBatch, addMessage]);
 
   // User sends a message
   const sendMessage = useCallback((text: string, username?: string) => {
     if (!text.trim()) return;
-    const now = Date.now();
-    setMessages((prev) => [
-      ...prev.slice(-(MAX_MESSAGES - 1)),
-      {
-        user: username || "@voce",
-        text: text.trim(),
-        id: now + Math.random(),
-        ts: now,
-      },
-    ]);
-  }, []);
+    const trimmed = text.trim();
+    const user = username || "@voce";
+    addMessage(user, trimmed);
+
+    // Check if this message should trigger bot replies
+    if (shouldReply(trimmed)) {
+      fetchReplies(trimmed, user);
+    }
+  }, [addMessage, fetchReplies]);
 
   return (
     <ChatContext.Provider value={{ messages, sendMessage, onlineCount }}>
