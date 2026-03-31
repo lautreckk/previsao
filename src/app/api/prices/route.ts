@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
       }
     } else if (category === "forex") {
       const pair = symbol.replace("/", "-");
+      // Try AwesomeAPI first
       try {
         const res = await fetch(`https://economia.awesomeapi.com.br/json/last/${pair}`);
         if (res.ok) {
@@ -114,7 +115,21 @@ export async function GET(request: NextRequest) {
             source = "awesomeapi";
           }
         }
-      } catch { /* ignore */ }
+      } catch { /* fall through */ }
+      // Fallback: Coinbase for USD
+      if (!price && (pair.startsWith("USD") || pair.includes("USD"))) {
+        try {
+          const res = await fetch("https://api.coinbase.com/v2/exchange-rates?currency=USD");
+          if (res.ok) {
+            const data = await res.json();
+            const brlRate = parseFloat(data.data?.rates?.BRL || "0");
+            if (brlRate > 0) {
+              price = brlRate;
+              source = "coinbase";
+            }
+          }
+        } catch { /* ignore */ }
+      }
     } else if (category === "stocks") {
       const token = process.env.BRAPI_TOKEN || "";
       const url = token
