@@ -699,26 +699,79 @@ export async function resolveExpiredMarkets(): Promise<{
         continue;
       }
 
-      // Call the resolve API
-      const baseUrl = process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : process.env.WEBHOOK_BASE_URL || "http://localhost:3000";
+      // Resolve directly (no HTTP self-call — avoids VERCEL_URL issues)
+      let winningKey: string | null = null;
+      let resolveReason = "";
+      const resolveSourceData: Record<string, unknown> = {};
 
-      const res = await fetch(`${baseUrl}/api/v1/resolve`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.CRON_SECRET || process.env.ADMIN_SECRET || "",
-        },
-        body: JSON.stringify({
-          market_id: market.id,
-          market_type: config.market_type,
-          params: config.params,
-        }),
-      });
-
-      const resolution = await res.json();
-      const winningKey = resolution.data?.winning_outcome_key;
+      try {
+        if (config.market_type === "crypto_up_down" || config.market_type === "forex_up_down") {
+          const openPrice = config.params?.open_price as number;
+          if (!openPrice) throw new Error("no open_price");
+          // Fetch current price
+          let closePrice = 0;
+          const sym = (config.params?.symbol as string) || "";
+          const cgIds: Record<string, string> = { BTC: "bitcoin", ETH: "ethereum", SOL: "solana", BNB: "binancecoin" };
+          const cgId = cgIds[sym];
+          if (cgId) {
+            try {
+              const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+              if (r.ok) { const j = await r.json(); closePrice = j[cgId]?.usd || 0; }
+            } catch { /* */ }
+          }
+          if (!closePrice) {
+            try {
+              const r = await fetch(`https://api.coinbase.com/v2/prices/${sym}-USD/spot`);
+              if (r.ok) { const j = await r.json(); closePrice = parseFloat(j.data?.amount || "0"); }
+            } catch { /* */ }
+          }
+          if (closePrice > 0) {
+            const diff = closePrice - openPrice;
+            winningKey = diff > 0 ? "UP" : diff < 0 ? "DOWN" : null;
+            resolveReason = `${sym}: ${openPrice} → ${closePrice} (${diff > 0 ? "+" : ""}${diff.toFixed(2)})`;
+            Object.assign(resolveSourceData, { open_price: openPrice, close_price: closePrice, diff });
+          }
+        } else if (config.market_type === "weather_threshold") {
+          const owKey = process.env.OPENWEATHER_API_KEY;
+          const cityId = config.params?.city_id as number;
+          const threshold = config.params?.threshold as number;
+          const operator = (config.params?.operator as string) || ">=";
+          const metric = (config.params?.metric as string) || "temperature";
+          if (owKey && cityId) {
+            const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?id=${cityId}&appid=${owKey}&units=metric`);
+            if (r.ok) {
+              const w = await r.json();
+              const metricMap: Record<string, number> = { temperature: w.main?.temp, temp_max: w.main?.temp_max, humidity: w.main?.humidity };
+              const value = metricMap[metric] ?? 0;
+              const ops: Record<string, (a: number, b: number) => boolean> = { ">": (a,b)=>a>b, "<": (a,b)=>a<b, ">=": (a,b)=>a>=b, "<=": (a,b)=>a<=b };
+              const result = (ops[operator] || ops[">="])(value, threshold);
+              winningKey = result ? "YES" : "NO";
+              resolveReason = `${metric}=${value} ${operator} ${threshold} => ${winningKey}`;
+              Object.assign(resolveSourceData, { metric, value, threshold, operator });
+            }
+          }
+        } else if (config.market_type === "stock_performance") {
+          const symbols = config.params?.symbols as string[];
+          if (symbols?.length) {
+            const token = process.env.BRAPI_TOKEN || "";
+            const url = token ? `https://brapi.dev/api/quote/${symbols.join(",")}?token=${token}` : `https://brapi.dev/api/quote/${symbols.join(",")}`;
+            const r = await fetch(url);
+            if (r.ok) {
+              const j = await r.json();
+              const sorted = [...(j.results || [])].sort((a: Record<string,number>, b: Record<string,number>) => (b.regularMarketChangePercent||0) - (a.regularMarketChangePercent||0));
+              if (sorted[0]) {
+                winningKey = sorted[0].symbol as string;
+                resolveReason = `${winningKey} liderou com ${(sorted[0].regularMarketChangePercent as number)?.toFixed(2)}%`;
+              }
+            }
+          }
+        } else {
+          resolveReason = `Unknown market_type: ${config.market_type}`;
+        }
+      } catch (resolveErr) {
+        errors.push(`resolve_${market.id}: ${resolveErr}`);
+        continue;
+      }
 
       if (!winningKey) {
         // Anulado — refund all
@@ -736,7 +789,7 @@ export async function resolveExpiredMarkets(): Promise<{
             await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: bet.amount });
           }
         }
-        results.push({ market_id: market.id, action: "cancelled", reason: resolution.data?.reason });
+        results.push({ market_id: market.id, action: "cancelled", reason: resolveReason });
         continue;
       }
 
@@ -814,7 +867,7 @@ export async function resolveExpiredMarkets(): Promise<{
         winning_key: winningKey,
         payout_per_unit: payoutPerUnit,
         total_bets: bets?.length || 0,
-        source_data: resolution.data?.source_data,
+        source_data: resolveSourceData,
       });
     } catch (err) {
       errors.push(`resolve_${market.id}: ${err}`);
