@@ -8,8 +8,9 @@ import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel"
 import { CATEGORY_META } from "@/lib/engines/types";
 import BottomNav from "@/components/BottomNav";
 import { LivePriceDisplay } from "@/components/LivePriceDisplay";
-import { LivePriceChart } from "@/components/LivePriceChart";
+import LivePriceChart from "@/components/LivePriceChart";
 import { MarketResultBanner } from "@/components/MarketResultBanner";
+import LiveRoundCycle from "@/components/LiveRoundCycle";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -215,6 +216,7 @@ export default function EventoPage() {
   const now = Date.now();
   const timeLeft = market.close_at - now;
   const isSupabaseMarket = market.id.startsWith("mkt_");
+  const isLiveRound = market.outcome_type === "up_down" && (market.category === "crypto" || market.category === "economy");
 
   let timeStr = "";
   if (timeLeft <= 0) timeStr = "Encerrado";
@@ -277,21 +279,6 @@ export default function EventoPage() {
             </div>
           )}
 
-          {/* Live Price (crypto/economy/weather) */}
-          {livePriceInfo && (
-            <div className="px-5 pt-3 space-y-3">
-              <LivePriceDisplay symbol={livePriceInfo.symbol} category={livePriceInfo.category} />
-              <LivePriceChart
-                symbol={livePriceInfo.symbol}
-                category={livePriceInfo.category}
-                openPrice={
-                  (market.source_config?.custom_params?.open_price as number) ??
-                  undefined
-                }
-              />
-            </div>
-          )}
-
           {/* Title */}
           <div className={`px-5 ${market.banner_url ? "-mt-16 relative z-10" : "pt-4"}`}>
             <div className="flex items-center gap-2 mb-1.5">
@@ -301,86 +288,123 @@ export default function EventoPage() {
             </div>
             <h1 className="text-xl lg:text-2xl font-black leading-tight mb-1 line-clamp-2 lg:line-clamp-none">{market.title}</h1>
             {market.short_description && <p className="text-sm text-[#8B95A8] mb-3">{market.short_description}</p>}
-            <div className="flex items-center gap-3 flex-wrap mb-4">
-              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-[#00D4AA] animate-pulse" : "bg-[#FF5252]"}`} /> {market.status.toUpperCase()}
+            {!isLiveRound && (
+              <div className="flex items-center gap-3 flex-wrap mb-4">
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-[#00D4AA] animate-pulse" : "bg-[#FF5252]"}`} /> {market.status.toUpperCase()}
+                </div>
+                <span className="text-xs text-[#8B95A8] font-bold tabular-nums">{timeStr}</span>
+                <span className="text-xs text-[#5A6478]">Pool: R$ {market.pool_total.toFixed(0)}</span>
               </div>
-              <span className="text-xs text-[#8B95A8] font-bold tabular-nums">{timeStr}</span>
-              <span className="text-xs text-[#5A6478]">Pool: R$ {market.pool_total.toFixed(0)}</span>
-            </div>
+            )}
           </div>
 
-          {/* Probability bars (like Palpitano chart area) */}
-          <div className="px-5 mb-4">
-            <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-4">
-              <div className="flex items-center gap-3 flex-wrap mb-4">
+          {/* ═══ LIVE ROUND CYCLE (crypto/economy up_down markets) ═══ */}
+          {isLiveRound && livePriceInfo ? (
+            <div className="pb-6">
+              <LiveRoundCycle
+                marketId={market.id}
+                symbol={livePriceInfo.symbol}
+                category={livePriceInfo.category}
+                outcomes={market.outcomes}
+                poolTotal={market.pool_total}
+                houseFee={market.house_fee_percent}
+                isOpen={isOpen}
+                onSelectOutcome={(key) => { setSelectedOutcome(key); setError(""); }}
+                selectedOutcome={selectedOutcome}
+                flashKeys={flashKeys}
+              />
+            </div>
+          ) : (
+            <>
+              {/* Live Price (crypto/economy/weather) — non-live-round markets */}
+              {livePriceInfo && (
+                <div className="px-5 pt-3 space-y-3">
+                  <LivePriceDisplay symbol={livePriceInfo.symbol} category={livePriceInfo.category} />
+                  <LivePriceChart
+                    symbol={livePriceInfo.symbol}
+                    category={livePriceInfo.category}
+                    openPrice={
+                      (market.source_config?.custom_params?.open_price as number) ??
+                      undefined
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Probability bars (like Palpitano chart area) */}
+              <div className="px-5 mb-4">
+                <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-4">
+                  <div className="flex items-center gap-3 flex-wrap mb-4">
+                    {market.outcomes.map((o) => {
+                      const prob = probabilities.find((p) => p.key === o.key);
+                      return (
+                        <div key={o.key} className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.color }} />
+                          <span className="text-xs text-[#8B95A8]">{o.label}: <span className="text-white font-bold">{prob ? (prob.probability * 100).toFixed(1) : "0"}%</span></span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Bar chart */}
+                  {market.outcomes.map((o) => {
+                    const pct = market.pool_total > 0 ? (o.pool / market.pool_total) * 100 : (100 / market.outcomes.length);
+                    return (
+                      <div key={o.key} className="flex items-center gap-2 mb-2 last:mb-0">
+                        <span className="text-[10px] font-bold w-20 truncate" style={{ color: o.color }}>{o.label}</span>
+                        <div className="flex-1 h-4 bg-[#1a2a3a] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: o.color + "CC" }} />
+                        </div>
+                        <span className="text-[10px] font-bold w-10 text-right tabular-nums" style={{ color: o.color }}>{pct.toFixed(0)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Outcomes list (like Palpitano rows with Sim/Nao buttons) */}
+              <div className="px-5 pb-6 space-y-2">
                 {market.outcomes.map((o) => {
                   const prob = probabilities.find((p) => p.key === o.key);
+                  const isActive = selectedOutcome === o.key;
                   return (
-                    <div key={o.key} className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.color }} />
-                      <span className="text-xs text-[#8B95A8]">{o.label}: <span className="text-white font-bold">{prob ? (prob.probability * 100).toFixed(1) : "0"}%</span></span>
+                    <div key={o.key} className={`bg-[#0d1525] rounded-xl border p-3 transition-all ${isActive ? "border-[#00D4AA]/50 bg-[#00D4AA]/5" : "border-[#1a2a3a] hover:border-[#2a3a4a]"}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ backgroundColor: o.color + "15", color: o.color }}>
+                          {o.key.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-bold text-sm block truncate">{o.label}</span>
+                          <span className="text-[10px] text-[#5A6478]">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
+                        </div>
+                        <button className="text-[#5A6478] hover:text-white transition-colors hidden lg:block"><span className="material-symbols-outlined text-lg">expand_more</span></button>
+                      </div>
+                      {/* Action buttons - row on desktop, full width on mobile */}
+                      <div className="flex gap-2 mt-2.5">
+                        <button
+                          onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
+                          disabled={!isOpen}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${isActive ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] hover:bg-[#00D4AA]/20"} disabled:opacity-40 ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/30" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/20" : ""}`}
+                          style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
+                        >
+                          <span className="block">Sim</span>
+                          <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"}</span>
+                        </button>
+                        <button
+                          disabled={!isOpen}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-black bg-[#FF5252]/10 text-[#FF5252] hover:bg-[#FF5252]/20 transition-all disabled:opacity-40 ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/30" : ""} ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/20" : ""}`}
+                          style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
+                        >
+                          <span className="block">Nao</span>
+                          <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? ((market.pool_total * 0.95) / Math.max((market.pool_total - o.pool) || 1, 1)).toFixed(2) + "x" : "—"}</span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-              {/* Bar chart */}
-              {market.outcomes.map((o) => {
-                const pct = market.pool_total > 0 ? (o.pool / market.pool_total) * 100 : (100 / market.outcomes.length);
-                return (
-                  <div key={o.key} className="flex items-center gap-2 mb-2 last:mb-0">
-                    <span className="text-[10px] font-bold w-20 truncate" style={{ color: o.color }}>{o.label}</span>
-                    <div className="flex-1 h-4 bg-[#1a2a3a] rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: o.color + "CC" }} />
-                    </div>
-                    <span className="text-[10px] font-bold w-10 text-right tabular-nums" style={{ color: o.color }}>{pct.toFixed(0)}%</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Outcomes list (like Palpitano rows with Sim/Não buttons) */}
-          <div className="px-5 pb-6 space-y-2">
-            {market.outcomes.map((o) => {
-              const prob = probabilities.find((p) => p.key === o.key);
-              const isActive = selectedOutcome === o.key;
-              return (
-                <div key={o.key} className={`bg-[#0d1525] rounded-xl border p-3 transition-all ${isActive ? "border-[#00D4AA]/50 bg-[#00D4AA]/5" : "border-[#1a2a3a] hover:border-[#2a3a4a]"}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ backgroundColor: o.color + "15", color: o.color }}>
-                      {o.key.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-bold text-sm block truncate">{o.label}</span>
-                      <span className="text-[10px] text-[#5A6478]">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
-                    </div>
-                    <button className="text-[#5A6478] hover:text-white transition-colors hidden lg:block"><span className="material-symbols-outlined text-lg">expand_more</span></button>
-                  </div>
-                  {/* Action buttons - row on desktop, full width on mobile */}
-                  <div className="flex gap-2 mt-2.5">
-                    <button
-                      onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
-                      disabled={!isOpen}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${isActive ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] hover:bg-[#00D4AA]/20"} disabled:opacity-40 ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/30" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/20" : ""}`}
-                      style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
-                    >
-                      <span className="block">Sim</span>
-                      <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"}</span>
-                    </button>
-                    <button
-                      disabled={!isOpen}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-black bg-[#FF5252]/10 text-[#FF5252] hover:bg-[#FF5252]/20 transition-all disabled:opacity-40 ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/30" : ""} ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/20" : ""}`}
-                      style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
-                    >
-                      <span className="block">Nao</span>
-                      <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? ((market.pool_total * 0.95) / Math.max((market.pool_total - o.pool) || 1, 1)).toFixed(2) + "x" : "—"}</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+            </>
+          )}
         </div>
 
         {/* ─── MIDDLE: Bet form + Positions ─── */}
