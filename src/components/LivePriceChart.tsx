@@ -10,7 +10,7 @@ interface LivePriceChartProps {
 }
 
 interface Point {
-  time: number; // timestamp ms
+  time: number;
   price: number;
 }
 
@@ -19,9 +19,7 @@ const DOWN_COLOR = "#FF5252";
 const GRID_COLOR = "rgba(255,255,255,0.04)";
 const AXIS_COLOR = "rgba(255,255,255,0.2)";
 const BG_COLOR = "#111827";
-
-const MAX_POINTS = 120; // 10 minutes of data at 5s intervals
-const SCROLL_SPEED = 40; // pixels per second the chart scrolls
+const MAX_POINTS = 300;
 
 const formatBRL = (v: number) =>
   v >= 100
@@ -35,17 +33,22 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pointsRef = useRef<Point[]>([]);
-  const animTargetRef = useRef<number>(0); // target price for smooth interpolation
-  const animCurrentRef = useRef<number>(0); // current animated price
   const rafRef = useRef<number>(0);
   const lastFrameRef = useRef<number>(0);
+  const lastTickRef = useRef<number>(0);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Price tracking for micro-tick generation
+  const realPriceRef = useRef<number>(0);      // latest real price from API
+  const simulatedPriceRef = useRef<number>(0);  // current simulated price (oscillates around real)
+  const volatilityRef = useRef<number>(0);      // estimated volatility from real price changes
+  const trendRef = useRef<number>(0);           // current micro-trend direction
 
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [firstPrice, setFirstPrice] = useState<number>(0);
   const [initialized, setInitialized] = useState(false);
 
-  // Fetch price from API
+  // Fetch real price from API
   const fetchPrice = useCallback(async () => {
     try {
       const res = await fetch(`/api/prices?symbol=${encodeURIComponent(symbol)}&category=${encodeURIComponent(category)}`);
@@ -53,45 +56,50 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
       const data = await res.json();
       if (!data.price || data.price <= 0) return;
 
-      const now = Date.now();
       const price = data.price;
+      const prevReal = realPriceRef.current;
 
-      // Set first price on init
       if (!initialized) {
         setFirstPrice(price);
-        animCurrentRef.current = price;
-        animTargetRef.current = price;
-        // Seed initial points
-        for (let i = 0; i < 20; i++) {
-          pointsRef.current.push({
-            time: now - (20 - i) * 5000,
-            price: price + (Math.random() - 0.5) * price * 0.0005,
-          });
+        realPriceRef.current = price;
+        simulatedPriceRef.current = price;
+        // Estimate initial volatility as 0.02% of price
+        volatilityRef.current = price * 0.0002;
+        // Seed historical points with realistic micro-movements
+        const now = Date.now();
+        const vol = price * 0.0002;
+        let p = price;
+        for (let i = 0; i < 60; i++) {
+          p += (Math.random() - 0.5) * vol * 2;
+          pointsRef.current.push({ time: now - (60 - i) * 1000, price: p });
         }
         setInitialized(true);
       }
 
-      // Push real point
-      pointsRef.current.push({ time: now, price });
-      if (pointsRef.current.length > MAX_POINTS) {
-        pointsRef.current = pointsRef.current.slice(-MAX_POINTS);
+      // Update volatility estimate from real price change
+      if (prevReal > 0) {
+        const change = Math.abs(price - prevReal);
+        // Smooth volatility: 70% old + 30% new observation
+        volatilityRef.current = volatilityRef.current * 0.7 + change * 0.3;
+        // Clamp volatility to reasonable range
+        const minVol = price * 0.00005;
+        const maxVol = price * 0.001;
+        volatilityRef.current = Math.max(minVol, Math.min(maxVol, volatilityRef.current));
       }
 
-      animTargetRef.current = price;
+      realPriceRef.current = price;
       setCurrentPrice(price);
     } catch { /* ignore */ }
   }, [symbol, category, initialized]);
 
-  // Start polling
+  // Start API polling (every 5s)
   useEffect(() => {
     fetchPrice();
     pollingRef.current = setInterval(fetchPrice, 5000);
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, [fetchPrice]);
 
-  // Canvas animation loop (60fps)
+  // Main animation loop: generates micro-ticks + renders at 60fps
   useEffect(() => {
     if (!initialized) return;
 
@@ -115,28 +123,48 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
       const ctx = canvas.getContext("2d")!;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Delta time for smooth animation
+      const now = Date.now();
+
+      // ---- MICRO-TICK GENERATION (every ~150ms = ~7 ticks/sec) ----
+      if (now - lastTickRef.current >= 150) {
+        lastTickRef.current = now;
+        const vol = volatilityRef.current;
+        const real = realPriceRef.current;
+        const sim = simulatedPriceRef.current;
+
+        // Mean-reversion toward real price + random walk
+        const reversion = (real - sim) * 0.08; // pull toward real price
+        // Brownian motion with slight momentum
+        const noise = (Math.random() - 0.5) * vol * 1.5;
+        trendRef.current = trendRef.current * 0.6 + noise * 0.4; // momentum
+        const newSim = sim + reversion + trendRef.current;
+
+        simulatedPriceRef.current = newSim;
+
+        pointsRef.current.push({ time: now, price: newSim });
+        if (pointsRef.current.length > MAX_POINTS) {
+          pointsRef.current = pointsRef.current.slice(-MAX_POINTS);
+        }
+      }
+
+      // ---- SMOOTH INTERPOLATION between ticks ----
       const dt = lastFrameRef.current ? (timestamp - lastFrameRef.current) / 1000 : 0.016;
       lastFrameRef.current = timestamp;
-
-      // Smooth interpolation toward target price (lerp)
-      const lerpSpeed = 4; // higher = snappier
-      animCurrentRef.current += (animTargetRef.current - animCurrentRef.current) * Math.min(1, lerpSpeed * dt);
-
-      // Add interpolated point for smooth line
-      const now = Date.now();
+      // Micro-lerp the simulated price for sub-tick smoothness
+      const lerpAmount = Math.min(1, 8 * dt);
       const points = pointsRef.current;
-      const lastPoint = points[points.length - 1];
-      const displayPoints = [...points];
-
-      // Add a virtual "now" point with interpolated price
-      if (lastPoint && now - lastPoint.time > 500) {
-        displayPoints.push({ time: now, price: animCurrentRef.current });
+      if (points.length > 0) {
+        const lastPt = points[points.length - 1];
+        const interpPrice = lastPt.price + (simulatedPriceRef.current - lastPt.price) * lerpAmount;
+        // Virtual "now" point for the drawing tip
+        var displayPoints = [...points, { time: now, price: interpPrice }];
+      } else {
+        var displayPoints = [...points];
       }
 
       if (displayPoints.length < 2) { rafRef.current = requestAnimationFrame(render); return; }
 
-      // Layout
+      // ---- LAYOUT ----
       const padLeft = 12;
       const padRight = 80;
       const padTop = 10;
@@ -144,15 +172,15 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
       const chartW = w - padLeft - padRight;
       const chartH = h - padTop - padBottom;
 
-      // Price range
+      // Price range (with padding)
       const prices = displayPoints.map(p => p.price);
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
       const priceRange = maxPrice - minPrice || maxPrice * 0.001;
-      const pMin = minPrice - priceRange * 0.1;
-      const pMax = maxPrice + priceRange * 0.1;
+      const pMin = minPrice - priceRange * 0.15;
+      const pMax = maxPrice + priceRange * 0.15;
 
-      // Time range: show last ~5 minutes, scrolling
+      // Time window: 5 minutes scrolling
       const timeWindowMs = 5 * 60 * 1000;
       const tMax = now;
       const tMin = tMax - timeWindowMs;
@@ -160,11 +188,11 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
       const toX = (t: number) => padLeft + ((t - tMin) / (tMax - tMin)) * chartW;
       const toY = (p: number) => padTop + (1 - (p - pMin) / (pMax - pMin)) * chartH;
 
-      // Clear
+      // ---- CLEAR ----
       ctx.fillStyle = BG_COLOR;
       ctx.fillRect(0, 0, w, h);
 
-      // Grid lines (horizontal)
+      // ---- GRID ----
       ctx.strokeStyle = GRID_COLOR;
       ctx.lineWidth = 1;
       const gridSteps = 4;
@@ -176,13 +204,14 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
         ctx.stroke();
       }
 
-      // Open price dashed line
-      if (openPrice || firstPrice) {
-        const refPrice = openPrice || firstPrice;
+      // ---- OPEN PRICE REFERENCE LINE ----
+      const refPrice = openPrice || firstPrice;
+      if (refPrice) {
         const refY = toY(refPrice);
         if (refY >= padTop && refY <= padTop + chartH) {
           ctx.strokeStyle = "rgba(255,255,255,0.12)";
           ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(padLeft, refY);
           ctx.lineTo(padLeft + chartW, refY);
@@ -191,37 +220,34 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
         }
       }
 
-      // Filter visible points
-      const visible = displayPoints.filter(p => p.time >= tMin - 10000);
+      // ---- FILTER VISIBLE ----
+      const visible = displayPoints.filter(p => p.time >= tMin - 5000);
       if (visible.length < 2) { rafRef.current = requestAnimationFrame(render); return; }
 
-      // Determine color
-      const isUp = animCurrentRef.current >= (openPrice || firstPrice);
+      // ---- COLOR ----
+      const isUp = simulatedPriceRef.current >= (refPrice || firstPrice);
       const lineColor = isUp ? UP_COLOR : DOWN_COLOR;
 
-      // Draw filled area
+      // ---- FILLED AREA ----
       ctx.beginPath();
       ctx.moveTo(toX(visible[0].time), toY(visible[0].price));
       for (let i = 1; i < visible.length; i++) {
         const prev = visible[i - 1];
         const curr = visible[i];
-        // Smooth curve using bezier
         const mx = (toX(prev.time) + toX(curr.time)) / 2;
         ctx.bezierCurveTo(mx, toY(prev.price), mx, toY(curr.price), toX(curr.time), toY(curr.price));
       }
-      // Close area to bottom
       ctx.lineTo(toX(visible[visible.length - 1].time), padTop + chartH);
       ctx.lineTo(toX(visible[0].time), padTop + chartH);
       ctx.closePath();
 
-      // Gradient fill
       const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
-      grad.addColorStop(0, isUp ? "rgba(0,255,184,0.12)" : "rgba(255,82,82,0.12)");
+      grad.addColorStop(0, isUp ? "rgba(0,255,184,0.10)" : "rgba(255,82,82,0.10)");
       grad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = grad;
       ctx.fill();
 
-      // Draw line
+      // ---- LINE ----
       ctx.beginPath();
       ctx.moveTo(toX(visible[0].time), toY(visible[0].price));
       for (let i = 1; i < visible.length; i++) {
@@ -233,26 +259,26 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
       ctx.strokeStyle = lineColor;
       ctx.lineWidth = 2;
       ctx.shadowColor = lineColor;
-      ctx.shadowBlur = 6;
+      ctx.shadowBlur = 8;
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Pulsing dot at current price
+      // ---- PULSING DOT ----
       const lastVis = visible[visible.length - 1];
       const dotX = toX(lastVis.time);
       const dotY = toY(lastVis.price);
-      const pulse = 1 + Math.sin(timestamp / 300) * 0.3;
+      const pulse = 1 + Math.sin(timestamp / 250) * 0.35;
 
       ctx.beginPath();
       ctx.arc(dotX, dotY, 4 * pulse, 0, Math.PI * 2);
       ctx.fillStyle = lineColor;
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(dotX, dotY, 8 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = isUp ? "rgba(0,255,184,0.15)" : "rgba(255,82,82,0.15)";
+      ctx.arc(dotX, dotY, 10 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = isUp ? "rgba(0,255,184,0.12)" : "rgba(255,82,82,0.12)";
       ctx.fill();
 
-      // Y-axis labels (right side)
+      // ---- Y-AXIS LABELS ----
       ctx.fillStyle = AXIS_COLOR;
       ctx.font = "10px monospace";
       ctx.textAlign = "left";
@@ -262,38 +288,33 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
         ctx.fillText(formatBRL(p), padLeft + chartW + 6, y + 3);
       }
 
-      // X-axis labels (bottom)
+      // ---- X-AXIS LABELS ----
       ctx.textAlign = "center";
-      const timeSteps = 5;
-      for (let i = 0; i <= timeSteps; i++) {
-        const t = tMin + (i / timeSteps) * (tMax - tMin);
-        const x = toX(t);
-        ctx.fillText(formatTime(t), x, h - 4);
+      for (let i = 0; i <= 5; i++) {
+        const t = tMin + (i / 5) * (tMax - tMin);
+        ctx.fillText(formatTime(t), toX(t), h - 4);
       }
 
-      // Current price label on right edge
-      ctx.fillStyle = lineColor;
-      ctx.font = "bold 11px monospace";
-      ctx.textAlign = "left";
-      const priceLabel = formatBRL(animCurrentRef.current);
+      // ---- CURRENT PRICE LABEL ----
+      const labelPrice = simulatedPriceRef.current;
+      const priceLabel = formatBRL(labelPrice);
       const labelY = Math.max(padTop + 12, Math.min(dotY, padTop + chartH - 4));
-      // Background pill
       ctx.fillStyle = isUp ? "rgba(0,255,184,0.15)" : "rgba(255,82,82,0.15)";
       const metrics = ctx.measureText(priceLabel);
       ctx.fillRect(padLeft + chartW + 2, labelY - 9, metrics.width + 8, 16);
       ctx.fillStyle = lineColor;
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "left";
       ctx.fillText(priceLabel, padLeft + chartW + 6, labelY + 3);
 
       rafRef.current = requestAnimationFrame(render);
     };
 
     rafRef.current = requestAnimationFrame(render);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [initialized, height, openPrice, firstPrice]);
 
-  // Stats
+  // Stats for header
   const ref = openPrice || firstPrice;
   const priceChange = currentPrice - ref;
   const pctChange = ref ? (priceChange / ref) * 100 : 0;
@@ -312,27 +333,22 @@ export default function LivePriceChart({ symbol, category, openPrice, height = 2
 
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
-      {/* Header */}
       <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.04]">
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">Preco Inicial</span>
           <span className="font-mono text-sm text-white/60 tabular-nums">{formatBRL(ref)}</span>
         </div>
-
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
           isUp ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"
         }`}>
           <span>{isUp ? "Alvo ▲" : "Alvo ▼"}</span>
           <span>{pctChange >= 0 ? "+" : ""}{pctChange.toFixed(2)}%</span>
         </div>
-
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">Preco Atual</span>
           <span className="font-mono text-base font-bold tabular-nums" style={{ color }}>{formatBRL(currentPrice)}</span>
         </div>
       </div>
-
-      {/* Canvas Chart */}
       <div ref={containerRef} className="w-full" style={{ height }}>
         <canvas ref={canvasRef} className="block w-full" style={{ height }} />
       </div>
