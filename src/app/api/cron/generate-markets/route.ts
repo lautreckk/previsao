@@ -22,24 +22,24 @@ export async function GET(request: NextRequest) {
     let count = 5;
     let categories: string[] | undefined;
 
-    // Night (0-8): fewer markets, more crypto/economy (24h markets)
+    // Night (0-8): relampago crypto + economy
     if (h >= 0 && h < 8) {
-      count = 2;
+      count = 3;
       categories = ["crypto", "economy"];
     }
-    // Morning (8-12): stories, weather, sports
+    // Morning (8-12): relampago mix + weather + sports
     else if (h >= 8 && h < 12) {
-      count = 5;
-      categories = ["entertainment", "weather", "sports", "economy"];
+      count = 6;
+      categories = ["crypto", "entertainment", "weather", "sports", "economy", "social_media"];
     }
-    // Afternoon (12-18): full mix, peak hours
+    // Afternoon (12-18): full mix, peak hours, max relampago
     else if (h >= 12 && h < 18) {
-      count = 7;
+      count = 8;
     }
-    // Night (18-24): entertainment, sports, crypto
+    // Night (18-24): entertainment, sports, crypto relampago
     else {
-      count = 5;
-      categories = ["entertainment", "sports", "crypto", "economy"];
+      count = 6;
+      categories = ["entertainment", "sports", "crypto", "economy", "social_media"];
     }
 
     const res = await fetch(`${baseUrl}/api/markets/generate`, {

@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/generate-markets",
-      "schedule": "0 * * * *"
+      "schedule": "*/30 * * * *"
     }
   ]
 }

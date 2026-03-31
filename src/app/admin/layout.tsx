@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { isAdminLoggedIn, getAdminSession, adminLogin, adminLogout } from "@/lib/engines/admin-auth";
 
-const navItems = [
+const navItems: { href: string; icon: string; label: string; comingSoon?: boolean }[] = [
   { href: "/admin", icon: "dashboard", label: "Dashboard" },
   { href: "/admin/markets", icon: "storefront", label: "Mercados" },
   { href: "/admin/monitor", icon: "monitor_heart", label: "Monitor" },
   { href: "/admin/users", icon: "group", label: "Usuarios" },
   { href: "/admin/pix", icon: "pix", label: "PIX" },
   { href: "/admin/finance", icon: "account_balance", label: "Financeiro" },
-  { href: "/admin/affiliates", icon: "handshake", label: "Afiliados" },
+  { href: "/admin/affiliates", icon: "handshake", label: "Afiliados", comingSoon: true },
 ];
 
 const mobileTabItems = navItems.slice(0, 4);
@@ -288,6 +288,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   {item.icon}
                 </span>
                 {item.label}
+                {item.comingSoon && (
+                  <span className="ml-auto text-[9px] font-semibold uppercase tracking-wider text-white/25 bg-white/[0.04] px-2 py-0.5 rounded-full">Em breve</span>
+                )}
               </Link>
             );
           })}

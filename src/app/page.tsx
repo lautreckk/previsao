@@ -106,7 +106,7 @@ export default function Home() {
   const { user } = useUser();
   const [markets, setMarkets] = useState<PredictionMarket[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"closing" | "hot">("closing");
+  const [activeTab, setActiveTab] = useState<"closing" | "relampago" | "hot">("closing");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -244,20 +244,24 @@ export default function Home() {
     politics: 4, weather: 5, economy: 6, crypto: 7, war: 8,
   };
 
-  const sorted = [...filtered].sort((a, b) => {
+  // For "Relampago" tab, filter to markets closing within 2 hours
+  const TWO_HOURS = 2 * 3600000;
+  const displayMarkets = activeTab === "relampago"
+    ? filtered.filter((m) => m.close_at - now > 0 && m.close_at - now <= TWO_HOURS)
+    : filtered;
+
+  const sorted = [...displayMarkets].sort((a, b) => {
     // Featured always first
     if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
 
     if (activeTab === "hot") {
-      // "Em Alta": sort purely by pool size (most volume first)
       return (b.pool_total || 0) - (a.pool_total || 0);
     }
 
-    // "Encerram em breve": sort by closing time, but deprioritize camera/live markets
-    // Camera markets (with stream_url) cycle every 5 min so they always "close soon"
-    const aIsLive = !!a.stream_url;
-    const bIsLive = !!b.stream_url;
-    if (aIsLive !== bIsLive) return aIsLive ? 1 : -1; // push live markets to end
+    // "Encerram em breve" and "Relampago": sort by closing time
+    const aIsLive = a.id.startsWith("cam_");
+    const bIsLive = b.id.startsWith("cam_");
+    if (aIsLive !== bIsLive) return aIsLive ? 1 : -1;
     return a.close_at - b.close_at;
   });
 
@@ -287,7 +291,7 @@ export default function Home() {
               return results.length > 0 ? (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
                   {results.map((m) => {
-                    const isCam = !!m.stream_url;
+                    const isCam = m.id.startsWith("cam_");
                     const href = isCam ? `/camera/${m.id}` : `/evento/${m.id}`;
                     return (
                       <Link
@@ -364,6 +368,9 @@ export default function Home() {
           {/* Sub tabs */}
           <div className="px-4 lg:px-6 py-3 flex gap-6 text-sm border-b border-[#2a3444]">
             <button onClick={() => setActiveTab("closing")} className={`font-semibold pb-1 transition-all ${activeTab === "closing" ? "text-white border-b-2 border-white" : "text-[#5A6478]"}`}>Encerram em breve</button>
+            <button onClick={() => setActiveTab("relampago")} className={`font-semibold pb-1 transition-all flex items-center gap-1.5 ${activeTab === "relampago" ? "text-[#FFB800] border-b-2 border-[#FFB800]" : "text-[#5A6478]"}`}>
+              <span className="material-symbols-outlined text-sm">bolt</span>Relampago
+            </button>
             <button onClick={() => setActiveTab("hot")} className={`font-semibold pb-1 transition-all ${activeTab === "hot" ? "text-white border-b-2 border-white" : "text-[#5A6478]"}`}>Em Alta</button>
           </div>
 

@@ -17,60 +17,65 @@ const AI_MODEL = process.env.AI_MODEL || "anthropic/claude-sonnet-4-5";
 const MARKET_TEMPLATES = [
   {
     category: "entertainment",
-    weight: 3, // higher weight = more likely to be picked
+    weight: 3,
     prompts: [
-      "Crie uma previsao sobre stories do Instagram de influenciadores brasileiros famosos. Exemplos: 'Virginia: stories ativos as 19h (DD/MM)', 'Carlinhos Maia: stories ativos as 13h (DD/MM)'. Use a data de HOJE. Outcome_type: numeric_range com 4 faixas (ex: Ate 25, 26-75, 76-99, Mais de 99). Fecha em poucas horas.",
-      "Crie uma previsao sobre BBB 26 (quem sai, quem ganha, expulsao, prova do lider). Outcome_type: multiple_choice com 3-5 opcoes. Fecha em 1-3 semanas.",
-      "Crie uma previsao sobre lancamentos de games (GTA VI preco, data), shows no Brasil, ou eventos de entretenimento. Outcome_type: yes_no. Fecha em semanas.",
-      "Crie uma previsao sobre celebridades brasileiras (Neymar convocacao, Anitta novo album, Buzeira preso). Outcome_type: yes_no.",
+      "Crie uma previsao RELAMPAGO (fecha em 30min-1h) sobre stories do Instagram de influenciadores brasileiros famosos. Exemplos: 'Virginia: stories ativos as 19h?', 'Carlinhos Maia: stories ativos agora?'. Outcome_type: yes_no. close_hours: 0.5. is_featured: true.",
+      "Crie uma previsao RELAMPAGO (fecha em 1-2h) sobre algo que esta acontecendo AGORA na TV, reality shows, ou lives de influenciadores. Outcome_type: yes_no. close_hours: 1.",
+      "Crie uma previsao sobre BBB 26 (quem sai, quem ganha, expulsao, prova do lider). Outcome_type: multiple_choice com 3-5 opcoes. Fecha em 1-3 dias.",
+      "Crie uma previsao sobre celebridades brasileiras (Neymar, Anitta, Virginia). Outcome_type: yes_no. Fecha em 1-2 dias.",
     ],
   },
   {
     category: "sports",
     weight: 3,
     prompts: [
-      "Crie uma previsao sobre jogo da Serie A do Brasileirao acontecendo ESTA SEMANA. Formato: 'Serie A: [Time A] vs [Time B]'. Outcome_type: team_win_draw com 3 opcoes (Time A, Time B, Empate). Odds devem ser realistas. Fecha 1h antes do jogo.",
-      "Crie uma previsao sobre Champions League, Copa do Mundo 2026, ou Copa do Brasil. Outcome_type: yes_no ou team_win_draw.",
-      "Crie uma previsao sobre esports: Valorant (VCT), CS2 (Major), LoL (CBLOL). Formato: '[Torneio]: [Time A] vs [Time B]'. Outcome_type: team_win_draw com 2 opcoes.",
-      "Crie uma previsao sobre UFC, boxe, ou MMA brasileiro. Outcome_type: team_win_draw com 2 opcoes.",
+      "Crie uma previsao RELAMPAGO sobre jogo acontecendo HOJE. Ex: 'Proximo gol em [Time A] vs [Time B] nos proximos 15min?'. Outcome_type: yes_no. close_hours: 0.25. is_featured: true.",
+      "Crie uma previsao sobre jogo da Serie A do Brasileirao acontecendo ESTA SEMANA. Formato: 'Serie A: [Time A] vs [Time B]'. Outcome_type: team_win_draw com 3 opcoes. Fecha 1h antes do jogo.",
+      "Crie uma previsao sobre Champions League, Copa do Mundo 2026, ou Copa do Brasil. Outcome_type: yes_no ou team_win_draw. Fecha em 1-3 dias.",
+      "Crie uma previsao sobre esports ou UFC. Outcome_type: team_win_draw com 2 opcoes. Fecha em 1-2 dias.",
     ],
   },
   {
     category: "crypto",
-    weight: 2,
+    weight: 3,
     prompts: [
-      "Crie uma previsao de 5 MINUTOS sobre Bitcoin: sobe ou desce? Outcome_type: up_down. close_hours: 0.083 (5 min). is_featured: true.",
-      "Crie uma previsao de 5 MINUTOS sobre Ethereum ou Solana: sobe ou desce? Outcome_type: up_down. close_hours: 0.083.",
+      "Crie uma previsao RELAMPAGO de 5 MINUTOS sobre Bitcoin: sobe ou desce? Outcome_type: up_down. close_hours: 0.083. is_featured: true.",
+      "Crie uma previsao RELAMPAGO de 15 MINUTOS sobre Ethereum: sobe ou desce nos proximos 15min? Outcome_type: up_down. close_hours: 0.25. is_featured: true.",
+      "Crie uma previsao RELAMPAGO de 30 MINUTOS sobre Solana: sobe ou desce? Outcome_type: up_down. close_hours: 0.5.",
+      "Crie uma previsao de 1 HORA sobre Bitcoin: acima ou abaixo de [preco atual estimado]? Outcome_type: up_down. close_hours: 1.",
     ],
   },
   {
     category: "economy",
     weight: 2,
     prompts: [
-      "Crie uma previsao sobre acoes brasileiras: 'Qual acao tera o maior crescimento em [mes]?' com opcoes PETR4, ITUB4, VALE3, BPAC11. Outcome_type: multiple_choice.",
-      "Crie uma previsao de 5 MINUTOS sobre Barril de Petroleo: sobe ou desce? Outcome_type: up_down. close_hours: 0.083. is_featured: true.",
-      "Crie uma previsao sobre IBOVESPA mensal: acima ou abaixo do fechamento anterior? Outcome_type: above_below.",
+      "Crie uma previsao RELAMPAGO de 5 MINUTOS sobre Barril de Petroleo: sobe ou desce? Outcome_type: up_down. close_hours: 0.083. is_featured: true.",
+      "Crie uma previsao RELAMPAGO de 30 MINUTOS sobre Dolar/Real: sobe ou desce? Outcome_type: up_down. close_hours: 0.5. is_featured: true.",
+      "Crie uma previsao sobre IBOVESPA: fecha o dia acima ou abaixo do valor de abertura? Outcome_type: up_down. close_hours: 6.",
+      "Crie uma previsao sobre acoes brasileiras PETR4, VALE3 ou ITUB4: qual sobe mais hoje? Outcome_type: multiple_choice. close_hours: 6.",
     ],
   },
   {
     category: "weather",
     weight: 1,
     prompts: [
-      "Crie uma previsao sobre clima: '[Cidade] atinge [X]C ou mais em DD/MM?' para Rio de Janeiro, Sao Paulo, ou Curitiba. Outcome_type: yes_no. Fecha hoje a noite.",
+      "Crie uma previsao RELAMPAGO sobre clima: 'Vai chover em [SP/RJ/BH] nas proximas 2h?' Outcome_type: yes_no. close_hours: 2. is_featured: true.",
+      "Crie uma previsao sobre clima: '[Cidade] atinge [X]C ou mais hoje?' para Rio de Janeiro, Sao Paulo, ou Curitiba. Outcome_type: yes_no. close_hours: 8.",
     ],
   },
   {
     category: "politics",
     weight: 1,
     prompts: [
-      "Crie uma previsao sobre politica brasileira: eleicao 2026 (Lula, Tarcisio, Bolsonaro), regulamentacao de mercados preditivos, ou geopolitica (Ira/Israel, Groelandia). Outcome_type: yes_no ou multiple_choice.",
+      "Crie uma previsao sobre politica brasileira: eleicao 2026, regulamentacao, ou geopolitica. Outcome_type: yes_no ou multiple_choice. Fecha em 1-7 dias.",
     ],
   },
   {
     category: "social_media",
-    weight: 1,
+    weight: 2,
     prompts: [
-      "Crie uma previsao sobre trending topics, posts virais no Twitter/X ou TikTok Brasil, ou recordes de likes/views.",
+      "Crie uma previsao RELAMPAGO sobre Twitter/X Brasil: 'Tal assunto vai ser trending topic na proxima hora?'. Outcome_type: yes_no. close_hours: 1. is_featured: true.",
+      "Crie uma previsao sobre trending topics, posts virais no Twitter/X ou TikTok Brasil. Outcome_type: yes_no. close_hours: 3.",
     ],
   },
 ];
@@ -84,12 +89,22 @@ REGRAS:
 4. Sempre em portugues brasileiro informal
 5. Odds iniciais devem ser equilibradas (1.5x-3x)
 6. Horarios de fechamento realistas
-7. Prefira mercados que resolvem em poucas horas (nao dias)
+7. PRIORIZE mercados RELAMPAGO que fecham RAPIDO (5min, 15min, 30min, 1-2h). Pelo menos 60% dos mercados devem fechar em ate 2 horas!
+8. Mercados relampago devem ter is_featured: true
 
-Para mercados de 5 minutos (crypto/petroleo), use outcome_type "up_down" com outcomes Sobe/Desce.
-Para mercados de contagem (stories), use outcome_type "numeric_range" com 3-4 faixas.
+TEMPOS DE FECHAMENTO:
+- 5 minutos = close_hours: 0.083 (crypto, petroleo)
+- 15 minutos = close_hours: 0.25 (esportes ao vivo, crypto)
+- 30 minutos = close_hours: 0.5 (clima, social media, entretenimento)
+- 1 hora = close_hours: 1 (entretenimento, esportes)
+- 2 horas = close_hours: 2 (clima, trending)
+- 6 horas = close_hours: 6 (acoes, indice diario)
+- 1-3 dias = close_hours: 24-72 (politica, eventos futuros)
+
+Para mercados de 5-15 minutos (crypto/petroleo), use outcome_type "up_down" com outcomes Sobe/Desce.
 Para mercados sim/nao, use outcome_type "yes_no".
 Para esportes, use outcome_type "team_win_draw" com 2-3 opcoes.
+Para escolha multipla, use outcome_type "multiple_choice" com 3-5 opcoes.
 
 Responda SOMENTE com JSON valido, sem markdown. Array de mercados:
 [{
@@ -98,7 +113,7 @@ Responda SOMENTE com JSON valido, sem markdown. Array de mercados:
   "category": "crypto|sports|entertainment|economy|weather|politics|social_media",
   "outcome_type": "yes_no|up_down|numeric_range|team_win_draw|multiple_choice",
   "outcomes": [{"key": "string", "label": "string", "color": "#hex"}],
-  "close_hours": number (horas ate fechar, ex: 0.083 = 5min, 1 = 1h, 24 = 1dia),
+  "close_hours": number (horas ate fechar, ex: 0.083 = 5min, 0.25 = 15min, 0.5 = 30min, 1 = 1h),
   "is_featured": boolean,
   "image_prompt": "prompt em ingles para gerar imagem de banner (descriptive, cinematic, dark theme)"
 }]`;
