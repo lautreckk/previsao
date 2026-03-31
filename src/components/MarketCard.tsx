@@ -47,36 +47,35 @@ function RoundHistoryDots({ marketId }: { marketId: string }) {
   );
 }
 
-/* Floating bet animation for live markets */
+/* Floating bet animation for live markets — contained to footer area */
 function FloatingBets({ active }: { active: boolean }) {
   const [bets, setBets] = useState<{ id: number; value: string; side: "left" | "right" }[]>([]);
 
   useEffect(() => {
     if (!active) return;
     const iv = setInterval(() => {
-      if (Math.random() > 0.5) return; // 50% chance each tick
+      if (Math.random() > 0.5) return;
       const values = ["0,50", "1,00", "2,00", "5,00", "10,00", "20,00", "50,00"];
       const val = values[Math.floor(Math.random() * values.length)];
       const side = Math.random() > 0.5 ? "left" : "right";
       const id = Date.now() + Math.random();
-      setBets((prev) => [...prev.slice(-3), { id, value: val, side }]);
-      // Remove after animation
+      setBets((prev) => [...prev.slice(-2), { id, value: val, side }]);
       setTimeout(() => setBets((prev) => prev.filter((b) => b.id !== id)), 2000);
-    }, 3000 + Math.random() * 4000);
+    }, 4000 + Math.random() * 5000);
     return () => clearInterval(iv);
   }, [active]);
 
   if (!active || bets.length === 0) return null;
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
+    <div className="absolute bottom-8 left-0 right-0 h-12 pointer-events-none overflow-hidden z-10">
       {bets.map((b) => (
         <span
           key={b.id}
-          className={`absolute text-[10px] font-black text-[#00FFB8] animate-float-up ${
+          className={`absolute text-[9px] font-black text-[#00FFB8]/70 animate-float-up ${
             b.side === "left" ? "left-3" : "right-3"
           }`}
-          style={{ bottom: "40%" }}
+          style={{ bottom: "0" }}
         >
           R$ {b.value}
         </span>
@@ -110,7 +109,10 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
 
         {/* Category tag */}
         <div className="px-3 pt-3">
-          <span className="text-[10px] font-bold bg-[#222e3d] text-[#8B95A8] px-2.5 py-1 rounded inline-block">{meta?.label || market.category}</span>
+          <span className="text-[10px] font-bold bg-[#222e3d] text-[#8B95A8] px-2.5 py-1 rounded inline-flex items-center gap-1">
+            {meta?.icon && <span className="material-symbols-outlined" style={{ fontSize: "12px", color: meta.color }}>{meta.icon}</span>}
+            {meta?.label || market.category}
+          </span>
         </div>
 
         {/* Title with avatar image */}
@@ -132,9 +134,9 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
             const isGreen = pct >= 50;
             return (
               <div key={o.key} className="flex items-center gap-2 text-xs">
-                <span className="text-[#8B95A8] truncate flex-1 max-w-[60px]" title={o.label}>{o.label}</span>
-                <span className="text-[#8B95A8] font-mono">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "\u2014"}</span>
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[42px] text-center ${isGreen ? "bg-[#00D4AA]/15 text-[#00D4AA]" : "bg-[#FF6B5A]/15 text-[#FF6B5A]"}`}>{pct}%</span>
+                <span className="text-[#8B95A8] truncate flex-1 min-w-0" title={o.label}>{o.label}</span>
+                <span className="text-[#8B95A8] font-mono shrink-0">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "\u2014"}</span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[42px] text-center shrink-0 ${isGreen ? "bg-[#00D4AA]/15 text-[#00D4AA]" : "bg-[#FF6B5A]/15 text-[#FF6B5A]"}`}>{pct}%</span>
               </div>
             );
           })}
@@ -158,9 +160,17 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
           ) : (
             <div />
           )}
-          <div className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-[#5A6478] text-xs">schedule</span>
-            <span className="text-[10px] text-[#5A6478] font-bold">{timeStr}</span>
+          <div className="flex items-center gap-3">
+            {market.pool_total > 0 && (
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[#5A6478]" style={{ fontSize: "11px" }}>bar_chart</span>
+                <span className="text-[10px] text-[#5A6478] font-bold">R$ {market.pool_total >= 1000 ? (market.pool_total / 1000).toFixed(1) + "k" : market.pool_total.toFixed(0)}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-[#5A6478] text-xs">schedule</span>
+              <span className="text-[10px] text-[#5A6478] font-bold">{timeStr}</span>
+            </div>
           </div>
         </div>
       </div>

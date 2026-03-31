@@ -344,7 +344,7 @@ export default function Home() {
         <div className="ml-auto flex items-center gap-2">
           {user ? (
             <>
-              <Link href="/deposito" className="kinetic-gradient text-[#003D2E] px-4 py-2 rounded-lg text-sm font-black flex items-center gap-1.5 animate-pulse shadow-[0_0_25px_rgba(0,255,184,0.5)] hover:shadow-[0_0_30px_rgba(0,255,184,0.6)] active:scale-95 transition-all">
+              <Link href="/deposito" className="kinetic-gradient text-[#003D2E] px-4 py-2 rounded-lg text-sm font-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,255,184,0.3)] hover:shadow-[0_0_25px_rgba(0,255,184,0.5)] hover:scale-105 active:scale-95 transition-all">
                 <span className="material-symbols-outlined text-base">add</span>Depositar
               </Link>
               <Link href="/perfil" className="bg-[#1a2332] border border-[#2a3444] px-3 py-1.5 rounded-lg text-sm font-bold text-[#00D4AA]">R$ {user.balance.toFixed(2)}</Link>
@@ -445,13 +445,23 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Sub tabs */}
-          <div className="px-4 lg:px-6 py-3 flex gap-6 text-sm border-b border-[#2a3444]">
-            <button onClick={() => setActiveTab("closing")} className={`font-semibold pb-1 transition-all ${activeTab === "closing" ? "text-white border-b-2 border-white" : "text-[#5A6478]"}`}>Encerram em breve</button>
-            <button onClick={() => setActiveTab("relampago")} className={`font-semibold pb-1 transition-all flex items-center gap-1.5 ${activeTab === "relampago" ? "text-[#FFB800] border-b-2 border-[#FFB800]" : "text-[#5A6478]"}`}>
-              <span className="material-symbols-outlined text-sm">bolt</span>Relampago
-            </button>
-            <button onClick={() => setActiveTab("hot")} className={`font-semibold pb-1 transition-all ${activeTab === "hot" ? "text-white border-b-2 border-white" : "text-[#5A6478]"}`}>Em Alta</button>
+          {/* Sub tabs — ordenacao */}
+          <div className="px-4 lg:px-6 py-2.5 flex items-center gap-2 border-b border-[#2a3444]">
+            <span className="text-[10px] text-[#5A6478] font-bold uppercase tracking-wider shrink-0 mr-1">Ordenar</span>
+            {([
+              { key: "closing" as const, label: "Encerram em breve", icon: null, activeColor: "bg-white/10 text-white border-white/20" },
+              { key: "relampago" as const, label: "Relampago", icon: "bolt", activeColor: "bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30" },
+              { key: "hot" as const, label: "Em Alta", icon: "local_fire_department", activeColor: "bg-[#FF6B5A]/10 text-[#FF6B5A] border-[#FF6B5A]/30" },
+            ] as const).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${activeTab === t.key ? t.activeColor : "border-transparent text-[#5A6478] hover:text-white hover:bg-white/5"}`}
+              >
+                {t.icon && <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{t.icon}</span>}
+                {t.label}
+              </button>
+            ))}
           </div>
 
           {/* GRID - responsive columns */}
@@ -564,6 +574,66 @@ export default function Home() {
           )}
         </button>
       </div>
+
+      {/* FOOTER */}
+      <footer className="border-t border-[#1a2a3a] bg-[#060d18] mt-8">
+        <div className="max-w-screen-xl mx-auto px-6 py-10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8">
+            {/* Logo */}
+            <div className="col-span-2 sm:col-span-4 lg:col-span-1">
+              <img src="/logo.png" alt="Palpitano" className="h-10 w-auto mb-3" />
+              <p className="text-xs text-[#5A6478] leading-relaxed max-w-[240px]">A plataforma onde seu conhecimento vira oportunidade. Mercados de previsao em tempo real.</p>
+            </div>
+            {/* Categorias */}
+            <div>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Categorias</h4>
+              <ul className="space-y-2">
+                {(["Criptomoedas", "Esportes", "Entretenimento", "Politica"] as const).map((c) => (
+                  <li key={c}><button onClick={() => { setActiveCategory(c === "Criptomoedas" ? "crypto" : c === "Esportes" ? "sports" : c === "Entretenimento" ? "entertainment" : "politics"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">{c}</button></li>
+                ))}
+              </ul>
+            </div>
+            {/* Mercados */}
+            <div>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Mercados</h4>
+              <ul className="space-y-2">
+                <li><button onClick={() => { setActiveTab("closing"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Encerram em breve</button></li>
+                <li><button onClick={() => { setActiveTab("hot"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Em Alta</button></li>
+                <li><button onClick={() => { setActiveTab("relampago"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Relampago</button></li>
+                <li><button onClick={() => { setActiveCategory("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Todos os mercados</button></li>
+              </ul>
+            </div>
+            {/* Minha conta */}
+            <div>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Minha conta</h4>
+              <ul className="space-y-2">
+                <li><Link href="/perfil" className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Perfil</Link></li>
+                <li><Link href="/saldos" className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Minhas apostas</Link></li>
+                <li><Link href="/deposito" className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Deposito</Link></li>
+              </ul>
+            </div>
+            {/* Suporte */}
+            <div>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Suporte</h4>
+              <ul className="space-y-2">
+                <li><span className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors cursor-pointer">FAQ</span></li>
+                <li><span className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors cursor-pointer">Termos de Uso</span></li>
+                <li><span className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors cursor-pointer">Privacidade</span></li>
+              </ul>
+              <div className="flex items-center gap-3 mt-4">
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-[#1a2332] flex items-center justify-center text-[#5A6478] hover:text-[#00D4AA] hover:bg-[#1a2332]/80 transition-colors">
+                  <span className="material-symbols-outlined text-base">photo_camera</span>
+                </a>
+              </div>
+            </div>
+          </div>
+          {/* Copyright */}
+          <div className="border-t border-[#1a2a3a] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p className="text-[10px] text-[#3a4a5a]">Todos os direitos reservados | Copyright &copy; 2026 | Powered by Oracore</p>
+            <p className="text-[10px] text-[#3a4a5a]">Jogue com responsabilidade. +18</p>
+          </div>
+        </div>
+      </footer>
 
       {/* Mobile only bottom nav */}
       <div className="lg:hidden">
