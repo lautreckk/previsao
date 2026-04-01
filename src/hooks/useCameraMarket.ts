@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { getMarket } from "@/lib/engines/store";
 
 interface CameraMarket {
   id: string;
@@ -96,6 +97,32 @@ export function useCameraMarket(marketId: string) {
         current_count: 0,
         round_duration_seconds: 300,
         thumbnail_url: pmData.banner_url || "",
+        phase: "waiting",
+        phase_ends_at: null,
+        current_threshold: 0,
+        round_number: 0,
+      };
+      setMarket(adapted);
+      setCurrentCount(0);
+      setLoading(false);
+      return;
+    }
+
+    // Fallback: check localStorage (seed/local markets)
+    const localMarket = getMarket(marketId);
+    if (localMarket && localMarket.stream_url) {
+      const adapted: CameraMarket = {
+        id: localMarket.id,
+        stream_url: localMarket.stream_url,
+        stream_type: localMarket.stream_type || "youtube",
+        city: localMarket.subcategory || "",
+        title: localMarket.title,
+        highway: localMarket.short_description || "",
+        camera_id: localMarket.id,
+        status: localMarket.status === "open" ? "open" : "waiting",
+        current_count: 0,
+        round_duration_seconds: 300,
+        thumbnail_url: localMarket.banner_url || "",
         phase: "waiting",
         phase_ends_at: null,
         current_threshold: 0,
