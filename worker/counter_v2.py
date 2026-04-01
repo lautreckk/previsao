@@ -71,20 +71,21 @@ def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_star
     return out
 
 
-def start_ffmpeg_pipe(rtsp_url, width, height, fps=15):
+def start_ffmpeg_pipe(rtsp_url, width, height, fps=24):
     """Start FFmpeg subprocess that pipes raw frames to MediaMTX via RTSP."""
     cmd = [
         'ffmpeg', '-y',
+        '-use_wallclock_as_timestamps', '1',
         '-f', 'rawvideo',
         '-vcodec', 'rawvideo',
         '-pix_fmt', 'bgr24',
         '-s', f'{width}x{height}',
-        '-r', str(fps),
         '-i', '-',
         '-c:v', 'libx264',
         '-preset', 'ultrafast',
         '-tune', 'zerolatency',
-        '-g', str(fps * 2),  # keyframe interval
+        '-r', str(fps),
+        '-g', str(fps),
         '-f', 'rtsp',
         '-rtsp_transport', 'tcp',
         rtsp_url,
@@ -166,9 +167,13 @@ def main():
         print("[Worker v2] ERROR: Cannot open stream!")
         return
 
-    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"[Worker v2] Stream opened: {w}x{h}")
+    orig_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    orig_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # Downscale to 640px wide for faster processing + encoding
+    scale = min(640 / orig_w, 1.0)
+    w = int(orig_w * scale)
+    h = int(orig_h * scale)
+    print(f"[Worker v2] Stream opened: {orig_w}x{orig_h} → {w}x{h}")
 
     # Load YOLO
     model = YOLO(args.model)
@@ -176,13 +181,14 @@ def main():
 
     # Start FFmpeg pipe to MediaMTX
     rtsp_out = f"{args.mediamtx_url}/{args.market_id}"
-    ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=10)
+    ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=24)
 
     # State
     fc = 0
     total = db_count
     last_db_count = total
     counted = set()
+    last_tracks = []  # Cache tracks for drawing on non-YOLO frames
     t_log = t_round_check = t_db = time.time()
     line_y_px = int(h * args.line_y)
     roi_x_start_px = int(w * args.roi_x_start)
@@ -211,31 +217,33 @@ def main():
                     roi_x_end_px = int(w * args.roi_x_end)
                     ffmpeg.stdin.close()
                     ffmpeg.wait()
-                    ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=10)
+                    ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=24)
             except:
                 pass
             continue
 
+        # Downscale for faster processing
+        if scale < 1.0:
+            frame = cv2.resize(frame, (w, h))
+
         fc += 1
-        if fc % 3 != 0:
-            # Still pipe non-processed frames for smooth video
-            try:
-                ffmpeg.stdin.write(frame.tobytes())
-            except:
-                ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=10)
-            continue
+        run_yolo = (fc % 3 == 0)
 
-        # YOLO detection
-        results = model(frame, conf=args.confidence, verbose=False)
-        dets = []
-        for r in results:
-            for box in r.boxes:
-                cid = int(box.cls[0])
-                if cid in VEHICLE_CLASSES:
-                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-                    dets.append(([x1, y1, x2 - x1, y2 - y1], float(box.conf[0]), cid))
+        if run_yolo:
+            # YOLO detection every 3rd frame
+            results = model(frame, conf=args.confidence, verbose=False)
+            dets = []
+            for r in results:
+                for box in r.boxes:
+                    cid = int(box.cls[0])
+                    if cid in VEHICLE_CLASSES:
+                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                        dets.append(([x1, y1, x2 - x1, y2 - y1], float(box.conf[0]), cid))
+            tracks = tracker.update_tracks(dets, frame=frame)
+            last_tracks = tracks
+        else:
+            tracks = last_tracks
 
-        tracks = tracker.update_tracks(dets, frame=frame)
         now = time.time()
 
         # Check round/phase changes
@@ -265,8 +273,8 @@ def main():
             known_phase = new_phase
             t_round_check = now
 
-        # Count vehicles crossing line
-        if not counting_paused:
+        # Count vehicles crossing line (only on YOLO frames to avoid duplicates)
+        if run_yolo and not counting_paused:
             for t in tracks:
                 if not t.is_confirmed():
                     continue
@@ -286,14 +294,14 @@ def main():
             Thread(target=persist_count_to_db, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
             t_db = now
 
-        # Draw annotations and pipe to MediaMTX
+        # Draw annotations on EVERY frame and pipe to MediaMTX
         annotated = draw_annotations(frame, tracks, counted, line_y_px, total,
                                      args.roi_x_start, args.roi_x_end)
         try:
             ffmpeg.stdin.write(annotated.tobytes())
         except:
             print("[Worker v2] FFmpeg pipe broken, restarting...")
-            ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=10)
+            ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=24)
 
         # Log
         if now - t_log >= 5:

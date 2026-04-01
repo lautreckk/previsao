@@ -8,6 +8,35 @@ import Link from "next/link";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
 
+/* ─── Animated Count (odometer style) ─── */
+function AnimatedCount({ value }: { value: number }) {
+  const [display, setDisplay] = useState(value);
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    if (value === display) return;
+    setFlash(true);
+    // Animate from current to target
+    const diff = value - display;
+    const steps = Math.min(Math.abs(diff), 10);
+    const stepTime = 150 / steps;
+    let current = display;
+    const iv = setInterval(() => {
+      current += diff > 0 ? 1 : -1;
+      setDisplay(current);
+      if (current === value) clearInterval(iv);
+    }, stepTime);
+    const flashTimer = setTimeout(() => setFlash(false), 300);
+    return () => { clearInterval(iv); clearTimeout(flashTimer); };
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <span className={`transition-all duration-200 ${flash ? "scale-110 text-white" : "scale-100"}`}>
+      {display}
+    </span>
+  );
+}
+
 /* ─── Countdown Timer ─── */
 function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
   const [timeLeft, setTimeLeft] = useState("--:--");
@@ -143,10 +172,12 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
       </div>
 
-      {/* Count overlay */}
+      {/* Count overlay with animation */}
       <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#80FF00]/30">
         <p className="text-[8px] uppercase tracking-widest text-white/50 font-bold">Contagem Atual</p>
-        <p className="text-3xl font-black text-[#80FF00] tabular-nums leading-none">{count}</p>
+        <p className="text-3xl font-black text-[#80FF00] tabular-nums leading-none">
+          <AnimatedCount value={count} />
+        </p>
       </div>
     </div>
   );
@@ -472,7 +503,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0a1222]">
             <div className="flex items-center gap-3">
               <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Contagem atual:</span>
-              <span className="text-2xl font-black text-[#80FF00] tabular-nums">{currentCount}</span>
+              <span className="text-2xl font-black text-[#80FF00] tabular-nums"><AnimatedCount value={currentCount} /></span>
             </div>
             <div>
               {isBetting && (
