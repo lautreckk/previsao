@@ -33,7 +33,7 @@ export default function TestCameraPage() {
     }
   }, [count]);
 
-  // Draw green counting line on canvas overlay
+  // Draw green counting line on canvas overlay (diagonal like Palpitano)
   const drawLine = useCallback(() => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -52,25 +52,16 @@ export default function TestCameraPage() {
 
     const y = canvas.height * selected.lineY;
 
-    // Dashed green line
+    // Solid diagonal green line (like Palpitano)
     ctx.strokeStyle = "#00FF00";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 8]);
+    ctx.lineWidth = 3;
     ctx.shadowColor = "#00FF00";
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = 4;
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
+    ctx.moveTo(canvas.width * 0.05, y + canvas.height * 0.04);
+    ctx.lineTo(canvas.width * 0.95, y - canvas.height * 0.04);
     ctx.stroke();
-
-    // Label
-    ctx.setLineDash([]);
     ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(4, y - 18, 130, 16);
-    ctx.fillStyle = "#00FF00";
-    ctx.font = "bold 10px monospace";
-    ctx.fillText("ZONA DE CONTAGEM", 8, y - 6);
   }, [selected.lineY]);
 
   // Redraw line on resize
@@ -113,17 +104,23 @@ export default function TestCameraPage() {
     return () => { hls?.destroy(); };
   }, [selected]);
 
-  // Real-time count from Supabase (postgres_changes = instant)
+  // Real-time count from Supabase
   useEffect(() => {
     // Initial fetch
-    supabase
-      .from("camera_markets")
-      .select("current_count")
-      .eq("id", selected.marketId)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setCount(data.current_count || 0); });
+    const fetchCount = () => {
+      supabase
+        .from("camera_markets")
+        .select("current_count")
+        .eq("id", selected.marketId)
+        .maybeSingle()
+        .then(({ data }) => { if (data) setCount(data.current_count || 0); });
+    };
+    fetchCount();
 
-    // Subscribe to changes
+    // Poll every 2s (reliable)
+    const iv = setInterval(fetchCount, 2000);
+
+    // Also subscribe to postgres_changes (instant when it works)
     const channel = supabase
       .channel(`test-cam-${selected.marketId}`)
       .on(
@@ -136,7 +133,7 @@ export default function TestCameraPage() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearInterval(iv); supabase.removeChannel(channel); };
   }, [selected.marketId]);
 
   return (
