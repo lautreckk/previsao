@@ -85,18 +85,20 @@ def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_star
 def upload_frame(frame, market_id, supa_url, supa_key):
     try:
         _, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 72])
-        requests.put(
+        r = requests.put(
             f"{supa_url}/storage/v1/object/camera-frames/{market_id}/latest.jpg",
             headers={"Authorization": f"Bearer {supa_key}", "Content-Type": "image/jpeg", "x-upsert": "true"},
             data=buf.tobytes(), timeout=5)
-    except:
-        pass
+        if r.status_code >= 400:
+            print(f"[Worker] Frame upload failed: {r.status_code}")
+    except Exception as e:
+        print(f"[Worker] Frame upload error: {e}")
 
 
 def update_count_direct(supa_url, supa_key, market_id, count):
-    """Update count directly in Supabase via PostgREST."""
+    """Update count directly in Supabase via PostgREST + broadcast for instant UI."""
     try:
-        requests.patch(
+        r = requests.patch(
             f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}",
             headers={
                 "apikey": supa_key,
@@ -105,14 +107,31 @@ def update_count_direct(supa_url, supa_key, market_id, count):
                 "Prefer": "return=minimal",
             },
             json={"current_count": count, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+            timeout=5,
+        )
+        if r.status_code >= 400:
+            print(f"[Worker] DB update failed: {r.status_code} {r.text[:100]}")
+    except Exception as e:
+        print(f"[Worker] DB update error: {e}")
+
+    # Also broadcast via Supabase Realtime for instant frontend update (~100ms vs 3s polling)
+    try:
+        requests.post(
+            f"{supa_url}/realtime/v1/api/broadcast",
+            headers={
+                "apikey": supa_key,
+                "Authorization": f"Bearer {supa_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "channel": f"cars-stream-{market_id}",
+                "event": "count.sync",
+                "payload": {"count": count, "timestamp": int(time.time() * 1000)},
+            },
             timeout=3,
         )
     except:
-        pass
-
-
-def update_count_async(supa_url, supa_key, market_id, count):
-    Thread(target=update_count_direct, args=(supa_url, supa_key, market_id, count), daemon=True).start()
+        pass  # Non-critical — DB update is the source of truth
 
 
 def get_current_round(supa_url, supa_key, market_id):
@@ -172,8 +191,8 @@ def main():
     print(f"[Worker] Stream opened. FPS: {cap.get(cv2.CAP_PROP_FPS):.0f}")
 
     fc = 0
-    total = 0  # Always start fresh at 0 for this round
-    last_sent_count = -1
+    total = db_count  # Resume from DB count (don't reset on restart!)
+    last_sent_count = total
     counted = set()
     t_log = t_frame = t_round_check = time.time()
     line_y = None
@@ -183,10 +202,7 @@ def main():
     known_phase = phase
     counting_paused = phase == "waiting"  # Don't count during waiting phase
 
-    # Set DB count to 0 for the current round (clean start)
-    if args.supabase_url:
-        update_count_direct(args.supabase_url, args.supabase_key, args.market_id, 0)
-        print(f"[Worker] Reset count to 0 for round {known_round}")
+    print(f"[Worker] Resuming with count={total} for round {known_round}")
 
     while True:
         ret, frame = cap.read()
@@ -286,7 +302,7 @@ def main():
         # Update Supabase directly when count changes
         if total != last_sent_count and args.supabase_url:
             last_sent_count = total
-            update_count_async(args.supabase_url, args.supabase_key, args.market_id, total)
+            update_count_direct(args.supabase_url, args.supabase_key, args.market_id, total)
 
         # Upload annotated frame every 2s
         if args.supabase_url and now - t_frame >= args.frame_interval:

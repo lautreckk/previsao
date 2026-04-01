@@ -216,7 +216,7 @@ export function useCameraMarket(marketId: string) {
     };
   }, [marketId, fetchRound]);
 
-  // Light poll (3s) for phase management only — count comes from postgres_changes (faster)
+  // Poll (10s) for phase management — count comes from broadcast (instant) + postgres_changes
   useEffect(() => {
     let ticking = false;
     const iv = setInterval(async () => {
@@ -226,7 +226,6 @@ export function useCameraMarket(marketId: string) {
         .eq("id", marketId)
         .maybeSingle();
       if (data) {
-        // Sync count as fallback (postgres_changes is primary)
         setCurrentCount(data.current_count || 0);
         setMarket((prev) => (prev ? { ...prev, ...data } : null));
 
@@ -246,7 +245,7 @@ export function useCameraMarket(marketId: string) {
           setTimeout(() => fetchRound(), 1000);
         }
       }
-    }, 3000);
+    }, 10000);
     return () => clearInterval(iv);
   }, [marketId, fetchRound]);
 

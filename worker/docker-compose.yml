@@ -1,0 +1,205 @@
+x-worker: &worker
+  build: .
+  restart: always
+  env_file: .env
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  cam-sp055-km110b:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km110b
+      --stream-url https://34.104.32.249.nip.io/SP055-KM110B/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.15 --roi-x-end 0.85 --line-y 0.58
+      --confidence 0.30 --tolerance 35
+
+  cam-sp055-km110a:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km110a
+      --stream-url https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.05 --roi-x-end 0.80 --line-y 0.52
+      --confidence 0.30 --tolerance 35
+
+  cam-sp055-km073:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km073
+      --stream-url https://34.104.32.249.nip.io/SP055-KM073/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.25 --roi-x-end 0.95 --line-y 0.55
+      --confidence 0.15 --tolerance 40
+
+  cam-sp055-km055:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km055
+      --stream-url https://34.104.32.249.nip.io/SP055-KM055/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.30 --roi-x-end 0.95 --line-y 0.80
+      --confidence 0.30 --tolerance 40
+
+  cam-sp055-km083:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km083
+      --stream-url https://34.104.32.249.nip.io/SP055-KM083/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.08 --roi-x-end 0.85 --line-y 0.55
+      --confidence 0.30 --tolerance 35
+
+  cam-sp055-km092:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km092
+      --stream-url https://34.104.32.249.nip.io/SP055-KM092/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.05 --roi-x-end 0.65 --line-y 0.52
+      --confidence 0.30 --tolerance 35
+
+  cam-sp055-km136:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km136
+      --stream-url https://34.104.32.249.nip.io/SP055-KM136/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.05 --roi-x-end 0.75 --line-y 0.50
+      --confidence 0.30 --tolerance 35
+
+  cam-sp055-km168:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km168
+      --stream-url https://34.104.32.249.nip.io/SP055-KM168/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.05 --roi-x-end 0.55 --line-y 0.58
+      --confidence 0.30 --tolerance 35
+
+  cam-sp055-km193:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km193
+      --stream-url https://34.104.32.249.nip.io/SP055-KM193/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.0 --roi-x-end 0.45 --line-y 0.55
+      --confidence 0.30 --tolerance 35
+
+  cam-sp055-km211a:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km211a
+      --stream-url https://34.104.32.249.nip.io/SP055-KM211A/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.0 --roi-x-end 0.50 --line-y 0.32
+      --confidence 0.25 --tolerance 40
+
+  cam-sp055-km211b:
+    <<: *worker
+    command: >
+      --market-id cam_sp055_km211b
+      --stream-url https://34.104.32.249.nip.io/SP055-KM211B/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.0 --roi-x-end 0.55 --line-y 0.35
+      --confidence 0.25 --tolerance 40
+
+  cam-sp008-km095:
+    <<: *worker
+    command: >
+      --market-id cam_sp008_km095
+      --stream-url https://34.104.32.249.nip.io/SP008-KM095/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.08 --roi-x-end 0.85 --line-y 0.48
+      --confidence 0.30 --tolerance 35
+
+  cam-sp046-km167:
+    <<: *worker
+    command: >
+      --market-id cam_sp046_km167
+      --stream-url https://34.104.32.249.nip.io/SP046-KM167/stream.m3u8
+      --stream-type hls
+      --api-url ${API_URL}
+      --secret ${WORKER_SECRET}
+      --supabase-url ${SUPABASE_URL}
+      --supabase-key ${SUPABASE_KEY}
+      --roi-x-start 0.10 --roi-x-end 0.75 --line-y 0.55
+      --confidence 0.30 --tolerance 35
+
+  # Tick rounds every 60s (advances betting/observation phases for all cameras)
+  tick-rounds:
+    <<: *worker
+    entrypoint: ["python", "-c"]
+    command: >
+      "
+      import time, requests, os
+      API = os.environ['API_URL']
+      SECRET = os.environ['WORKER_SECRET']
+      CAMERAS = [
+        'cam_sp055_km110b','cam_sp055_km110a','cam_sp055_km073','cam_sp055_km055',
+        'cam_sp055_km083','cam_sp055_km092','cam_sp055_km136','cam_sp055_km168',
+        'cam_sp055_km193','cam_sp055_km211a','cam_sp055_km211b','cam_sp008_km095',
+        'cam_sp046_km167',
+      ]
+      print('[Tick] Starting round ticker...')
+      while True:
+        for mid in CAMERAS:
+          try:
+            r = requests.post(f'{API}/api/camera/round', json={'market_id': mid, 'secret': SECRET}, timeout=15)
+            print(f'[Tick] {mid}: {r.status_code} {r.json().get(\"action\",\"?\")}')
+          except Exception as e:
+            print(f'[Tick] {mid}: ERROR {e}')
+        time.sleep(60)
+      "
