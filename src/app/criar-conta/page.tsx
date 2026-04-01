@@ -1,14 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/lib/UserContext";
 import { trackLead, trackPageView } from "@/lib/pixel";
 
 export default function CriarContaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register } = useUser();
+  const [referralCode, setReferralCode] = useState("");
+
+  // Capture ?ref=CODE from URL
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+      localStorage.setItem("winify_ref", ref);
+    } else {
+      const saved = localStorage.getItem("winify_ref");
+      if (saved) setReferralCode(saved);
+    }
+  }, [searchParams]);
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,7 +56,7 @@ export default function CriarContaPage() {
     if (password.length < 6) { setError("A senha deve ter no minimo 6 caracteres"); return; }
     if (password !== confirmPassword) { setError("As senhas nao coincidem"); return; }
     setLoading(true);
-    const success = await register(name.trim(), email.trim().toLowerCase(), cpf.replace(/\D/g, ""), password, phone.replace(/\D/g, ""));
+    const success = await register(name.trim(), email.trim().toLowerCase(), cpf.replace(/\D/g, ""), password, phone.replace(/\D/g, ""), referralCode || undefined);
     setLoading(false);
     if (!success) { setError("Ja existe uma conta com esse e-mail"); return; }
     trackLead({ email: email.trim().toLowerCase(), name: name.trim(), phone: phone.replace(/\D/g, "") });

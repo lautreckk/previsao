@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import type { PredictionMarket } from "@/lib/engines/types";
 import { CATEGORY_META } from "@/lib/engines/types";
 import Link from "next/link";
@@ -32,20 +32,13 @@ function RoundHistoryDots({ marketId }: { marketId: string }) {
   );
 }
 
-/* ── Live bet flash on an outcome row ── */
-interface LiveBetFlash {
-  outcomeKey: string;
-  amount: number;
-  userName: string;
-  ts: number;
-}
-
 export default function MarketCard({ market }: { market: PredictionMarket }) {
   const meta = CATEGORY_META[market.category];
   const isCamera = !!market.stream_url || market.id.startsWith("cam_");
   const isClosed = ["resolved", "cancelled"].includes(market.status) || (!isCamera && market.close_at <= Date.now());
   const isLive = market.status === "open" && (market.close_at > Date.now() || isCamera);
   const now = Date.now();
+  const timeLeft = market.close_at - now;
 
   // Timer with live update
   const [, setTick] = useState(0);
@@ -63,66 +56,11 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
   else if (remaining < 604800000) timeStr = `${Math.floor(remaining / 86400000)}d`;
   else timeStr = `${Math.floor(remaining / 604800000)} sem.`;
 
-  // ── Realtime state ──
-  const [liveOutcomes, setLiveOutcomes] = useState(market.outcomes);
-  const [livePool, setLivePool] = useState(market.pool_total);
-  const [flash, setFlash] = useState<LiveBetFlash | null>(null);
-  const [prevPools, setPrevPools] = useState<Record<string, number>>({});
-  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  // Sync when market prop changes
-  useEffect(() => {
-    setLiveOutcomes(market.outcomes);
-    setLivePool(market.pool_total);
-  }, [market.outcomes, market.pool_total]);
-
-  // Subscribe to realtime broadcasts
-  useEffect(() => {
-    if (!isLive) return;
-
-    const channel = supabase.channel(`card-${market.id}`)
-      .on("broadcast", { event: "odds.update" }, (msg) => {
-        const p = msg.payload;
-        if (p?.outcomes) {
-          setLiveOutcomes((prev) => {
-            // Save previous pools for strikethrough animation
-            const old: Record<string, number> = {};
-            for (const o of prev) old[o.key] = Number(o.pool) || 0;
-            setPrevPools(old);
-            return p.outcomes;
-          });
-        }
-        if (p?.pool_total != null) setLivePool(p.pool_total);
-      })
-      .on("broadcast", { event: "bet.placed" }, (msg) => {
-        const p = msg.payload;
-        if (!p) return;
-        // Trigger flash animation
-        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-        setFlash({
-          outcomeKey: p.outcome_key,
-          amount: p.amount,
-          userName: p.user_name || "Alguem",
-          ts: Date.now(),
-        });
-        flashTimeoutRef.current = setTimeout(() => {
-          setFlash(null);
-          setPrevPools({});
-        }, 2500);
-      })
-      .subscribe();
-
-    return () => {
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-      supabase.removeChannel(channel);
-    };
-  }, [market.id, isLive]);
-
-  const probs = calcImpliedProbabilities(liveOutcomes);
+  const probs = calcImpliedProbabilities(market.outcomes);
 
   // Default odds when pool is 0
-  const getOdds = (o: typeof liveOutcomes[0]) =>
-    o.payout_per_unit > 0 ? o.payout_per_unit : liveOutcomes.length * 0.95;
+  const getOdds = (o: typeof market.outcomes[0]) =>
+    o.payout_per_unit > 0 ? o.payout_per_unit : market.outcomes.length * 0.95;
 
   return (
     <Link
@@ -210,56 +148,27 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
 
         {/* ── Outcomes ── */}
         <div className="px-3 pb-2.5 flex-1 space-y-1">
-          {liveOutcomes.slice(0, 3).map((o) => {
+          {market.outcomes.slice(0, 3).map((o) => {
             const prob = probs.find((p) => p.key === o.key);
-            const pct = prob ? Math.round(prob.probability * 100) : Math.round(100 / liveOutcomes.length);
+            const pct = prob ? Math.round(prob.probability * 100) : Math.round(100 / market.outcomes.length);
             const odds = getOdds(o);
-            const isFlashing = flash?.outcomeKey === o.key;
-            const prevPool = prevPools[o.key];
-            const currPool = Number(o.pool) || 0;
-            const showPrevPool = isFlashing && prevPool != null && prevPool !== currPool;
-
             return (
-              <div
-                key={o.key}
-                className={`flex items-center gap-1.5 rounded-md px-1 -mx-1 transition-all duration-300 ${
-                  isFlashing ? "bg-white/[0.06]" : ""
-                }`}
-                style={isFlashing ? {
-                  boxShadow: `inset 0 0 12px ${o.color}15`,
-                } : undefined}
-              >
-                {/* Color dot with pulse on flash */}
-                <div className="relative w-1.5 h-1.5 shrink-0">
-                  <div className={`w-1.5 h-1.5 rounded-full ${isFlashing ? "animate-ping absolute inset-0" : ""}`} style={{ backgroundColor: o.color, opacity: isFlashing ? 0.6 : 1 }} />
-                  <div className="w-1.5 h-1.5 rounded-full relative" style={{ backgroundColor: o.color }} />
-                </div>
+              <div key={o.key} className="flex items-center gap-1.5">
+                {/* Color dot */}
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: o.color }} />
                 {/* Label */}
-                <span className="text-[11px] text-white/80 truncate min-w-0 font-medium">{o.label}</span>
-
-                {/* Live bet amount indicator */}
-                {showPrevPool && (
-                  <span className="text-[9px] font-bold text-[#80FF00] animate-pulse shrink-0 ml-auto">
-                    +R${flash!.amount.toFixed(0)}
-                  </span>
-                )}
-
-                {/* Odds */}
-                <span className={`text-[11px] font-mono shrink-0 tabular-nums font-bold transition-all duration-300 ${
-                  isFlashing ? "text-[#80FF00] scale-110" : odds >= 3 ? "text-[#80FF00]" : "text-white/50"
-                } ${!showPrevPool ? "ml-auto" : ""}`}>
+                <span className="text-[11px] text-white/80 truncate flex-1 min-w-0 font-medium">{o.label}</span>
+                {/* Odds — golden for high odds (3x+) */}
+                <span className={`text-[11px] font-mono shrink-0 tabular-nums font-bold ${odds >= 3 ? "text-[#80FF00]" : "text-white/50"}`}>
                   {odds.toFixed(2)}x
                 </span>
                 {/* Percentage badge with glow */}
                 <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded min-w-[38px] text-center shrink-0 transition-all duration-300 ${
-                    isFlashing ? "scale-105 ring-1" : ""
-                  }`}
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded min-w-[38px] text-center shrink-0"
                   style={{
                     backgroundColor: o.color + "25",
                     color: o.color,
-                    boxShadow: isFlashing ? `0 0 10px ${o.color}40` : `0 0 6px ${o.color}20`,
-                    ringColor: isFlashing ? o.color : undefined,
+                    boxShadow: `0 0 6px ${o.color}20`,
                   }}
                 >
                   {pct}%
@@ -267,26 +176,10 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
               </div>
             );
           })}
-          {liveOutcomes.length > 3 && (
-            <p className="text-[10px] text-white/20 pl-3">+{liveOutcomes.length - 3} opcoes</p>
+          {market.outcomes.length > 3 && (
+            <p className="text-[10px] text-white/20 pl-3">+{market.outcomes.length - 3} opcoes</p>
           )}
         </div>
-
-        {/* ── Live bet toast ── */}
-        {flash && (
-          <div className="px-3 pb-1.5 overflow-hidden">
-            <div className="flex items-center gap-1.5 text-[9px] text-white/50 animate-[fadeSlideIn_0.3s_ease-out]">
-              <div className="w-3 h-3 rounded-full bg-[#80FF00]/20 flex items-center justify-center shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#80FF00]" />
-              </div>
-              <span className="truncate">
-                <span className="text-white/70 font-bold">{flash.userName.split(" ")[0]}</span>
-                {" apostou "}
-                <span className="text-[#80FF00] font-bold">R$ {flash.amount.toFixed(2)}</span>
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* ── Footer ── */}
         <div className="px-3 pb-2.5 pt-1.5 flex items-center justify-between border-t border-white/[0.04]">
@@ -305,13 +198,11 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
             </div>
           )}
           <div className="flex items-center gap-2.5">
-            {livePool > 0 && (
+            {market.pool_total > 0 && (
               <div className="flex items-center gap-1">
                 <Icon name="bar_chart" size={11} className="text-white/25" />
-                <span className={`text-[10px] font-bold font-mono tabular-nums transition-all duration-300 ${
-                  flash ? "text-[#80FF00]" : "text-white/30"
-                }`}>
-                  R$ {livePool >= 1000 ? (livePool / 1000).toFixed(1) + "k" : livePool.toFixed(0)}
+                <span className="text-[10px] text-white/30 font-bold font-mono tabular-nums">
+                  R$ {market.pool_total >= 1000 ? (market.pool_total / 1000).toFixed(1) + "k" : market.pool_total.toFixed(0)}
                 </span>
               </div>
             )}

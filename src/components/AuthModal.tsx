@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
 import { trackLead, trackPageView } from "@/lib/pixel";
@@ -31,6 +31,14 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ref = new URLSearchParams(window.location.search).get("ref") || localStorage.getItem("winify_ref") || "";
+      if (ref) setReferralCode(ref);
+    }
+  }, []);
 
   if (!isOpen) return null;
 
@@ -70,7 +78,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
     if (regPassword.length < 6) { setError("A senha deve ter no minimo 6 caracteres"); return; }
     if (regPassword !== regConfirmPassword) { setError("As senhas nao coincidem"); return; }
     setLoading(true);
-    const success = await register(regName.trim(), regEmail.trim().toLowerCase(), regCpf.replace(/\D/g, ""), regPassword, regPhone.replace(/\D/g, ""));
+    const success = await register(regName.trim(), regEmail.trim().toLowerCase(), regCpf.replace(/\D/g, ""), regPassword, regPhone.replace(/\D/g, ""), referralCode || undefined);
     setLoading(false);
     if (!success) { setError("Ja existe uma conta com esse e-mail"); return; }
     trackLead({ email: regEmail.trim().toLowerCase(), name: regName.trim(), phone: regPhone.replace(/\D/g, "") });

@@ -32,8 +32,23 @@ export default function DepositoPage() {
     try { await refreshUser(); } catch { /* ignore */ }
 
     trackPurchase(parseFloat(amount));
+
+    // Track affiliate commission if user was referred
+    if (user?.id) {
+      try {
+        const { data: userData } = await (await import("@/lib/supabase")).supabase.from("users").select("referred_by").eq("id", user.id).single();
+        if (userData?.referred_by) {
+          await fetch("/api/affiliates/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "deposit", code: userData.referred_by, user_id: user.id, user_email: user.email, amount: parseFloat(amount) }),
+          });
+        }
+      } catch { /* ignore */ }
+    }
+
     setStep("success");
-  }, [amount, refreshUser]);
+  }, [amount, refreshUser, user]);
 
   const checkPaymentStatus = useCallback(async () => {
     if (!pixData || confirmedRef.current) return;

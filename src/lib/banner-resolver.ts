@@ -94,30 +94,13 @@ function normalize(text: string): string {
 
 // ---- Tier 1: Entity Map Lookup ----
 
-/**
- * Check if `alias` appears as a whole word (word-boundary match) in `text`.
- * Both inputs must already be normalized.
- */
-function matchesWholeWord(text: string, alias: string): boolean {
-  // For short aliases (≤3 chars like "sol", "eth", "btc"), require word boundaries
-  // to avoid false positives like "mirassol" matching "sol"
-  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`(?:^|[\\s,;:!?()\\[\\]/"'\\-])${escaped}(?:$|[\\s,;:!?()\\[\\]/"'\\-])`, "i");
-  return re.test(` ${text} `);
-}
-
 function resolveFromEntityMap(ctx: BannerContext): string | null {
   const normalizedTitle = normalize(ctx.title);
 
   for (const [, entity] of Object.entries(ENTITY_MAP)) {
     const aliases: string[] = entity.aliases ?? [entity.name];
     for (const alias of aliases) {
-      const normalizedAlias = normalize(alias);
-      // Long aliases (>3 chars) can safely use includes; short ones need word-boundary match
-      const matches = normalizedAlias.length > 3
-        ? normalizedTitle.includes(normalizedAlias)
-        : matchesWholeWord(normalizedTitle, normalizedAlias);
-      if (matches) {
+      if (normalizedTitle.includes(normalize(alias))) {
         return entity.image_url;
       }
     }
@@ -130,8 +113,7 @@ function resolveFromEntityMap(ctx: BannerContext): string | null {
       for (const [, entity] of Object.entries(ENTITY_MAP)) {
         const aliases: string[] = entity.aliases ?? [entity.name];
         for (const alias of aliases) {
-          const normalizedAlias = normalize(alias);
-          if (normalizedEntity.includes(normalizedAlias) || normalizedAlias.includes(normalizedEntity)) {
+          if (normalizedEntity.includes(normalize(alias)) || normalize(alias).includes(normalizedEntity)) {
             return entity.image_url;
           }
         }

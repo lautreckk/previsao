@@ -66,7 +66,7 @@ interface UserContextType {
   user: User | null;
   bets: Bet[];
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, cpf: string, password: string, phone?: string) => Promise<boolean>;
+  register: (name: string, email: string, cpf: string, password: string, phone?: string, referralCode?: string) => Promise<boolean>;
   logout: () => void;
   addBalance: (amount: number) => void;
   placeBet: (bet: Omit<Bet, "id" | "status" | "createdAt">) => boolean;
@@ -266,7 +266,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(iv);
   }, [user?.id]);
 
-  const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string): Promise<boolean> => {
+  const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string, referralCode?: string): Promise<boolean> => {
     const normalizedEmail = email.trim().toLowerCase();
 
     // Check if exists
@@ -275,13 +275,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     const newId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const { error } = await supabase.from("users").insert({
-      id: newId, name, email: normalizedEmail, cpf, password, balance: 0, phone: phone || "",
+      id: newId, name, email: normalizedEmail, cpf, password, balance: 0, phone: phone || "", referred_by: referralCode || "",
     });
     if (error) return false;
 
     setUser({ ...NEW_USER_DEFAULTS, id: newId, name, email: normalizedEmail, cpf, phone: phone || "", avatar_url: "", balance: 0, createdAt: new Date().toISOString() } as User);
     localStorage.setItem("previsao_session", normalizedEmail);
     await _refreshUserCache();
+
+    // Track affiliate referral
+    if (referralCode) {
+      try {
+        await fetch("/api/affiliates/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "register", code: referralCode, user_id: newId, user_name: name, user_email: normalizedEmail }),
+        });
+      } catch { /* ignore tracking errors */ }
+    }
+
     return true;
   }, []);
 
