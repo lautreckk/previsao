@@ -3,24 +3,19 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = process.env.NODE_ENV !== "production"
-  ? createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  : null;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
-  }
-
-  if (!supabase) {
-    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
-  }
-
+  // Protected by ADMIN_SECRET — only callable with the secret
   try {
-    const { email, amount } = await request.json();
+    const { email, amount, secret } = await request.json();
+
+    if (secret !== (process.env.ADMIN_SECRET || "admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
     if (!email || !amount || amount <= 0) {
       return NextResponse.json({ error: "email and positive amount required" }, { status: 400 });
