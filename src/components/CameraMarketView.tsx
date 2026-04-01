@@ -34,8 +34,6 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
 }
 
 /* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
-const WEBRTC_BASE = "http://82.25.68.62:8889";
-
 function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [connected, setConnected] = useState(false);
@@ -89,8 +87,8 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
           setTimeout(resolve, 3000);
         });
 
-        // Send offer to MediaMTX WHEP endpoint
-        const whepUrl = `${WEBRTC_BASE}/${marketId}/whep`;
+        // Send offer via HTTPS proxy (avoids mixed content)
+        const whepUrl = `/api/camera/whep?stream=${marketId}`;
         const res = await fetch(whepUrl, {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
