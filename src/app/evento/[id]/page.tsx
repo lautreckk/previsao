@@ -461,7 +461,12 @@ export default function EventoPage() {
                   const prob = probabilities.find((p) => p.key === o.key);
                   const isActive = selectedOutcome === o.key;
                   return (
-                    <div key={o.key} className={`bg-[#0d1525] rounded-xl border p-3 transition-all ${isActive ? "border-[#00D4AA]/50 bg-[#00D4AA]/5" : "border-[#1a2a3a] hover:border-[#2a3a4a]"}`}>
+                    <button
+                      key={o.key}
+                      onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
+                      disabled={!isOpen}
+                      className={`w-full text-left bg-[#0d1525] rounded-xl border p-3 transition-all cursor-pointer active:scale-[0.98] ${isActive ? "border-[#00D4AA]/50 bg-[#00D4AA]/5 ring-1 ring-[#00D4AA]/30" : "border-[#1a2a3a] hover:border-[#2a3a4a]"} disabled:opacity-50 disabled:cursor-not-allowed ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA]" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252]" : ""}`}
+                    >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ backgroundColor: o.color + "15", color: o.color }}>
                           {o.key.slice(0, 2).toUpperCase()}
@@ -470,29 +475,16 @@ export default function EventoPage() {
                           <span className="font-bold text-sm block truncate">{o.label}</span>
                           <span className="text-[10px] text-[#5A6478]">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
                         </div>
-                        <button className="text-[#5A6478] hover:text-white transition-colors hidden lg:block"><span className="material-symbols-outlined text-lg">expand_more</span></button>
+                        <div className="text-right shrink-0">
+                          <span className="block text-sm font-black" style={{ color: o.color }}>
+                            {(o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95)).toFixed(2)}x
+                          </span>
+                          <span className="block text-[10px] text-[#5A6478]">
+                            {isActive ? "Selecionado" : "Clique para apostar"}
+                          </span>
+                        </div>
                       </div>
-                      {/* Action buttons - row on desktop, full width on mobile */}
-                      <div className="flex gap-2 mt-2.5">
-                        <button
-                          onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
-                          disabled={!isOpen}
-                          className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${isActive ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] hover:bg-[#00D4AA]/20"} disabled:opacity-40 ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/30" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/20" : ""}`}
-                          style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
-                        >
-                          <span className="block">Sim</span>
-                          <span className="block text-[10px] font-bold opacity-80">{(o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95)).toFixed(2) + "x"}</span>
-                        </button>
-                        <button
-                          disabled={!isOpen}
-                          className={`flex-1 py-2.5 rounded-lg text-xs font-black bg-[#FF5252]/10 text-[#FF5252] hover:bg-[#FF5252]/20 transition-all disabled:opacity-40 ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252] bg-[#FF5252]/30" : ""} ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA] bg-[#00D4AA]/20" : ""}`}
-                          style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
-                        >
-                          <span className="block">Nao</span>
-                          <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? ((market.pool_total * 0.95) / Math.max((market.pool_total - o.pool) || 1, 1)).toFixed(2) + "x" : "—"}</span>
-                        </button>
-                      </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
