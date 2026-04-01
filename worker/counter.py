@@ -95,26 +95,8 @@ def upload_frame(frame, market_id, supa_url, supa_key):
         print(f"[Worker] Frame upload error: {e}")
 
 
-def update_count_direct(supa_url, supa_key, market_id, count):
-    """Update count directly in Supabase via PostgREST + broadcast for instant UI."""
-    try:
-        r = requests.patch(
-            f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}",
-            headers={
-                "apikey": supa_key,
-                "Authorization": f"Bearer {supa_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-            },
-            json={"current_count": count, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
-            timeout=5,
-        )
-        if r.status_code >= 400:
-            print(f"[Worker] DB update failed: {r.status_code} {r.text[:100]}")
-    except Exception as e:
-        print(f"[Worker] DB update error: {e}")
-
-    # Also broadcast via Supabase Realtime for instant frontend update (~100ms vs 3s polling)
+def broadcast_count(supa_url, supa_key, market_id, count):
+    """Broadcast count to frontend via Supabase Realtime (~100ms). Primary count source."""
     try:
         requests.post(
             f"{supa_url}/realtime/v1/api/broadcast",
@@ -130,8 +112,28 @@ def update_count_direct(supa_url, supa_key, market_id, count):
             },
             timeout=3,
         )
-    except:
-        pass  # Non-critical — DB update is the source of truth
+    except Exception as e:
+        print(f"[Worker] Broadcast error: {e}")
+
+
+def persist_count_to_db(supa_url, supa_key, market_id, count):
+    """Save count to DB for persistence/round resolution. NOT for real-time display."""
+    try:
+        r = requests.patch(
+            f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}",
+            headers={
+                "apikey": supa_key,
+                "Authorization": f"Bearer {supa_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            json={"current_count": count, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+            timeout=5,
+        )
+        if r.status_code >= 400:
+            print(f"[Worker] DB persist failed: {r.status_code} {r.text[:100]}")
+    except Exception as e:
+        print(f"[Worker] DB persist error: {e}")
 
 
 # Cache last known good state to avoid false resets on timeout
@@ -198,9 +200,10 @@ def main():
 
     fc = 0
     total = db_count  # Resume from DB count (don't reset on restart!)
-    last_sent_count = total
+    last_broadcast_count = total
+    last_db_count = total
     counted = set()
-    t_log = t_frame = t_round_check = time.time()
+    t_log = t_frame = t_round_check = t_db_persist = time.time()
     line_y = None
     roi_x_start_px = None
     roi_x_end_px = None
@@ -266,9 +269,11 @@ def main():
                 print(f"[Worker] RESET: round {known_round}->{new_round} phase {known_phase}->{new_phase}")
                 total = 0
                 counted.clear()
-                last_sent_count = -1
+                last_broadcast_count = -1
+                last_db_count = -1
                 tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
-                update_count_direct(args.supabase_url, args.supabase_key, args.market_id, 0)
+                persist_count_to_db(args.supabase_url, args.supabase_key, args.market_id, 0)
+                broadcast_count(args.supabase_url, args.supabase_key, args.market_id, 0)
                 counting_paused = False
 
             # External reset removed — caused false resets when DB poll returns stale cached data
@@ -299,10 +304,16 @@ def main():
                 counted.add(tid)
                 total += 1
 
-        # Update Supabase directly when count changes
-        if total != last_sent_count and args.supabase_url:
-            last_sent_count = total
-            update_count_direct(args.supabase_url, args.supabase_key, args.market_id, total)
+        # BROADCAST instantly when count changes (frontend gets this in ~100ms)
+        if total != last_broadcast_count and args.supabase_url:
+            last_broadcast_count = total
+            Thread(target=broadcast_count, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
+
+        # PERSIST to DB every 5s (for round resolution, not for display)
+        if args.supabase_url and now - t_db_persist >= 5 and total != last_db_count:
+            last_db_count = total
+            Thread(target=persist_count_to_db, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
+            t_db_persist = now
 
         # Upload annotated frame every 2s
         if args.supabase_url and now - t_frame >= args.frame_interval:

@@ -145,27 +145,17 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
       />
 
-      {/* Worker frame fallback */}
-      {mode === "frame" && (
-        <img
-          src={frameUrl}
-          alt="Camera ao vivo"
-          className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
-          onError={() => {}}
-        />
-      )}
-
-      {/* Counting zone indicator — subtle, only in HLS mode (frame mode has OpenCV annotations) */}
-      {mode === "hls" && (
-        <div className="absolute inset-0 pointer-events-none z-[5] rounded-lg overflow-hidden">
-          <div className="absolute left-[10%] right-[25%]" style={{ top: "55%" }}>
-            <div className="w-full border-t-2 border-dashed border-[#00FF00]/50" style={{ boxShadow: "0 0 4px #00FF00" }} />
-            <div className="absolute -top-5 left-0 bg-black/60 px-2 py-0.5 rounded">
-              <span className="text-[9px] font-bold text-[#00FF00]/70 uppercase tracking-wider">ZONA DE CONTAGEM</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Worker annotated frame — shows bounding boxes, counting line, and detections */}
+      {/* Always visible: in frame mode as primary, in HLS mode as overlay */}
+      <img
+        src={frameUrl}
+        alt="Deteccao IA"
+        className={`absolute inset-0 w-full h-full object-contain rounded-lg ${
+          mode === "frame" ? "bg-black z-[2]" : "z-[3] opacity-90"
+        }`}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        onLoad={(e) => { (e.target as HTMLImageElement).style.display = ""; }}
+      />
 
       {/* Loading spinner */}
       {mode === "loading" && (

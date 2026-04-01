@@ -127,8 +127,7 @@ export function useCameraMarket(marketId: string) {
     fetchRound();
   }, [fetchMarket, fetchRound]);
 
-  // Realtime: postgres changes on camera_markets (PRIMARY source for count updates)
-  // Worker updates DB directly → postgres_changes fires in ~100-300ms → instant count update
+  // Realtime: postgres changes on camera_markets (for market metadata only, NOT count)
   useEffect(() => {
     const channel = supabase
       .channel(`camera:${marketId}`)
@@ -137,10 +136,8 @@ export function useCameraMarket(marketId: string) {
         { event: "UPDATE", schema: "public", table: "camera_markets", filter: `id=eq.${marketId}` },
         (payload) => {
           const updated = payload.new as CameraMarket;
-          // Update count immediately from DB change (fastest path)
-          if (updated.current_count !== undefined) {
-            setCurrentCount(updated.current_count);
-          }
+          // Update market metadata (phase, threshold, etc.) but NOT count
+          // Count comes exclusively from broadcast channel to avoid competing sources
           setMarket((prev) => (prev ? { ...prev, ...updated } : null));
         }
       )
@@ -216,7 +213,7 @@ export function useCameraMarket(marketId: string) {
     };
   }, [marketId, fetchRound]);
 
-  // Poll (10s) for phase management — count comes from broadcast (instant) + postgres_changes
+  // Poll (10s) for phase management ONLY — count comes exclusively from broadcast
   useEffect(() => {
     let ticking = false;
     const iv = setInterval(async () => {
@@ -226,7 +223,7 @@ export function useCameraMarket(marketId: string) {
         .eq("id", marketId)
         .maybeSingle();
       if (data) {
-        setCurrentCount(data.current_count || 0);
+        // Only update market metadata, NOT count (count comes from broadcast)
         setMarket((prev) => (prev ? { ...prev, ...data } : null));
 
         // Auto-tick: if phase expired or waiting, call round endpoint to advance
