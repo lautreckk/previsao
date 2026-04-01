@@ -586,11 +586,24 @@ export async function generateAutoMarkets(tiers?: ("curto" | "medio" | "longo")[
     }
   }
 
-  // Insert into prediction_markets
+  // Insert into prediction_markets (with dedup check)
   const supabase = sb();
   const created: Record<string, unknown>[] = [];
 
+  // Check existing OPEN markets to avoid duplicates
+  const { data: existingOpen } = await supabase
+    .from("prediction_markets")
+    .select("title")
+    .eq("status", "open")
+    .gt("close_at", new Date().toISOString());
+  const existingTitles = new Set((existingOpen || []).map((m) => m.title.toLowerCase()));
+
   for (const tmpl of allTemplates) {
+    // Skip if same title already exists and is open
+    if (existingTitles.has(tmpl.title.toLowerCase())) {
+      continue;
+    }
+
     try {
       const now = new Date();
       const closeMs = tmpl.close_hours * 3600000;

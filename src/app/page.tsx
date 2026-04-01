@@ -140,16 +140,53 @@ export default function Home() {
 
       // Supabase markets (AI-generated + admin-created)
       try {
-        const { data } = await supabase
+        // Fetch OPEN markets (active, can bet)
+        const { data: openData } = await supabase
           .from("prediction_markets")
           .select("*")
-          .in("status", ["open", "frozen", "closed", "awaiting_resolution"])
+          .eq("status", "open")
+          .gt("close_at", new Date().toISOString()) // only future close dates
           .order("close_at", { ascending: true })
-          .limit(100);
+          .limit(80);
 
-        if (data && data.length > 0) {
+        // Fetch recently RESOLVED markets (last 6 hours, max 10)
+        const sixHoursAgo = new Date(Date.now() - 6 * 3600000).toISOString();
+        const { data: resolvedData } = await supabase
+          .from("prediction_markets")
+          .select("*")
+          .in("status", ["resolved", "closed", "cancelled"])
+          .gt("resolved_at", sixHoursAgo)
+          .order("resolved_at", { ascending: false })
+          .limit(10);
+
+        const allDbRows = [...(openData || []), ...(resolvedData || [])];
+
+        if (allDbRows.length > 0) {
+          // Deduplicate by title: prefer open+future, then most recent
+          const seen = new Map<string, typeof allDbRows[0]>();
+          const nowISO = new Date().toISOString();
+          for (const row of allDbRows) {
+            const key = row.title.toLowerCase().trim();
+            const existing = seen.get(key);
+            if (!existing) {
+              seen.set(key, row);
+              continue;
+            }
+            const rowIsActiveFuture = row.status === "open" && row.close_at > nowISO;
+            const existingIsActiveFuture = existing.status === "open" && existing.close_at > nowISO;
+            if (rowIsActiveFuture && !existingIsActiveFuture) {
+              seen.set(key, row);
+            } else if (!rowIsActiveFuture && !existingIsActiveFuture) {
+              // Both expired/resolved: keep the most recent
+              if (row.close_at > existing.close_at) {
+                seen.set(key, row);
+              }
+            }
+          }
+          const uniqueRows = Array.from(seen.values());
+
           // Convert DB format to PredictionMarket
-          const dbMarkets: PredictionMarket[] = data.map((row) => ({
+          const dbMarkets: PredictionMarket[] = uniqueRows.map((row) => ({
             ...row,
             created_at: new Date(row.created_at).getTime(),
             open_at: new Date(row.open_at).getTime(),
@@ -172,6 +209,15 @@ export default function Home() {
             language: row.language || "pt-BR",
             country: row.country || "BR",
           }));
+
+          // Sort: truly active (open + future close_at) first, then resolved/expired at the end
+          const refreshNow = Date.now();
+          dbMarkets.sort((a, b) => {
+            const aActive = a.status === "open" && a.close_at > refreshNow ? 0 : 1;
+            const bActive = b.status === "open" && b.close_at > refreshNow ? 0 : 1;
+            if (aActive !== bActive) return aActive - bActive;
+            return a.close_at - b.close_at;
+          });
 
           // Merge: DB markets first, then local (dedup by title)
           const dbTitles = new Set(dbMarkets.map((m) => m.title.toLowerCase()));
@@ -250,8 +296,23 @@ export default function Home() {
   }, [chatInput, user, sendMessage]);
 
   const now = Date.now();
-  const openMarkets = markets.filter((m) => ["open", "frozen", "closed", "awaiting_resolution"].includes(m.status));
-  const filtered = openMarkets
+
+  // Determine effective status: if close_at has passed but DB still says "open", treat as expired
+  const getEffectiveStatus = (m: PredictionMarket) => {
+    if (m.status === "open" && m.close_at < now) return "expired";
+    return m.status;
+  };
+
+  // Active markets: truly open (future close_at) + frozen + awaiting_resolution
+  const activeMarkets = markets.filter((m) => {
+    const eff = getEffectiveStatus(m);
+    return eff === "open" || eff === "frozen" || eff === "awaiting_resolution";
+  });
+
+  // For search dropdown, use activeMarkets only (no expired/resolved)
+  const openMarkets = activeMarkets;
+
+  const filtered = activeMarkets
     .filter((m) => activeCategory === "all" || m.category === activeCategory)
     .filter((m) => !search || m.title.toLowerCase().includes(search.toLowerCase()));
 

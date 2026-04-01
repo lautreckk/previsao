@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { supabase } from "./supabase";
 
 export interface User {
@@ -161,26 +161,42 @@ export function UserProvider({ children }: { children: ReactNode }) {
     restoreSession();
   }, []);
 
-  const refreshUser = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase.from("users").select("*").eq("id", user.id).single();
-    if (data) {
-      setUser({ id: data.id, name: data.name, email: data.email, cpf: data.cpf || "", balance: Number(data.balance) || 0, createdAt: data.created_at });
-    }
-  }, [user]);
+  // Store user ID in a ref so callbacks don't depend on the full user object
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => { userIdRef.current = user?.id ?? null; }, [user?.id]);
 
-  // Auto-refresh balance every 30 seconds
+  const refreshUser = useCallback(async () => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    const { data } = await supabase.from("users").select("*").eq("id", uid).single();
+    if (data) {
+      setUser((prev) => {
+        if (!prev || prev.id !== uid) return prev;
+        return { id: data.id, name: data.name, email: data.email, cpf: data.cpf || "", balance: Number(data.balance) || 0, createdAt: data.created_at };
+      });
+    }
+  }, []);
+
+  // Auto-refresh balance every 15 seconds (reads from Supabase, never from cache)
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
+    const uid = user.id;
     const iv = setInterval(() => {
-      supabase.from("users").select("balance").eq("id", user.id).single().then(({ data }) => {
-        if (data && Number(data.balance) !== user.balance) {
-          setUser((prev) => prev ? { ...prev, balance: Number(data.balance) } : prev);
+      supabase.from("users").select("balance").eq("id", uid).single().then(({ data }) => {
+        if (data) {
+          setUser((prev) => {
+            if (!prev || prev.id !== uid) return prev;
+            const dbBalance = Number(data.balance) || 0;
+            if (dbBalance !== prev.balance) {
+              return { ...prev, balance: dbBalance };
+            }
+            return prev;
+          });
         }
       });
-    }, 30000);
+    }, 15000);
     return () => clearInterval(iv);
-  }, [user?.id, user?.balance]);
+  }, [user?.id]);
 
   const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string): Promise<boolean> => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -235,12 +251,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addBalance = useCallback((amount: number) => {
+    // Only update local React state. The server-side API routes handle DB updates.
+    // This avoids race conditions where the client overwrites the server's correct balance.
     setUser((prev) => {
       if (!prev) return prev;
-      const newBalance = prev.balance + amount;
-      // Update Supabase async
-      supabase.from("users").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("id", prev.id).then();
-      return { ...prev, balance: newBalance };
+      return { ...prev, balance: prev.balance + amount };
     });
   }, []);
 

@@ -245,8 +245,10 @@ export default function EventoPage() {
         const data = await res.json();
         if (!res.ok || data.error) { setError(data.error || "Erro ao apostar"); setPlacing(false); return; }
         if (data.market) setMarket({ ...market, ...data.market, outcomes: data.market.outcomes || market.outcomes });
+        // Add bet to local state for UI (legacyPlaceBet also deducts balance locally)
         legacyPlaceBet({ marketId: market.id, marketTitle: market.title, optionId: selected.key, optionName: selected.label, amount, odds: selected.payout_per_unit, potentialWin: amount * selected.payout_per_unit });
-        refreshUser();
+        // Immediately refresh from Supabase to get authoritative balance
+        await refreshUser();
       } catch { setError("Erro de conexao"); setPlacing(false); return; }
     } else {
       const result = placeBetFull(user.id, market.id, selected.key, amount, user.balance);
