@@ -88,6 +88,7 @@ export interface PredictionMarket {
 
   // Resolution
   resolution_type: ResolutionType;
+  resolution_method?: "automatic" | "manual";
   source_type: SourceType;
   source_config: SourceConfig;
   resolution_rule: ResolutionRule;

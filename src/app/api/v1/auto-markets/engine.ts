@@ -699,6 +699,7 @@ export async function resolveExpiredMarkets(): Promise<{
     .select("*")
     .eq("status", "open")
     .eq("resolution_type", "automatic")
+    .neq("resolution_method", "manual")
     .lt("close_at", new Date().toISOString())
     .limit(20);
 

@@ -140,7 +140,7 @@ export function initializeStore() {
     { close_at: Date.now() + 2 * D, resolution_type: "semi_automatic", banner_url: "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=800&q=80" }
   ));
   bbb1.status = "open"; bbb1.is_featured = true;
-  bbb1.subcategory = "BBB 26";
+  bbb1.subcategory = "BBB 26"; bbb1.resolution_method = "manual";
   bbb1.outcomes[0].pool = 1200; bbb1.outcomes[1].pool = 8500; bbb1.outcomes[2].pool = 7800;
   seeds.push(bbb1);
 
@@ -151,7 +151,7 @@ export function initializeStore() {
     { close_at: Date.now() + 5 * D, resolution_type: "manual", banner_url: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800&q=80" }
   ));
   bbb2.status = "open"; bbb2.is_featured = true;
-  bbb2.subcategory = "BBB 26 / Fofoca";
+  bbb2.subcategory = "BBB 26 / Fofoca"; bbb2.resolution_method = "manual";
   bbb2.outcomes[0].pool = 6200; bbb2.outcomes[1].pool = 4100;
   seeds.push(bbb2);
 
@@ -162,7 +162,7 @@ export function initializeStore() {
     { close_at: Date.now() + 20 * D, resolution_type: "manual", banner_url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80" }
   ));
   anitta.status = "open"; anitta.is_featured = true;
-  anitta.subcategory = "Fofoca / Romance";
+  anitta.subcategory = "Fofoca / Romance"; anitta.resolution_method = "manual";
   anitta.outcomes[0].pool = 7800; anitta.outcomes[1].pool = 3200;
   seeds.push(anitta);
 
@@ -173,7 +173,7 @@ export function initializeStore() {
     { close_at: Date.now() + 37 * D, resolution_type: "semi_automatic", banner_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80" }
   ));
   shakira.status = "open"; shakira.is_featured = true;
-  shakira.subcategory = "Shows / Musica";
+  shakira.subcategory = "Shows / Musica"; shakira.resolution_method = "manual";
   shakira.outcomes[0].pool = 4500; shakira.outcomes[1].pool = 5200;
   seeds.push(shakira);
 
@@ -183,7 +183,7 @@ export function initializeStore() {
     "entertainment", "Incidente de seguranca no Lollapalooza com filha de Jorginho do Flamengo",
     { close_at: Date.now() + 7 * D, resolution_type: "manual", banner_url: "https://images.unsplash.com/photo-1501386761578-0a55d7e4d7da?w=800&q=80" }
   ));
-  chappell.status = "open";
+  chappell.status = "open"; chappell.resolution_method = "manual";
   chappell.subcategory = "Fofoca / Polemica";
   chappell.outcomes[0].pool = 2100; chappell.outcomes[1].pool = 5800;
   seeds.push(chappell);
@@ -194,7 +194,7 @@ export function initializeStore() {
     "entertainment", "Supermodelo vive nova fase apos casamento com Joaquim Valente",
     { close_at: Date.now() + 60 * D, resolution_type: "manual", banner_url: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80" }
   ));
-  gisele.status = "open";
+  gisele.status = "open"; gisele.resolution_method = "manual";
   gisele.subcategory = "Fofoca / Moda";
   gisele.outcomes[0].pool = 3400; gisele.outcomes[1].pool = 4800;
   seeds.push(gisele);
@@ -205,7 +205,7 @@ export function initializeStore() {
     "entertainment", "Festival no Interlagos, 20-22 marco, 71 atracoes",
     { close_at: Date.now() + 1 * D, resolution_type: "semi_automatic", banner_url: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&q=80" }
   ));
-  lolla.status = "open";
+  lolla.status = "open"; lolla.resolution_method = "manual";
   lolla.subcategory = "Festivais";
   lolla.outcomes[0].pool = 2800; lolla.outcomes[1].pool = 1500;
   seeds.push(lolla);
@@ -218,7 +218,7 @@ export function initializeStore() {
     { close_at: Date.now() + 30 * D, resolution_type: "manual", banner_url: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=800&q=80" }
   ));
   bbb3.status = "open"; bbb3.is_featured = true;
-  bbb3.subcategory = "BBB 26";
+  bbb3.subcategory = "BBB 26"; bbb3.resolution_method = "manual";
   bbb3.outcomes[0].pool = 12000; bbb3.outcomes[1].pool = 5800; bbb3.outcomes[2].pool = 4200; bbb3.outcomes[3].pool = 3100; bbb3.outcomes[4].pool = 900;
   seeds.push(bbb3);
 
@@ -232,7 +232,7 @@ export function initializeStore() {
 
   // Politics
   const pol1 = createMarket(presetBinary("Lula aprovacao acima de 35% em abril?", "politics", "Pesquisa Datafolha", { close_at: Date.now() + 15 * D, banner_url: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&q=80" }));
-  pol1.status = "open";
+  pol1.status = "open"; pol1.resolution_method = "manual";
   pol1.outcomes[0].pool = 5200; pol1.outcomes[1].pool = 3800;
   seeds.push(pol1);
 
@@ -250,7 +250,7 @@ export function initializeStore() {
 
   // War / Geopolitics
   const war1 = createMarket(presetBinary("Acordo de cessar-fogo na Ucrania ate julho 2026?", "war", "Conflito Russia-Ucrania", { close_at: Date.now() + 90 * D, resolution_type: "manual", banner_url: "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=800&q=80" }));
-  war1.status = "open";
+  war1.status = "open"; war1.resolution_method = "manual";
   war1.outcomes[0].pool = 1800; war1.outcomes[1].pool = 6200;
   seeds.push(war1);
 

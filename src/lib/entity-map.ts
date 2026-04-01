@@ -11,21 +11,21 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Luiz Inácio Lula da Silva",
     aliases: ["lula", "lulinha"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Lula_-_foto_oficial_-_05_jan_2023_%28cropped%29.jpg/220px-Lula_-_foto_oficial_-_05_jan_2023_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Reversa1.jpg/330px-Reversa1.jpg",
     type: "person",
   },
   {
     name: "Jair Bolsonaro",
     aliases: ["bolsonaro"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Jair_Bolsonaro_em_24_de_abril_de_2019_%281%29_%28cropped%29.jpg/220px-Jair_Bolsonaro_em_24_de_abril_de_2019_%281%29_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Jair_Bolsonaro_2019_Portrait_%283x4_cropped_center%29.jpg/330px-Jair_Bolsonaro_2019_Portrait_%283x4_cropped_center%29.jpg",
     type: "person",
   },
   {
     name: "Tarcísio de Freitas",
     aliases: ["tarcisio", "tarcísio"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Tarc%C3%ADsio_de_Freitas_em_2023_%28cropped%29.jpg/220px-Tarc%C3%ADsio_de_Freitas_em_2023_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Governador_do_Estado_de_S%C3%A3o_Paulo%2C_Tarc%C3%ADsio_de_Freitas_-_Foto_Oficial_%28cropped%29.jpg/330px-Governador_do_Estado_de_S%C3%A3o_Paulo%2C_Tarc%C3%ADsio_de_Freitas_-_Foto_Oficial_%28cropped%29.jpg",
     type: "person",
   },
   {
@@ -76,28 +76,28 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Virginia Fonseca",
     aliases: ["virginia"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Virginia_Fonseca_em_2022.jpg/220px-Virginia_Fonseca_em_2022.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Virginia_Fonseca_na_CPI_das_BETS_02_%28cropped%29.jpg/330px-Virginia_Fonseca_na_CPI_das_BETS_02_%28cropped%29.jpg",
     type: "person",
   },
   {
     name: "Carlinhos Maia",
     aliases: ["carlinhos"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Carlinhos_Maia_em_2019.jpg/220px-Carlinhos_Maia_em_2019.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Carlinhos_Maia.jpg/330px-Carlinhos_Maia.jpg",
     type: "person",
   },
   {
     name: "Casimiro Miguel",
     aliases: ["casimiro", "cazé"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Casimiro_Miguel_em_2022.jpg/220px-Casimiro_Miguel_em_2022.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Casimiro.png/330px-Casimiro.png",
     type: "person",
   },
   {
     name: "Felipe Neto",
     aliases: ["felipe neto"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Felipe_Neto_em_2019.jpg/220px-Felipe_Neto_em_2019.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Felipe_Neto_at_the_Lady_Night_in_2022_%2801%29.png/330px-Felipe_Neto_at_the_Lady_Night_in_2022_%2801%29.png",
     type: "person",
   },
   {
@@ -111,14 +111,14 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Anitta",
     aliases: ["anitta"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Anitta_em_2022_%28cropped%29.jpg/220px-Anitta_em_2022_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Anitta_for_Attractive_Mindset_podcast_02.jpg/330px-Anitta_for_Attractive_Mindset_podcast_02.jpg",
     type: "person",
   },
   {
     name: "Neymar Jr",
     aliases: ["neymar"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/20180610_FIFA_Friendly_Match_Austria_vs._Brazil_Neymar_850_1705_%28cropped%29.jpg/220px-20180610_FIFA_Friendly_Match_Austria_vs._Brazil_Neymar_850_1705_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Neymar_Jr._with_Al_Hilal%2C_3_October_2023_-_03_%28cropped%29.jpg/330px-Neymar_Jr._with_Al_Hilal%2C_3_October_2023_-_03_%28cropped%29.jpg",
     type: "person",
   },
   {
@@ -183,21 +183,21 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Flamengo",
     aliases: ["flamengo", "fla"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Flamengo_bbread_cance_logo.svg/220px-Flamengo_bread_cance_logo.svg.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Clube_de_Regatas_do_Flamengo_logo.svg/langpt-330px-Clube_de_Regatas_do_Flamengo_logo.svg.png",
     type: "team",
   },
   {
     name: "Corinthians",
     aliases: ["corinthians", "corin"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/pt/thumb/b/b4/Corinthians_simbolo.png/220px-Corinthians_simbolo.png",
+      "https://upload.wikimedia.org/wikipedia/pt/thumb/b/b4/Corinthians_simbolo.png/330px-Corinthians_simbolo.png",
     type: "team",
   },
   {
     name: "Palmeiras",
     aliases: ["palmeiras"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Palmeiras_logo.svg/220px-Palmeiras_logo.svg.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/SE_Palmeiras_2025_crest.png/330px-SE_Palmeiras_2025_crest.png",
     type: "team",
   },
   {
@@ -232,35 +232,35 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Atlético Mineiro",
     aliases: ["atletico-mg", "atlético", "galo"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Atletico_mineiro_galo.png/220px-Atletico_mineiro_galo.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Atletico_mineiro_galo.png/330px-Atletico_mineiro_galo.png",
     type: "team",
   },
   {
     name: "Cruzeiro",
     aliases: ["cruzeiro"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Cruzeiro_Esporte_Clube_%28logo%29.svg/220px-Cruzeiro_Esporte_Clube_%28logo%29.svg.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Cruzeiro_Esporte_Clube_%28logo%29.svg/langpt-330px-Cruzeiro_Esporte_Clube_%28logo%29.svg.png",
     type: "team",
   },
   {
     name: "Botafogo",
     aliases: ["botafogo", "botaf"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Botafogo_de_Futebol_e_Regatas_logo.svg/220px-Botafogo_de_Futebol_e_Regatas_logo.svg.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Botafogo_de_Futebol_e_Regatas_logo.svg/langpt-330px-Botafogo_de_Futebol_e_Regatas_logo.svg.png",
     type: "team",
   },
   {
     name: "Fluminense",
     aliases: ["fluminense", "flu"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Fluminense_fc_logo.svg/220px-Fluminense_fc_logo.svg.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Fluminense_Football_Club.svg/langpt-330px-Fluminense_Football_Club.svg.png",
     type: "team",
   },
   {
     name: "Vasco da Gama",
     aliases: ["vasco"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Club_de_Regatas_Vasco_da_Gama_logo.svg/220px-Club_de_Regatas_Vasco_da_Gama_logo.svg.png",
+      "https://upload.wikimedia.org/wikipedia/pt/thumb/8/8b/EscudoDoVascoDaGama.svg/langpt-330px-EscudoDoVascoDaGama.svg.png",
     type: "team",
   },
   {
@@ -276,14 +276,14 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Vinicius Jr",
     aliases: ["vinicius", "vini jr"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Vinicius_Junior_2022_%28cropped%29.jpg/220px-Vinicius_Junior_2022_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/2023_05_06_Final_de_la_Copa_del_Rey_-_52879242230_%28cropped%29.jpg/330px-2023_05_06_Final_de_la_Copa_del_Rey_-_52879242230_%28cropped%29.jpg",
     type: "person",
   },
   {
     name: "Endrick",
     aliases: ["endrick"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Endrick_em_2024_%28cropped%29.jpg/220px-Endrick_em_2024_%28cropped%29.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Endrick-Palmeiras-Liverpool-abr24.jpg/330px-Endrick-Palmeiras-Liverpool-abr24.jpg",
     type: "person",
   },
   {

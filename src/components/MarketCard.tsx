@@ -116,7 +116,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
             })();
 
             if (imgUrl) {
-              return <img src={imgUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 ring-1 ring-white/[0.06]" />;
+              return <img src={imgUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 ring-1 ring-white/[0.06]" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden"); }} />;
             }
 
             // Emoji fallback for abstract topics
