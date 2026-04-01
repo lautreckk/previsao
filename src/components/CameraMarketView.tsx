@@ -36,7 +36,9 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
 /* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
 function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
+  // Force frame mode — worker's annotated frame is in sync with count + shows YOLO boxes
+  // HLS has 10-30s delay which makes count appear desynchronized
+  const [mode, setMode] = useState<"loading" | "hls" | "frame">("frame");
   const [frameTs, setFrameTs] = useState(Date.now());
   const modeRef = useRef(mode);
   modeRef.current = mode;
@@ -97,10 +99,10 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
     return () => { hls?.destroy(); clearTimeout(fallbackTimer); };
   }, [proxyUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Refresh frame every 2s in frame mode
+  // Refresh frame every 1.5s in frame mode
   useEffect(() => {
     if (mode !== "frame") return;
-    const iv = setInterval(() => setFrameTs(Date.now()), 2000);
+    const iv = setInterval(() => setFrameTs(Date.now()), 1500);
     return () => clearInterval(iv);
   }, [mode]);
 
@@ -173,9 +175,7 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
 
       {/* Mode indicator */}
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#80FF00]/20">
-        <span className="text-[10px] font-bold text-[#80FF00] uppercase tracking-widest">
-          {mode === "hls" ? "STREAM AO VIVO" : mode === "frame" ? "IA YOLO" : "..."}
-        </span>
+        <span className="text-[10px] font-bold text-[#80FF00] uppercase tracking-widest">IA YOLO</span>
       </div>
 
       {/* Count overlay */}
