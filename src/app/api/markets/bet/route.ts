@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Get user balance
     const { data: userData, error: userErr } = await supabase
       .from("users")
-      .select("balance")
+      .select("balance, total_predictions, total_wagered")
       .eq("id", user_id)
       .single();
 
@@ -57,12 +57,19 @@ export async function POST(request: NextRequest) {
     const fee = Number(market.house_fee_percent) || 0.05;
     const payoutPerUnit = newOutcomePool > 0 ? (newTotal * (1 - fee)) / newOutcomePool : 1;
 
-    // Deduct balance
+    // Deduct balance + update prediction stats
     const newBalance = Number(userData.balance) - amount;
-    await supabase
-      .from("users")
-      .update({ balance: newBalance, updated_at: new Date().toISOString() })
-      .eq("id", user_id);
+    const newPredictions = (Number(userData.total_predictions) || 0) + 1;
+    const newWagered = (Number(userData.total_wagered) || 0) + amount;
+    // Recalculate level
+    const level = newPredictions >= 500 ? 8 : newPredictions >= 350 ? 7 : newPredictions >= 200 ? 6 : newPredictions >= 100 ? 5 : newPredictions >= 50 ? 4 : newPredictions >= 30 ? 3 : newPredictions >= 10 ? 2 : 1;
+    await supabase.from("users").update({
+      balance: newBalance,
+      total_predictions: newPredictions,
+      total_wagered: newWagered,
+      level,
+      updated_at: new Date().toISOString(),
+    }).eq("id", user_id);
 
     // Fetch current price as entry_price (for chart marker)
     let entryPrice: number | null = null;
@@ -143,7 +150,14 @@ export async function POST(request: NextRequest) {
       description: `Previsao: ${outcome_label || outcome_key} em ${market.title}`,
     });
 
-    // Broadcast odds update via Supabase Realtime
+    // Get user name for broadcast
+    let userName = "Alguem";
+    try {
+      const { data: uData } = await supabase.from("users").select("name").eq("id", user_id).single();
+      if (uData?.name) userName = uData.name;
+    } catch { /* non-blocking */ }
+
+    // Broadcast odds update + bet placed via Supabase Realtime
     try {
       const broadcastChannel = supabase.channel(`market-${market_id}`);
       await broadcastChannel.send({
@@ -156,9 +170,25 @@ export async function POST(request: NextRequest) {
           _ts: Date.now(),
         },
       });
+      // Broadcast new bet for live activity feed
+      const outcomeColor = outcomeObj?.color || "#F5A623";
+      await broadcastChannel.send({
+        type: "broadcast",
+        event: "bet.placed",
+        payload: {
+          id: betId,
+          user_name: userName,
+          user_id,
+          outcome_key,
+          outcome_label: outcome_label || outcome_key,
+          outcome_color: outcomeColor,
+          amount,
+          potential_win: +(amount * payoutPerUnit).toFixed(2),
+          ts: Date.now(),
+        },
+      });
       await supabase.removeChannel(broadcastChannel);
     } catch (broadcastErr) {
-      // Non-blocking: log but don't fail the bet
       console.error("[markets/bet] Broadcast error:", broadcastErr);
     }
 

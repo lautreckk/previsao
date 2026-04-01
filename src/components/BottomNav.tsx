@@ -13,6 +13,7 @@ export default function BottomNav() {
   const navItems = [
     { href: "/", icon: "home", label: "Home", action: null },
     { href: "#chat", icon: "forum", label: "Chat", action: () => setChatOpen(true) },
+    { href: "/ranking", icon: "leaderboard", label: "Ranking", action: null },
     { href: "/saldos", icon: "confirmation_number", label: "Apostas", action: null },
     { href: "/perfil", icon: "person", label: "Perfil", action: null },
   ];

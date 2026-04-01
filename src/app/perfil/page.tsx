@@ -37,7 +37,7 @@ function useStats(bets: Array<{ amount: number; potentialWin: number; status: st
 
 export default function PerfilPage() {
   const router = useRouter();
-  const { user, bets, logout, updateProfile, changePassword, uploadAvatar } = useUser();
+  const { user, bets, logout, updateProfile, changePassword, uploadAvatar, togglePublicProfile } = useUser();
   const [tab, setTab] = useState<Tab>("resumo");
   const stats = useStats(bets);
 
@@ -113,7 +113,7 @@ export default function PerfilPage() {
         </nav>
 
         {tab === "resumo" && <ResumoTab stats={stats} user={user} bets={bets} />}
-        {tab === "conta" && <ContaTab user={user} updateProfile={updateProfile} changePassword={changePassword} uploadAvatar={uploadAvatar} logout={logout} router={router} />}
+        {tab === "conta" && <ContaTab user={user} updateProfile={updateProfile} changePassword={changePassword} uploadAvatar={uploadAvatar} logout={logout} router={router} togglePublicProfile={togglePublicProfile} />}
         {tab === "historico" && <HistoricoTab bets={bets} stats={stats} />}
       </main>
       <BottomNav />
@@ -231,7 +231,7 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
 
 /* ─── CONTA TAB ─── */
 function ContaTab({
-  user, updateProfile, changePassword, uploadAvatar, logout, router,
+  user, updateProfile, changePassword, uploadAvatar, logout, router, togglePublicProfile,
 }: {
   user: User;
   updateProfile: (data: Record<string, string>) => Promise<boolean>;
@@ -239,7 +239,9 @@ function ContaTab({
   uploadAvatar: (f: File) => Promise<string | null>;
   logout: () => void;
   router: ReturnType<typeof useRouter>;
+  togglePublicProfile: () => Promise<boolean>;
 }) {
+  const [togglingPublic, setTogglingPublic] = useState(false);
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone || "");
@@ -287,6 +289,39 @@ function ContaTab({
 
   return (
     <div className="space-y-6">
+      {/* Public Profile Toggle */}
+      <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#F5A623]/10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[#F5A623]">{user.is_public ? "visibility" : "visibility_off"}</span>
+            </div>
+            <div>
+              <h3 className="font-headline font-bold text-sm">Perfil Publico</h3>
+              <p className="text-[10px] text-on-surface-variant mt-0.5">
+                {user.is_public ? "Seu perfil aparece no ranking e feed" : "Seu perfil esta oculto para outros usuarios"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={async () => { setTogglingPublic(true); await togglePublicProfile(); setTogglingPublic(false); }}
+            disabled={togglingPublic}
+            className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${user.is_public ? "bg-[#F5A623]" : "bg-white/10"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${user.is_public ? "translate-x-6" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+        {user.is_public && (
+          <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
+            <span className="text-[10px] text-on-surface-variant">Nivel {user.level}</span>
+            <span className="text-[10px] text-[#F5A623] font-bold">{getLevelName(user.level)}</span>
+            <span className="text-[10px] text-on-surface-variant ml-auto">{user.total_predictions} previsoes</span>
+            <span className="text-[10px] text-on-surface-variant">•</span>
+            <span className="text-[10px] text-on-surface-variant">{user.total_predictions > 0 ? Math.round((user.total_wins / user.total_predictions) * 100) : 0}% acerto</span>
+          </div>
+        )}
+      </div>
+
       {/* Avatar */}
       <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
         <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">

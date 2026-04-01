@@ -16,6 +16,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import type { PredictionMarket } from "@/lib/engines/types";
+import { createBotEngine, type LiveBet } from "@/lib/bot-engine";
 
 /* ─── Chat (uses global ChatContext) ─── */
 function EventChat() {
@@ -123,6 +124,20 @@ export default function EventoPage() {
   const [flashKeys, setFlashKeys] = useState<Record<string, "up" | "down">>({});
   const [isResolved, setIsResolved] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+
+  // Live activity feed
+  const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
+  const [betToast, setBetToast] = useState<LiveBet | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const botEngineRef = useRef<ReturnType<typeof createBotEngine> | null>(null);
+
+  const addLiveBet = useCallback((bet: LiveBet) => {
+    setLiveBets((prev) => [bet, ...prev].slice(0, 15));
+    // Show toast
+    setBetToast(bet);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setBetToast(null), 3500);
+  }, []);
 
   // User bets for this market (from prediction_bets)
   interface UserBet {
@@ -275,6 +290,11 @@ export default function EventoPage() {
           });
         }
       })
+      .on("broadcast", { event: "bet.placed" }, (payload: { payload?: LiveBet }) => {
+        if (payload.payload) {
+          addLiveBet(payload.payload);
+        }
+      })
       .on("broadcast", { event: "market.resolved" }, (payload: { payload?: { winning_outcome_key?: string } }) => {
         setIsResolved(true);
         if (payload.payload?.winning_outcome_key) {
@@ -283,7 +303,23 @@ export default function EventoPage() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [market?.id]);
+  }, [market?.id, addLiveBet]);
+
+  // Bot engine: auto-bet with bots when market is open
+  useEffect(() => {
+    if (!market?.id || market.status !== "open") return;
+    const engine = createBotEngine(market.id, addLiveBet);
+    botEngineRef.current = engine;
+    engine.start(market.outcomes);
+    return () => { engine.stop(); botEngineRef.current = null; };
+  }, [market?.id, market?.status, addLiveBet]);
+
+  // Update bot engine with fresh outcomes
+  useEffect(() => {
+    if (botEngineRef.current && market?.outcomes) {
+      botEngineRef.current.updateOutcomes(market.outcomes);
+    }
+  }, [market?.outcomes]);
 
   if (!market) return (
     <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white">
@@ -379,7 +415,7 @@ export default function EventoPage() {
               {market.subcategory && <span className="text-[10px] text-white/30">/ {market.subcategory}</span>}
             </div>
             <h1 className="text-xl lg:text-2xl font-black leading-tight mb-1 line-clamp-2 lg:line-clamp-none">{market.title}</h1>
-            {market.short_description && <p className="text-sm text-white/50 mb-3">{market.short_description}</p>}
+            {market.short_description && !livePriceInfo && <p className="text-sm text-white/50 mb-3">{market.short_description}</p>}
             {!isLiveRound && (
               <div className="flex items-center gap-3 flex-wrap mb-4">
                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
@@ -531,6 +567,54 @@ export default function EventoPage() {
                     <span>Pool: R$ {(market.pool_total || 0).toFixed(0)}</span>
                     <span>•</span>
                     <span>Taxa: {((market.house_fee_percent || 0.05) * 100).toFixed(0)}%</span>
+                  </div>
+                )}
+
+                {/* ═══ LIVE ACTIVITY FEED ═══ */}
+                {liveBets.length > 0 && (
+                  <div className="mt-4 bg-[#0D0B14] rounded-xl border border-white/[0.04] overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.04]">
+                      <div className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F5A623] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F5A623]" />
+                      </div>
+                      <span className="text-[10px] font-black text-white/50 uppercase tracking-wider">Apostas ao vivo</span>
+                      <span className="text-[10px] text-white/20 ml-auto">{liveBets.length}</span>
+                    </div>
+                    <div className="max-h-[240px] overflow-y-auto divide-y divide-white/[0.03]">
+                      {liveBets.map((bet, idx) => {
+                        const ago = Math.floor((Date.now() - bet.ts) / 1000);
+                        const timeAgo = ago < 5 ? "agora" : ago < 60 ? `${ago}s` : ago < 3600 ? `${Math.floor(ago / 60)}min` : `${Math.floor(ago / 3600)}h`;
+                        return (
+                          <div
+                            key={bet.id + idx}
+                            className="flex items-center gap-2.5 px-4 py-2 hover:bg-white/[0.02] transition-colors"
+                            style={{ animation: idx === 0 ? "slideIn 0.3s ease-out" : undefined }}
+                          >
+                            <img
+                              src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(bet.user_name)}&backgroundColor=transparent`}
+                              alt=""
+                              className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-white truncate">{bet.user_name}</span>
+                                <span className="text-[9px] text-white/20">{timeAgo}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bet.outcome_color }} />
+                                <span className="text-[10px] text-white/40">{bet.outcome_label}</span>
+                                <span className="text-[10px] font-bold text-white/70 ml-auto tabular-nums">R$ {bet.amount}</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-[10px] text-[#F5A623] font-bold tabular-nums">R$ {bet.potential_win.toFixed(0)}</span>
+                              <span className="block text-[8px] text-white/20">potencial</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -811,6 +895,44 @@ export default function EventoPage() {
       )}
 
       {betPlaced && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-[#F5A623] text-[#1A0E00] px-6 py-3 rounded-xl font-black text-sm shadow-[0_4px_20px_rgba(245,166,35,0.4)]">Previsao realizada!</div>}
+
+      {/* Live bet toast */}
+      {betToast && (
+        <div
+          className="fixed top-16 left-1/2 -translate-x-1/2 z-[55] flex items-center gap-2.5 px-4 py-2.5 rounded-xl border backdrop-blur-md shadow-lg"
+          style={{
+            backgroundColor: "rgba(13, 11, 20, 0.85)",
+            borderColor: betToast.outcome_color + "40",
+            animation: "slideDown 0.3s ease-out",
+          }}
+        >
+          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: betToast.outcome_color }} />
+          <img
+            src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(betToast.user_name)}&backgroundColor=transparent`}
+            alt=""
+            className="w-6 h-6 rounded-full bg-white/[0.06]"
+          />
+          <span className="text-[11px] text-white/80">
+            <span className="font-bold text-white">{betToast.user_name}</span>
+            {" apostou "}
+            <span className="font-bold text-[#F5A623]">R$ {betToast.amount}</span>
+            {" em "}
+            <span className="font-bold" style={{ color: betToast.outcome_color }}>{betToast.outcome_label}</span>
+          </span>
+        </div>
+      )}
+
+      {/* Inline keyframes */}
+      <style jsx global>{`
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translate(-50%, -12px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
 
       {/* Mobile chat FAB */}
       <button

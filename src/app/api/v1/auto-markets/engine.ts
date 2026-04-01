@@ -40,9 +40,35 @@ async function getCryptoPrice(cgId: string): Promise<number> {
     const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
     if (res.ok) {
       const d = await res.json();
-      return d[cgId]?.usd || 0;
+      if (d[cgId]?.usd) return d[cgId].usd;
     }
   } catch { /* fall through */ }
+
+  // Fallback: AwesomeAPI (BRL price, convert back to USD)
+  const symbolMap: Record<string, string> = { bitcoin: "BTC", ethereum: "ETH", solana: "SOL" };
+  const sym = symbolMap[cgId];
+  if (sym) {
+    try {
+      const res = await fetch(`https://economia.awesomeapi.com.br/json/last/${sym}-USD`);
+      if (res.ok) {
+        const d = await res.json();
+        const key = `${sym}USD`;
+        if (d[key]?.bid) return parseFloat(d[key].bid);
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Fallback: Coinbase
+  if (sym) {
+    try {
+      const res = await fetch(`https://api.coinbase.com/v2/prices/${sym}-USD/spot`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.data?.amount) return parseFloat(d.data.amount);
+      }
+    } catch { /* fall through */ }
+  }
+
   return 0;
 }
 
