@@ -26,23 +26,28 @@ function broadcast(marketId: string, event: string, payload: Record<string, unkn
 }
 
 async function getLastRounds(marketId: string, limit: number) {
+  // Fetch more rows so we can filter out zero-count rounds (worker was down)
   const { data } = await supabase
     .from("camera_rounds")
     .select("final_count")
     .eq("market_id", marketId)
     .not("final_count", "is", null)
     .order("round_number", { ascending: false })
-    .limit(limit);
+    .limit(limit * 10);
   return data || [];
 }
 
+const MIN_THRESHOLD = 10;
+
 function calculateThreshold(history: { final_count: number }[]): number {
+  // Filter out zero-count rounds (worker wasn't running)
+  const valid = history.filter((r) => (r.final_count || 0) > 0);
   const avg =
-    history.length > 0
-      ? Math.round(history.reduce((s, r) => s + (r.final_count || 0), 0) / history.length)
-      : 50;
-  const variation = Math.max(Math.floor(avg * 0.1), 1);
-  return avg + Math.floor(Math.random() * variation * 2) - variation;
+    valid.length > 0
+      ? Math.round(valid.reduce((s, r) => s + r.final_count, 0) / valid.length)
+      : 25;
+  const variation = Math.max(Math.floor(avg * 0.1), 2);
+  return Math.max(avg + Math.floor(Math.random() * variation * 2) - variation, MIN_THRESHOLD);
 }
 
 export async function POST(request: NextRequest) {

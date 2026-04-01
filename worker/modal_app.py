@@ -85,6 +85,10 @@ def run_worker(market_id: str, camera_id: str, roi_x_start: float, roi_x_end: fl
     subprocess.run(cmd)
 
 
+# Track which workers are alive (updated_at from DB tells us)
+_last_counts: dict[str, tuple[int, int]] = {}  # market_id -> (count, stale_ticks)
+
+
 @app.function(
     image=image,
     timeout=3600,
@@ -94,10 +98,29 @@ def run_worker(market_id: str, camera_id: str, roi_x_start: float, roi_x_end: fl
     schedule=modal.Cron("* * * * *"),
 )
 def tick_rounds():
-    """Call /api/camera/round for each camera every minute to advance phases."""
+    """Call /api/camera/round for each camera every minute to advance phases.
+    Also detects dead workers and respawns them automatically.
+    """
     import requests as req
     secret = os.environ["WORKER_SECRET"]
+    supa_url = os.environ["SUPABASE_URL"]
+    supa_key = os.environ["SUPABASE_KEY"]
+
+    # Fetch all camera states in one call
+    try:
+        r = req.get(
+            f"{supa_url}/rest/v1/camera_markets?select=id,current_count,phase,updated_at&id=in.({','.join(CAMERAS.keys())})",
+            headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}"},
+            timeout=10,
+        )
+        camera_states = {c["id"]: c for c in r.json()} if r.ok else {}
+    except Exception:
+        camera_states = {}
+
+    workers_to_spawn = []
+
     for market_id in CAMERAS:
+        # 1. Advance round phases
         try:
             r = req.post(
                 f"{API_URL}/api/camera/round",
@@ -107,6 +130,39 @@ def tick_rounds():
             print(f"[Tick] {market_id}: {r.status_code} {r.json()}")
         except Exception as e:
             print(f"[Tick] {market_id}: ERROR {e}")
+
+        # 2. Detect dead workers: if camera is in active phase but count
+        #    hasn't changed in 3+ ticks (3 minutes), worker is dead
+        state = camera_states.get(market_id)
+        if not state:
+            continue
+
+        phase = state.get("phase", "waiting")
+        count = state.get("current_count", 0)
+
+        if phase in ("betting", "observation"):
+            prev_count, stale_ticks = _last_counts.get(market_id, (None, 0))
+            if prev_count is not None and count == prev_count:
+                stale_ticks += 1
+            else:
+                stale_ticks = 0
+            _last_counts[market_id] = (count, stale_ticks)
+
+            if stale_ticks >= 3:
+                print(f"[Tick] {market_id}: Worker dead (count={count} unchanged for {stale_ticks} ticks). Respawning!")
+                workers_to_spawn.append(market_id)
+                _last_counts[market_id] = (count, 0)  # Reset so we don't spam
+        else:
+            _last_counts.pop(market_id, None)
+
+    # 3. Respawn dead workers
+    for market_id in workers_to_spawn:
+        cfg = CAMERAS[market_id]
+        try:
+            run_worker.spawn(market_id, cfg[0], cfg[1], cfg[2], cfg[3], cfg[4], cfg[5])
+            print(f"[Tick] {market_id}: Worker respawned!")
+        except Exception as e:
+            print(f"[Tick] {market_id}: Failed to respawn: {e}")
 
 
 @app.local_entrypoint()
