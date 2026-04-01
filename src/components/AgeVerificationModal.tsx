@@ -8,7 +8,7 @@ export default function AgeVerificationModal({ onConfirm }: AgeVerificationModal
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#121212]/80 backdrop-blur-sm">
       <div className="bg-[hsl(0,0%,11%)] border border-[hsl(0,0%,18%)] rounded-2xl p-8 max-w-md w-full mx-4 text-center">
-        <h2 className="text-2xl font-bold text-[#80FF00] mb-2">Previsões.cc</h2>
+        <h2 className="text-2xl font-bold text-[#80FF00] mb-2">PALPITEX</h2>
         <h3 className="text-lg font-semibold text-[hsl(0,0%,95%)] mb-3">
           Você tem mais de 18 anos?
         </h3>

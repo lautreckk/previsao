@@ -5,8 +5,8 @@ import TrackingPixels from "@/components/TrackingPixels";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Winify - Transforme seus palpites em dinheiro",
-  description: "Winify - Aposte nas suas previsoes e ganhe!",
+  title: "PALPITEX - Transforme seus palpites em dinheiro",
+  description: "PALPITEX - Aposte nas suas previsoes e ganhe!",
 };
 
 export const viewport: Viewport = {

@@ -296,7 +296,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#121212] overflow-y-auto animate-in slide-in-from-left duration-300">
             <div className="flex items-center justify-between px-4 py-4">
-              <h2 className="text-[#80FF00] font-black text-xl tracking-tight">Previsões.cc</h2>
+              <h2 className="text-[#80FF00] font-black text-xl tracking-tight">PALPITEX</h2>
               <button onClick={() => setMobileMenuOpen(false)} className="text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] w-10 h-10 flex items-center justify-center rounded-full bg-[hsl(0,0%,14%)]">
                 <X size={20} />
               </button>
@@ -393,7 +393,7 @@ export default function Home() {
               <Menu size={24} />
             </button>
             <Link href="/">
-              <h1 className="text-[#80FF00] font-black text-xl tracking-tight">Previsões.cc</h1>
+              <img src="/logo.png" alt="PALPITEX" className="h-8 w-auto" />
             </Link>
             {/* Desktop search */}
             <div className="hidden lg:flex items-center gap-2 bg-[hsl(0,0%,14%)] rounded-lg px-3 py-1.5 w-64 ml-2 relative" ref={searchRef}>
@@ -561,7 +561,7 @@ export default function Home() {
         <div className="max-w-screen-xl mx-auto px-6 py-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8">
             <div className="col-span-2 sm:col-span-4 lg:col-span-1">
-              <h2 className="text-[#80FF00] font-black text-xl mb-3">Previsões.cc</h2>
+              <img src="/logo.png" alt="PALPITEX" className="h-8 w-auto mb-3" />
               <p className="text-xs text-[hsl(0,0%,55%)] leading-relaxed max-w-[240px]">A plataforma onde seu conhecimento vira oportunidade. Mercados de previsão em tempo real.</p>
             </div>
             <div>
