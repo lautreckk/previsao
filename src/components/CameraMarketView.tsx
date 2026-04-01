@@ -146,28 +146,14 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
       />
 
-      {/* Worker annotated frame — full view when HLS fails, PiP when HLS active */}
-      {mode === "frame" ? (
+      {/* Worker frame fallback (only when HLS fails) */}
+      {mode === "frame" && (
         <img
           src={frameUrl}
-          alt="Camera IA"
+          alt="Camera ao vivo"
           className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
           onError={() => {}}
         />
-      ) : (
-        /* Mini PiP: worker frame with YOLO boxes in corner */
-        <div className="absolute bottom-3 right-3 z-10 w-[35%] rounded-lg overflow-hidden border-2 border-[#80FF00]/40 shadow-[0_0_15px_rgba(128,255,0,0.15)]">
-          <img
-            src={frameUrl}
-            alt="Deteccao IA"
-            className="w-full h-auto"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            onLoad={(e) => { (e.target as HTMLImageElement).style.display = ""; }}
-          />
-          <div className="absolute top-1 left-1 bg-black/70 px-1.5 py-0.5 rounded">
-            <span className="text-[8px] font-bold text-[#80FF00] uppercase">IA YOLO</span>
-          </div>
-        </div>
       )}
 
       {/* Loading spinner */}
