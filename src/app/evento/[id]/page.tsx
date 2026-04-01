@@ -183,12 +183,8 @@ export default function EventoPage() {
     if (t.includes("petr4")) return { symbol: "PETR4", category: "stocks" };
     if (t.includes("vale3")) return { symbol: "VALE3", category: "stocks" };
     if (t.includes("itub4")) return { symbol: "ITUB4", category: "stocks" };
-    // Weather: detect city from title
-    if (t.includes("°c") || t.includes("chove") || t.includes("maxima") || m.category === "weather") {
-      const cities = ["sao paulo", "rio de janeiro", "brasilia", "curitiba", "belo horizonte", "porto alegre", "fortaleza", "salvador", "florianopolis", "recife", "manaus"];
-      const found = cities.find((c) => t.includes(c));
-      return { symbol: found || "sao paulo", category: "weather" };
-    }
+    // Weather: show temperature but NO chart (doesn't make sense for weather)
+    // Return null — weather markets don't get LivePriceDisplay/Chart
     return null;
   }, []);
 
@@ -287,23 +283,23 @@ export default function EventoPage() {
     if (!user) { router.push("/login"); return; }
     if (!selected || !betAmount) return;
     const amount = parseFloat(betAmount);
-    if (isSupabaseMarket) {
-      try {
-        const res = await fetch("/api/markets/bet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ market_id: market.id, outcome_key: selected.key, outcome_label: selected.label, amount, user_id: user.id }) });
-        const data = await res.json();
-        if (!res.ok || data.error) { setError(data.error || "Erro ao apostar"); setPlacing(false); return; }
+    // Try Supabase API first (works for all mkt_ markets in DB)
+    try {
+      const res = await fetch("/api/markets/bet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ market_id: market.id, outcome_key: selected.key, outcome_label: selected.label, amount, user_id: user.id }) });
+      const data = await res.json();
+      if (res.ok && !data.error) {
         if (data.market) setMarket({ ...market, ...data.market, outcomes: data.market.outcomes || market.outcomes });
-        // Add bet to local state for UI (legacyPlaceBet also deducts balance locally)
-        legacyPlaceBet({ marketId: market.id, marketTitle: market.title, optionId: selected.key, optionName: selected.label, amount, odds: selected.payout_per_unit, potentialWin: amount * selected.payout_per_unit });
-        // Immediately refresh from Supabase to get authoritative balance
         await refreshUser();
-      } catch { setError("Erro de conexao"); setPlacing(false); return; }
-    } else {
-      const result = placeBetFull(user.id, market.id, selected.key, amount, user.balance);
-      if (!result.success) { setError(result.error || "Erro"); setPlacing(false); return; }
-      legacyPlaceBet({ marketId: market.id, marketTitle: market.title, optionId: selected.key, optionName: selected.label, amount, odds: selected.payout_per_unit, potentialWin: amount * selected.payout_per_unit });
-      setMarket(result.market || market);
-    }
+      } else if (data.error === "Mercado nao encontrado") {
+        // Fallback: market exists only in local store (legacy seed)
+        const result = placeBetFull(user.id, market.id, selected.key, amount, user.balance);
+        if (!result.success) { setError(result.error || "Erro"); setPlacing(false); return; }
+        legacyPlaceBet({ marketId: market.id, marketTitle: market.title, optionId: selected.key, optionName: selected.label, amount, odds: selected.payout_per_unit, potentialWin: amount * selected.payout_per_unit });
+        setMarket(result.market || market);
+      } else {
+        setError(data.error || "Erro ao apostar"); setPlacing(false); return;
+      }
+    } catch { setError("Erro de conexao"); setPlacing(false); return; }
     setBetPlaced(true); setShowConfirm(false); setSelectedOutcome(null); setBetAmount(""); setPlacing(false);
     // Re-fetch user bets so POSICOES tab updates
     if (user?.id && market?.id) fetchUserBets(market.id, user.id);
