@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
-import { trackLead } from "@/lib/pixel";
+import { trackLead, trackPageView } from "@/lib/pixel";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -73,7 +73,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
     const success = await register(regName.trim(), regEmail.trim().toLowerCase(), regCpf.replace(/\D/g, ""), regPassword, regPhone.replace(/\D/g, ""));
     setLoading(false);
     if (!success) { setError("Ja existe uma conta com esse e-mail"); return; }
-    trackLead({ email: regEmail.trim().toLowerCase(), name: regName.trim() });
+    trackLead({ email: regEmail.trim().toLowerCase(), name: regName.trim(), phone: regPhone.replace(/\D/g, "") });
     onClose(); router.push("/");
   };
 

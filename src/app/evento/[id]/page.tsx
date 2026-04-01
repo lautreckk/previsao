@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import type { PredictionMarket } from "@/lib/engines/types";
 import { createBotEngine, type LiveBet } from "@/lib/bot-engine";
+import { trackViewContent, trackAddToCart } from "@/lib/pixel";
 
 /* ─── Chat (uses global ChatContext) ─── */
 function EventChat() {
@@ -238,7 +239,7 @@ export default function EventoPage() {
     initializeStore();
     tickAllMarkets();
     const local = getMarket(id);
-    if (local) { setMarket(local); } else {
+    if (local) { setMarket(local); trackViewContent({ marketName: local.title, category: local.category }); } else {
       supabase.from("prediction_markets").select("*").eq("id", id).single().then(({ data }) => {
         if (data) setMarket({
           ...data,
@@ -367,6 +368,7 @@ export default function EventoPage() {
         setError(data.error || "Erro ao apostar"); setPlacing(false); return;
       }
     } catch { setError("Erro de conexao"); setPlacing(false); return; }
+    trackAddToCart({ marketName: market.title, amount });
     setBetPlaced(true); setShowConfirm(false); setSelectedOutcome(null); setBetAmount(""); setPlacing(false);
     setTab("posicoes"); // Switch to positions tab immediately
     // Re-fetch user bets so POSICOES tab updates

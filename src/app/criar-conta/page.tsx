@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/lib/UserContext";
-import { trackLead } from "@/lib/pixel";
+import { trackLead, trackPageView } from "@/lib/pixel";
 
 export default function CriarContaPage() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function CriarContaPage() {
     const success = await register(name.trim(), email.trim().toLowerCase(), cpf.replace(/\D/g, ""), password, phone.replace(/\D/g, ""));
     setLoading(false);
     if (!success) { setError("Ja existe uma conta com esse e-mail"); return; }
-    trackLead({ email: email.trim().toLowerCase(), name: name.trim() });
+    trackLead({ email: email.trim().toLowerCase(), name: name.trim(), phone: phone.replace(/\D/g, "") });
     router.push("/");
   };
 

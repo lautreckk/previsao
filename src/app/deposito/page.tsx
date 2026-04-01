@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
-import { trackPurchase } from "@/lib/pixel";
+import { trackPurchase, trackInitiateCheckout } from "@/lib/pixel";
 import BottomNav from "@/components/BottomNav";
 import Link from "next/link";
 
@@ -103,6 +103,7 @@ export default function DepositoPage() {
       const data = await res.json();
       if (!res.ok) { setErrorMsg(data.error || "Erro ao gerar QR Code PIX"); setLoading(false); return; }
       setPixData({ qrCode: data.qrCode, qrCodeImage: data.qrCodeImage || "", transactionId: data.transactionId, externalId: data.externalId || "" });
+      trackInitiateCheckout(parseFloat(amount));
       setStep("qrcode");
     } catch { setErrorMsg("Erro de conexao. Tente novamente."); } finally { setLoading(false); }
   };
