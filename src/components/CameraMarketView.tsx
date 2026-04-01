@@ -36,9 +36,8 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
 /* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
 function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // Force frame mode — worker's annotated frame is in sync with count + shows YOLO boxes
-  // HLS has 10-30s delay which makes count appear desynchronized
-  const [mode, setMode] = useState<"loading" | "hls" | "frame">("frame");
+  // HLS for smooth video — worker reads the same HLS stream, so count is naturally in sync
+  const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
   const [frameTs, setFrameTs] = useState(Date.now());
   const modeRef = useRef(mode);
   modeRef.current = mode;
@@ -147,14 +146,28 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
       />
 
-      {/* Worker annotated frame with YOLO bounding boxes (fallback view) */}
-      {mode === "frame" && (
+      {/* Worker annotated frame — full view when HLS fails, PiP when HLS active */}
+      {mode === "frame" ? (
         <img
           src={frameUrl}
           alt="Camera IA"
           className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
           onError={() => {}}
         />
+      ) : (
+        /* Mini PiP: worker frame with YOLO boxes in corner */
+        <div className="absolute bottom-3 right-3 z-10 w-[35%] rounded-lg overflow-hidden border-2 border-[#80FF00]/40 shadow-[0_0_15px_rgba(128,255,0,0.15)]">
+          <img
+            src={frameUrl}
+            alt="Deteccao IA"
+            className="w-full h-auto"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            onLoad={(e) => { (e.target as HTMLImageElement).style.display = ""; }}
+          />
+          <div className="absolute top-1 left-1 bg-black/70 px-1.5 py-0.5 rounded">
+            <span className="text-[8px] font-bold text-[#80FF00] uppercase">IA YOLO</span>
+          </div>
+        </div>
       )}
 
       {/* Loading spinner */}
@@ -171,11 +184,6 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
       <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full">
         <span className="w-2 h-2 rounded-full bg-[#FF5252] animate-pulse" />
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
-      </div>
-
-      {/* Mode indicator */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#80FF00]/20">
-        <span className="text-[10px] font-bold text-[#80FF00] uppercase tracking-widest">IA YOLO</span>
       </div>
 
       {/* Count overlay */}
