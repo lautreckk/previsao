@@ -8,9 +8,9 @@ function normalize(text: string): string {
 // Entity-based image map (crypto, stocks, forex, etc.)
 const ENTITY_IMAGES: { aliases: string[]; image_url: string }[] = [
   // Crypto
-  { aliases: ["bitcoin", "btc"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/220px-Bitcoin.svg.png" },
-  { aliases: ["ethereum", "eth"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/220px-Ethereum-icon-purple.svg.png" },
-  { aliases: ["solana", "sol"], image_url: "https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/Solana_logo.png/220px-Solana_logo.png" },
+  { aliases: ["bitcoin", "btc"], image_url: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png" },
+  { aliases: ["ethereum", "eth"], image_url: "https://assets.coingecko.com/coins/images/279/large/ethereum.png" },
+  { aliases: ["solana", "sol"], image_url: "https://assets.coingecko.com/coins/images/4128/large/solana.png" },
   // Stocks / Companies
   { aliases: ["petrobras", "petr4", "petr"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Petrobras_horizontal_logo_%282%29.svg/220px-Petrobras_horizontal_logo_%282%29.svg.png" },
   { aliases: ["vale3", "vale"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Logo_Vale.svg/220px-Logo_Vale.svg.png" },
@@ -98,9 +98,10 @@ export async function POST(req: Request) {
   const results: { id: string; title: string; status: string; source?: string }[] = [];
 
   for (const m of markets || []) {
-    // Skip if already has a good banner (not ui-avatars placeholder, not empty)
+    // Skip if already has a good banner (not ui-avatars, not wikipedia, not empty)
     const hasGoodBanner = m.banner_url
       && !m.banner_url.includes("ui-avatars.com")
+      && !m.banner_url.includes("wikipedia.org")
       && m.banner_url.length > 10;
 
     // Skip weather markets (already handled by fix-weather-banners)
@@ -109,9 +110,12 @@ export async function POST(req: Request) {
       continue;
     }
 
+    // Force mode: re-update all if ?force=true
+    const force = searchParams.get("force") === "true";
+
     // Try entity match
     const entityUrl = findEntityImage(m.title);
-    if (entityUrl && (!hasGoodBanner || m.banner_url?.includes("ui-avatars.com"))) {
+    if (entityUrl && (!hasGoodBanner || force)) {
       const { error: updateError } = await supabase
         .from("prediction_markets")
         .update({ banner_url: entityUrl })
