@@ -32,16 +32,17 @@ export function calcPayoutsForOutcomes(
 
 /**
  * Calculate implied probability for each outcome
+ * Uses virtual seed (R$100 per outcome) so probabilities shift with first bet
  */
 export function calcImpliedProbabilities(
   outcomes: MarketOutcome[]
 ): { key: string; probability: number }[] {
-  const total = outcomes.reduce((s, o) => s + o.pool, 0);
-  if (total === 0) {
-    const even = 1 / Math.max(outcomes.length, 1);
-    return outcomes.map((o) => ({ key: o.key, probability: even }));
-  }
-  return outcomes.map((o) => ({ key: o.key, probability: o.pool / total }));
+  // Virtual seed: pretend each outcome has R$100 base pool
+  // This way, when someone bets R$10 on "Sim", probability goes from 50% to 52.4%
+  const SEED = 100;
+  const pools = outcomes.map((o) => (o.pool || 0) + SEED);
+  const total = pools.reduce((s, p) => s + p, 0);
+  return outcomes.map((o, i) => ({ key: o.key, probability: pools[i] / total }));
 }
 
 /**

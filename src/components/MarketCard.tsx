@@ -91,8 +91,33 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
           {market.banner_url ? (
             <img src={market.banner_url} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 ring-1 ring-white/[0.06]" />
           ) : (
-            <div className="w-9 h-9 rounded-lg shrink-0 mt-0.5 flex items-center justify-center text-lg" style={{ backgroundColor: (meta?.color || "#888") + "15" }}>
-              <span className="material-symbols-outlined" style={{ fontSize: "18px", color: meta?.color || "#888" }}>{meta?.icon || "help"}</span>
+            <div className="w-9 h-9 rounded-lg shrink-0 mt-0.5 flex items-center justify-center text-xl" style={{ backgroundColor: (meta?.color || "#888") + "20" }}>
+              {(() => {
+                // Category emoji fallback — more visually engaging than material icons
+                const t = market.title.toLowerCase();
+                if (t.includes("bitcoin") || t.includes("btc")) return "₿";
+                if (t.includes("ethereum") || t.includes("eth")) return "⟠";
+                if (t.includes("solana") || t.includes("sol")) return "◎";
+                if (t.includes("dolar") || t.includes("dólar")) return "💵";
+                if (t.includes("petr") || t.includes("vale") || t.includes("itub")) return "📈";
+                if (t.includes("clima") || t.includes("°c") || t.includes("chove") || t.includes("maxima")) return "🌡️";
+                if (t.includes("futebol") || t.includes("serie a") || t.includes("vs") || t.includes("gol")) return "⚽";
+                if (t.includes("bbb") || t.includes("paredao") || t.includes("eliminad")) return "📺";
+                if (t.includes("stories") || t.includes("virginia") || t.includes("carlinhos")) return "📱";
+                if (t.includes("rodovia") || t.includes("carro")) return "🚗";
+                if (t.includes("petroleo") || t.includes("barril")) return "🛢️";
+                if (t.includes("ibovespa") || t.includes("acao") || t.includes("ação")) return "📊";
+                if (t.includes("champions") || t.includes("copa")) return "🏆";
+                if (t.includes("eleicao") || t.includes("presidente") || t.includes("lula") || t.includes("bolsonaro")) return "🗳️";
+                if (market.category === "crypto") return "🪙";
+                if (market.category === "sports") return "⚽";
+                if (market.category === "weather") return "☀️";
+                if (market.category === "economy") return "💹";
+                if (market.category === "entertainment") return "🎬";
+                if (market.category === "politics") return "🏛️";
+                if (market.category === "social_media") return "📱";
+                return "🎯";
+              })()}
             </div>
           )}
           <h4 className="text-[13px] font-bold leading-snug text-white line-clamp-2 group-hover:text-[#00FFB8] transition-colors">

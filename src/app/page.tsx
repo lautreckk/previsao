@@ -118,6 +118,7 @@ export default function Home() {
   const { user } = useUser();
   const { messages: chatMsgs, sendMessage, onlineCount } = useChat();
   const [markets, setMarkets] = useState<PredictionMarket[]>([]);
+  const [marketsLoading, setMarketsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"closing" | "relampago" | "hot">("closing");
   const [search, setSearch] = useState("");
@@ -223,6 +224,7 @@ export default function Home() {
           const dbTitles = new Set(dbMarkets.map((m) => m.title.toLowerCase()));
           const uniqueLocal = local.filter((m) => !dbTitles.has(m.title.toLowerCase()));
           setMarkets([...dbMarkets, ...uniqueLocal]);
+          setMarketsLoading(false);
           return;
         }
       } catch {
@@ -230,6 +232,7 @@ export default function Home() {
       }
 
       setMarkets(local);
+      setMarketsLoading(false);
     }
 
     refresh();
@@ -527,8 +530,46 @@ export default function Home() {
 
           {/* GRID - responsive columns */}
           <div className="p-4 lg:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-24 lg:pb-6">
-            {sorted.map((m) => <MarketCard key={m.id} market={m} />)}
-            {sorted.length === 0 && (
+            {marketsLoading ? (
+              /* Skeleton loading cards */
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4 h-[200px] animate-pulse">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-16 h-5 rounded-md bg-white/[0.06]" />
+                    <div className="flex-1" />
+                    <div className="w-10 h-5 rounded bg-white/[0.04]" />
+                  </div>
+                  <div className="flex items-start gap-2.5 mb-4">
+                    <div className="w-9 h-9 rounded-lg bg-white/[0.06]" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 rounded bg-white/[0.06] w-3/4" />
+                      <div className="h-3 rounded bg-white/[0.04] w-1/2" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#00D4AA]/30" />
+                      <div className="h-3 rounded bg-white/[0.04] flex-1" />
+                      <div className="w-10 h-4 rounded bg-[#00D4AA]/10" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#FF5252]/30" />
+                      <div className="h-3 rounded bg-white/[0.04] flex-1" />
+                      <div className="w-10 h-4 rounded bg-[#FF5252]/10" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t border-white/[0.04] pt-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[#00D4AA]/30 animate-ping" />
+                      <div className="w-12 h-3 rounded bg-[#00D4AA]/10" />
+                    </div>
+                    <div className="w-14 h-3 rounded bg-white/[0.04]" />
+                  </div>
+                </div>
+              ))
+            ) : sorted.length > 0 ? (
+              sorted.map((m) => <MarketCard key={m.id} market={m} />)
+            ) : (
               <div className="col-span-full text-center py-12 text-[#5A6478]">
                 <span className="material-symbols-outlined text-4xl mb-2 block">search_off</span>
                 <p>Nenhum mercado encontrado.</p>
