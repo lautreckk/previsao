@@ -8,9 +8,9 @@ function normalize(text: string): string {
 // Entity-based image map (crypto, stocks, forex, etc.)
 const ENTITY_IMAGES: { aliases: string[]; image_url: string }[] = [
   // Crypto
-  { aliases: ["bitcoin", "btc"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/220px-Bitcoin.svg.png" },
-  { aliases: ["ethereum", "eth"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/220px-Ethereum-icon-purple.svg.png" },
-  { aliases: ["solana", "sol"], image_url: "https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/Solana_logo.png/220px-Solana_logo.png" },
+  { aliases: ["bitcoin", "btc"], image_url: "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=800&q=80" },
+  { aliases: ["ethereum", "eth"], image_url: "https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=800&q=80" },
+  { aliases: ["solana", "sol"], image_url: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80" },
   // Stocks / Companies
   { aliases: ["petrobras", "petr4", "petr"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Petrobras_horizontal_logo_%282%29.svg/220px-Petrobras_horizontal_logo_%282%29.svg.png" },
   { aliases: ["vale3", "vale"], image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Logo_Vale.svg/220px-Logo_Vale.svg.png" },
@@ -52,11 +52,21 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   war: "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=800&q=80",
 };
 
+function matchesWholeWord(text: string, alias: string): boolean {
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(?:^|[\\s,;:!?()\\[\\]/"'\\-])${escaped}(?:$|[\\s,;:!?()\\[\\]/"'\\-])`, "i");
+  return re.test(` ${text} `);
+}
+
 function findEntityImage(title: string): string | null {
   const norm = normalize(title);
   for (const entity of ENTITY_IMAGES) {
     for (const alias of entity.aliases) {
-      if (norm.includes(normalize(alias))) {
+      const normAlias = normalize(alias);
+      const matches = normAlias.length > 3
+        ? norm.includes(normAlias)
+        : matchesWholeWord(norm, normAlias);
+      if (matches) {
         return entity.image_url;
       }
     }

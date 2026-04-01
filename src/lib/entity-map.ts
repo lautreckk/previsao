@@ -306,21 +306,21 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Bitcoin",
     aliases: ["bitcoin", "btc"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/220px-Bitcoin.svg.png",
+      "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=800&q=80",
     type: "crypto",
   },
   {
     name: "Ethereum",
     aliases: ["ethereum", "eth"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/220px-Ethereum-icon-purple.svg.png",
+      "https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=800&q=80",
     type: "crypto",
   },
   {
     name: "Solana",
     aliases: ["solana", "sol"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/Solana_logo.png/220px-Solana_logo.png",
+      "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80",
     type: "crypto",
   },
 
