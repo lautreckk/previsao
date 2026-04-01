@@ -13,6 +13,25 @@ const CAMERAS = [
 ];
 
 const STREAM_BASE = "https://34.104.32.249.nip.io";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
+
+function WorkerFrame({ marketId }: { marketId: string }) {
+  const [ts, setTs] = useState(Date.now());
+  useEffect(() => {
+    const iv = setInterval(() => setTs(Date.now()), 2000);
+    return () => clearInterval(iv);
+  }, []);
+  const url = `${SUPABASE_URL}/storage/v1/object/public/camera-frames/${marketId}/latest.jpg?t=${ts}`;
+  return (
+    <img
+      src={url}
+      alt="Worker IA"
+      style={{ width: "100%", borderRadius: 4, border: "1px solid #333" }}
+      onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+      onLoad={(e) => { (e.target as HTMLImageElement).style.opacity = "1"; }}
+    />
+  );
+}
 
 export default function TestCameraPage() {
   const [selected, setSelected] = useState(CAMERAS[0]);
@@ -190,6 +209,12 @@ export default function TestCameraPage() {
           ref={canvasRef}
           style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
         />
+      </div>
+
+      {/* Worker AI view — shows YOLO bounding boxes */}
+      <div style={{ maxWidth: 800, width: "100%", marginTop: 12 }}>
+        <p style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>Visao da IA (atualiza a cada 2s) — boxes vermelhos = detectado, verdes = contado</p>
+        <WorkerFrame marketId={selected.marketId} />
       </div>
     </div>
   );
