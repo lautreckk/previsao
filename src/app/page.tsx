@@ -294,7 +294,7 @@ export default function Home() {
   const sendChat = useCallback(() => {
     if (!chatInput.trim()) return;
     const username = user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce";
-    sendMessage(chatInput.trim(), username);
+    sendMessage(chatInput.trim(), username, user?.avatar_url || undefined);
     setChatInput("");
     setIsAtBottom(true);
   }, [chatInput, user, sendMessage]);
@@ -302,13 +302,16 @@ export default function Home() {
   const now = Date.now();
 
   // Determine effective status: if close_at has passed but DB still says "open", treat as expired
+  // Camera/stream markets are excluded — they auto-renew rounds and should always show
+  const isStreamMarket = (m: PredictionMarket) => !!m.stream_url || m.id.startsWith("cam_");
   const getEffectiveStatus = (m: PredictionMarket) => {
-    if (m.status === "open" && m.close_at < now) return "expired";
+    if (m.status === "open" && m.close_at < now && !isStreamMarket(m)) return "expired";
     return m.status;
   };
 
-  // Active markets: truly open (future close_at) + frozen + awaiting_resolution
+  // Active markets: truly open (future close_at) + frozen + awaiting_resolution + stream markets
   const activeMarkets = markets.filter((m) => {
+    if (isStreamMarket(m) && m.status === "open") return true;
     const eff = getEffectiveStatus(m);
     return eff === "open" || eff === "frozen" || eff === "awaiting_resolution";
   });
@@ -340,10 +343,10 @@ export default function Home() {
       return (b.pool_total || 0) - (a.pool_total || 0);
     }
 
-    // "Encerram em breve" and "Relampago": sort by closing time
+    // Live camera/stream markets first, then sort by closing time
     const aIsLive = !!a.stream_url || a.id.startsWith("cam_");
     const bIsLive = !!b.stream_url || b.id.startsWith("cam_");
-    if (aIsLive !== bIsLive) return aIsLive ? 1 : -1;
+    if (aIsLive !== bIsLive) return aIsLive ? -1 : 1;
     return a.close_at - b.close_at;
   });
 
@@ -617,9 +620,9 @@ export default function Home() {
                     {/* Avatar */}
                     {!isGrouped ? (
                       <img
-                        src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                        src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
                         alt={msg.user}
-                        className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5"
+                        className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover"
                       />
                     ) : (
                       <div className="w-8 shrink-0" />

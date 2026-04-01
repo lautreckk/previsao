@@ -34,11 +34,11 @@ function RoundHistoryDots({ marketId }: { marketId: string }) {
 
 export default function MarketCard({ market }: { market: PredictionMarket }) {
   const meta = CATEGORY_META[market.category];
-  const isClosed = ["resolved", "cancelled"].includes(market.status) || market.close_at <= Date.now();
-  const isLive = market.status === "open" && market.close_at > Date.now();
+  const isCamera = !!market.stream_url || market.id.startsWith("cam_");
+  const isClosed = ["resolved", "cancelled"].includes(market.status) || (!isCamera && market.close_at <= Date.now());
+  const isLive = market.status === "open" && (market.close_at > Date.now() || isCamera);
   const now = Date.now();
   const timeLeft = market.close_at - now;
-  const isCamera = !!market.stream_url || market.id.startsWith("cam_");
 
   // Timer with live update
   const [, setTick] = useState(0);
@@ -50,7 +50,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
 
   const remaining = market.close_at - Date.now();
   let timeStr = "";
-  if (remaining <= 0) timeStr = "Encerrado";
+  if (remaining <= 0) timeStr = isCamera ? "AO VIVO" : "Encerrado";
   else if (remaining < 3600000) { const m = Math.floor(remaining / 60000); const s = Math.floor((remaining % 60000) / 1000); timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; }
   else if (remaining < 86400000) { const h = Math.floor(remaining / 3600000); const m = Math.floor((remaining % 3600000) / 60000); timeStr = `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`; }
   else if (remaining < 604800000) timeStr = `${Math.floor(remaining / 86400000)}d`;

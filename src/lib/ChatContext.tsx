@@ -7,11 +7,12 @@ export interface ChatMessage {
   text: string;
   id: number;
   ts: number;
+  avatar_url?: string;
 }
 
 interface ChatContextType {
   messages: ChatMessage[];
-  sendMessage: (text: string, username?: string) => void;
+  sendMessage: (text: string, username?: string, avatarUrl?: string) => void;
   onlineCount: number;
 }
 
@@ -110,11 +111,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Add a message to chat (used by both auto and reply systems)
-  const addMessage = useCallback((user: string, text: string) => {
+  const addMessage = useCallback((user: string, text: string, avatarUrl?: string) => {
     const now = Date.now();
     setMessages((prev) => [
       ...prev.slice(-(MAX_MESSAGES - 1)),
-      { user, text, id: now + Math.random(), ts: now },
+      { user, text, id: now + Math.random(), ts: now, avatar_url: avatarUrl },
     ]);
   }, []);
 
@@ -232,11 +233,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [getNextMessage, fetchBatch, addMessage]);
 
   // User sends a message
-  const sendMessage = useCallback((text: string, username?: string) => {
+  const sendMessage = useCallback((text: string, username?: string, avatarUrl?: string) => {
     if (!text.trim()) return;
     const trimmed = text.trim();
     const user = username || "@voce";
-    addMessage(user, trimmed);
+    addMessage(user, trimmed, avatarUrl);
 
     // Check if this message should trigger bot replies
     if (shouldReply(trimmed)) {

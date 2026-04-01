@@ -12,6 +12,8 @@ export interface BannerContext {
   category: string;
   image_prompt: string;
   entities?: string[];
+  lat?: number;
+  lon?: number;
 }
 
 // Module-level cache for Wikipedia results
@@ -32,6 +34,53 @@ const PT_STOP_WORDS = new Set([
 const WEATHER_CATEGORIES = new Set(["weather"]);
 // Categories that skip Tier 2 (Wikipedia)
 const ENTITY_ONLY_CATEGORIES = new Set(["crypto", "economy"]);
+
+// City coordinates for weather Mapbox fallback (extracted from title)
+const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
+  "sao paulo": { lat: -23.5505, lon: -46.6333 },
+  "rio de janeiro": { lat: -22.9068, lon: -43.1729 },
+  "belo horizonte": { lat: -19.9167, lon: -43.9345 },
+  "curitiba": { lat: -25.4284, lon: -49.2733 },
+  "brasilia": { lat: -15.7975, lon: -47.8919 },
+  "porto alegre": { lat: -30.0346, lon: -51.2177 },
+  "salvador": { lat: -12.9714, lon: -38.5124 },
+  "fortaleza": { lat: -3.7172, lon: -38.5433 },
+  "florianopolis": { lat: -27.5954, lon: -48.5480 },
+  "recife": { lat: -8.0476, lon: -34.8770 },
+  "sul do brasil": { lat: -27.0, lon: -49.5 },
+  "sp": { lat: -23.5505, lon: -46.6333 },
+  "rj": { lat: -22.9068, lon: -43.1729 },
+  "bh": { lat: -19.9167, lon: -43.9345 },
+};
+
+/**
+ * Generate a Mapbox Static Images URL for weather markets
+ */
+function resolveMapboxUrl(ctx: BannerContext): string | null {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.MAPBOX_ACCESS_TOKEN;
+  if (!token) return null;
+
+  // Use explicit coords if provided
+  let lat = ctx.lat;
+  let lon = ctx.lon;
+
+  // Otherwise, try to extract city from title
+  if (lat == null || lon == null) {
+    const normalizedTitle = normalize(ctx.title);
+    for (const [city, coords] of Object.entries(CITY_COORDS)) {
+      if (normalizedTitle.includes(normalize(city))) {
+        lat = coords.lat;
+        lon = coords.lon;
+        break;
+      }
+    }
+  }
+
+  if (lat == null || lon == null) return null;
+
+  // Mapbox Static Images API - dark style with weather-friendly look
+  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${lon},${lat},9,0/800x450?access_token=${token}`;
+}
 
 /**
  * Normalize text: lowercase, remove accents/diacritics
@@ -270,8 +319,10 @@ export async function resolveBannerUrl(ctx: BannerContext): Promise<string> {
   try {
     const cat = ctx.category?.toLowerCase() ?? "";
 
-    // Weather: skip Tier 1 & 2, go straight to FAL.ai
+    // Weather: try Mapbox static map first, then FAL.ai as fallback
     if (WEATHER_CATEGORIES.has(cat)) {
+      const mapUrl = resolveMapboxUrl(ctx);
+      if (mapUrl) return mapUrl;
       return await generateWithFal(ctx.image_prompt);
     }
 

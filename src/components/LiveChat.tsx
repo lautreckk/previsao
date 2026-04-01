@@ -32,7 +32,7 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
   const send = useCallback(() => {
     if (!input.trim() || !user) return;
     const username = `@${user.name.split(" ")[0].toLowerCase()}`;
-    sendMessage(input.trim(), username);
+    sendMessage(input.trim(), username, user.avatar_url || undefined);
     setInput("");
     setIsAtBottom(true);
   }, [input, user, sendMessage]);
@@ -76,9 +76,9 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
             <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1A1722]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
               {!isGrouped ? (
                 <img
-                  src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                  src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
                   alt={msg.user}
-                  className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5"
+                  className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover"
                 />
               ) : (
                 <div className="w-8 shrink-0" />

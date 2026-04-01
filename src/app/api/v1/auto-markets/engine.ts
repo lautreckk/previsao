@@ -30,6 +30,8 @@ interface MarketTemplate {
   };
   image_prompt: string;
   tier: "curto" | "medio" | "longo";
+  lat?: number;
+  lon?: number;
 }
 
 // ---- Crypto Price Helpers (CoinGecko + AwesomeAPI, no Binance) ----
@@ -106,17 +108,17 @@ async function getWeather(cityId: number): Promise<{ temp: number; humidity: num
 
 // ---- Market Template Generators ----
 
-const CITIES: Record<string, { id: number; name: string; state: string }> = {
-  sp: { id: 3448439, name: "Sao Paulo", state: "SP" },
-  rj: { id: 3451190, name: "Rio de Janeiro", state: "RJ" },
-  bh: { id: 3470127, name: "Belo Horizonte", state: "MG" },
-  ctb: { id: 3464975, name: "Curitiba", state: "PR" },
-  bsb: { id: 3469058, name: "Brasilia", state: "DF" },
-  poa: { id: 3452925, name: "Porto Alegre", state: "RS" },
-  ssa: { id: 3450554, name: "Salvador", state: "BA" },
-  for: { id: 3399415, name: "Fortaleza", state: "CE" },
-  fln: { id: 3463237, name: "Florianopolis", state: "SC" },
-  rec: { id: 3390760, name: "Recife", state: "PE" },
+const CITIES: Record<string, { id: number; name: string; state: string; lat: number; lon: number }> = {
+  sp: { id: 3448439, name: "Sao Paulo", state: "SP", lat: -23.5505, lon: -46.6333 },
+  rj: { id: 3451190, name: "Rio de Janeiro", state: "RJ", lat: -22.9068, lon: -43.1729 },
+  bh: { id: 3470127, name: "Belo Horizonte", state: "MG", lat: -19.9167, lon: -43.9345 },
+  ctb: { id: 3464975, name: "Curitiba", state: "PR", lat: -25.4284, lon: -49.2733 },
+  bsb: { id: 3469058, name: "Brasilia", state: "DF", lat: -15.7975, lon: -47.8919 },
+  poa: { id: 3452925, name: "Porto Alegre", state: "RS", lat: -30.0346, lon: -51.2177 },
+  ssa: { id: 3450554, name: "Salvador", state: "BA", lat: -12.9714, lon: -38.5124 },
+  for: { id: 3399415, name: "Fortaleza", state: "CE", lat: -3.7172, lon: -38.5433 },
+  fln: { id: 3463237, name: "Florianopolis", state: "SC", lat: -27.5954, lon: -48.5480 },
+  rec: { id: 3390760, name: "Recife", state: "PE", lat: -8.0476, lon: -34.8770 },
 };
 
 export async function generateWeatherMarkets(tier: "curto" | "medio" | "longo"): Promise<MarketTemplate[]> {
@@ -153,6 +155,8 @@ export async function generateWeatherMarkets(tier: "curto" | "medio" | "longo"):
         },
         image_prompt: `Weather thermometer showing ${threshold} degrees celsius in ${city.name} Brazil, dramatic sky, dark cinematic`,
         tier,
+        lat: city.lat,
+        lon: city.lon,
       });
     } else if (tier === "medio") {
       // "Maxima em SP hoje passa de Xº C?"
@@ -178,6 +182,8 @@ export async function generateWeatherMarkets(tier: "curto" | "medio" | "longo"):
         },
         image_prompt: `Hot sunny day in ${city.name} Brazil, temperature rising, dramatic heat haze, dark cinematic mood`,
         tier,
+        lat: city.lat,
+        lon: city.lon,
       });
     } else {
       // "Chove em SP amanha?"
@@ -202,6 +208,8 @@ export async function generateWeatherMarkets(tier: "curto" | "medio" | "longo"):
         },
         image_prompt: `Rain clouds over ${city.name} Brazil cityscape, dramatic storm, dark moody cinematic`,
         tier,
+        lat: city.lat,
+        lon: city.lon,
       });
     }
   } catch (err) {
@@ -661,7 +669,7 @@ export async function generateAutoMarkets(tiers?: ("curto" | "medio" | "longo")[
         category: tmpl.category,
         subcategory: tmpl.tier,
         tags: [tmpl.tier, tmpl.category],
-        banner_url: await resolveBannerUrl({ title: tmpl.title, category: tmpl.category, image_prompt: tmpl.image_prompt }).catch(() => ""),
+        banner_url: await resolveBannerUrl({ title: tmpl.title, category: tmpl.category, image_prompt: tmpl.image_prompt, lat: tmpl.lat, lon: tmpl.lon }).catch(() => ""),
         is_featured: tmpl.is_featured,
         visibility: "public",
         market_type: outcomes.length === 2 ? "binary" : "multi_outcome",
