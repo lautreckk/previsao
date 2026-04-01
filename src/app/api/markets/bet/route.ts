@@ -64,6 +64,31 @@ export async function POST(request: NextRequest) {
       .update({ balance: newBalance, updated_at: new Date().toISOString() })
       .eq("id", user_id);
 
+    // Fetch current price as entry_price (for chart marker)
+    let entryPrice: number | null = null;
+    try {
+      const config = market.source_config?.custom_params;
+      const mktType = config?.market_type as string | undefined;
+      if (mktType === "crypto_up_down" || mktType === "forex_up_down") {
+        entryPrice = config?.params?.open_price as number || null;
+        // Try to get live price
+        const sym = (config?.params?.symbol as string) || "";
+        const cgIds: Record<string, string> = { BTC: "bitcoin", ETH: "ethereum", SOL: "solana", BNB: "binancecoin" };
+        const cgId = cgIds[sym];
+        if (cgId) {
+          try {
+            const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
+            if (r.ok) { const j = await r.json(); const p = j[cgId]?.usd; if (p) entryPrice = p; }
+          } catch { /* use open_price */ }
+        } else if (sym === "USD-BRL" || (config?.params?.pair as string)?.includes("USD")) {
+          try {
+            const r = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+            if (r.ok) { const j = await r.json(); const p = parseFloat(j.USDBRL?.bid || "0"); if (p) entryPrice = p; }
+          } catch { /* use open_price */ }
+        }
+      }
+    } catch { /* non-blocking */ }
+
     // Create bet
     const betId = `bet_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     await supabase.from("prediction_bets").insert({
@@ -74,6 +99,7 @@ export async function POST(request: NextRequest) {
       outcome_label: outcome_label || outcome_key,
       amount,
       payout_at_entry: payoutPerUnit,
+      entry_price: entryPrice,
       status: "pending",
     });
 
@@ -138,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      bet: { id: betId, payout_at_entry: payoutPerUnit },
+      bet: { id: betId, payout_at_entry: payoutPerUnit, entry_price: entryPrice },
       market: { ...market, outcomes: updatedOutcomes, pool_total: newTotal },
       balance: newBalance,
     });

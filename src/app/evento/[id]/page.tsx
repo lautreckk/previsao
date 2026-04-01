@@ -331,8 +331,12 @@ export default function EventoPage() {
       }
     } catch { setError("Erro de conexao"); setPlacing(false); return; }
     setBetPlaced(true); setShowConfirm(false); setSelectedOutcome(null); setBetAmount(""); setPlacing(false);
+    setTab("posicoes"); // Switch to positions tab immediately
     // Re-fetch user bets so POSICOES tab updates
-    if (user?.id && market?.id) fetchUserBets(market.id, user.id);
+    if (user?.id && market?.id) {
+      // Small delay to let DB write propagate
+      setTimeout(() => fetchUserBets(market.id, user.id), 500);
+    }
     setTimeout(() => setBetPlaced(false), 3000);
   };
 
@@ -455,38 +459,80 @@ export default function EventoPage() {
                 </div>
               </div>
 
-              {/* Outcomes list (like Palpitano rows with Sim/Nao buttons) */}
-              <div className="px-5 pb-6 space-y-2">
-                {market.outcomes.map((o) => {
-                  const prob = probabilities.find((p) => p.key === o.key);
-                  const isActive = selectedOutcome === o.key;
-                  return (
-                    <button
-                      key={o.key}
-                      onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
-                      disabled={!isOpen}
-                      className={`w-full text-left bg-[#0D0B14] rounded-xl border p-3 transition-all cursor-pointer active:scale-[0.98] ${isActive ? "border-[#F5A623]/50 bg-[#F5A623]/5 ring-1 ring-[#F5A623]/30" : "border-white/[0.04] hover:border-[#2a3a4a]"} disabled:opacity-50 disabled:cursor-not-allowed ${flashKeys[o.key] === "up" ? "ring-2 ring-[#F5A623]" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252]" : ""}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ backgroundColor: o.color + "15", color: o.color }}>
-                          {o.key.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="font-bold text-sm block truncate">{o.label}</span>
-                          <span className="text-[10px] text-white/30">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="block text-sm font-black" style={{ color: o.color }}>
-                            {(o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95)).toFixed(2)}x
+              {/* Outcome buttons — side by side, vibrant */}
+              <div className="px-5 pb-6">
+                <div className={`grid gap-3 ${market.outcomes.length === 2 ? "grid-cols-2" : market.outcomes.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+                  {market.outcomes.map((o, idx) => {
+                    const prob = probabilities.find((p) => p.key === o.key);
+                    const pct = prob ? Math.round(prob.probability * 100) : Math.round(100 / market.outcomes.length);
+                    const odds = (o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95));
+                    const isActive = selectedOutcome === o.key;
+                    const isPositive = idx === 0 || o.key === "YES" || o.key === "UP" || o.key === "SOBE" || o.key === "HOME";
+
+                    // Emoji based on outcome type
+                    const emoji = (() => {
+                      const k = o.key.toUpperCase();
+                      const l = o.label.toLowerCase();
+                      if (k === "UP" || k === "SOBE" || l.includes("sobe") || l.includes("sim") || l.includes("acima") || l.includes("mais")) return "👍";
+                      if (k === "DOWN" || k === "DESCE" || l.includes("desce") || l.includes("nao") || l.includes("abaixo") || l.includes("menos") || l.includes("até")) return "👎";
+                      if (k === "YES") return "👍";
+                      if (k === "NO") return "👎";
+                      if (k === "DRAW" || l.includes("empate")) return "🤝";
+                      if (k === "HOME" || idx === 0) return "🏠";
+                      if (k === "AWAY" || idx === 2) return "✈️";
+                      return isPositive ? "👍" : "👎";
+                    })();
+
+                    const bgColor = isPositive ? "#10B981" : "#EF4444";
+                    const hoverBg = isPositive ? "#059669" : "#DC2626";
+
+                    return (
+                      <button
+                        key={o.key}
+                        onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
+                        disabled={!isOpen}
+                        className={`relative overflow-hidden rounded-2xl p-4 transition-all duration-200 cursor-pointer active:scale-[0.96] disabled:opacity-40 disabled:cursor-not-allowed ${
+                          isActive ? "ring-2 ring-white/40 scale-[1.02] shadow-lg" : "hover:scale-[1.02] hover:shadow-lg"
+                        } ${flashKeys[o.key] ? "animate-pulse" : ""}`}
+                        style={{
+                          backgroundColor: isActive ? bgColor : bgColor + "20",
+                          boxShadow: isActive ? `0 8px 24px ${bgColor}40` : undefined,
+                        }}
+                      >
+                        {/* Glow effect */}
+                        <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300"
+                          style={{ background: `radial-gradient(circle at center, ${bgColor}15 0%, transparent 70%)` }} />
+
+                        {/* Content */}
+                        <div className="relative z-10 text-center">
+                          <span className="text-2xl block mb-1">{emoji}</span>
+                          <span className={`block font-black text-sm ${isActive ? "text-white" : "text-white/90"}`}>
+                            {o.label}
                           </span>
-                          <span className="block text-[10px] text-white/30">
-                            {isActive ? "Selecionado" : "Clique para apostar"}
+                          <span className={`block font-mono font-black text-lg mt-1 ${isActive ? "text-white" : odds >= 3 ? "text-[#FFD700]" : "text-white/80"}`}>
+                            {odds.toFixed(2)}x
+                          </span>
+                          {/* Percentage bar */}
+                          <div className="mt-2 h-1.5 rounded-full bg-black/20 overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: isActive ? "white" : bgColor }} />
+                          </div>
+                          <span className={`block text-[10px] font-bold mt-1 ${isActive ? "text-white/80" : "text-white/40"}`}>
+                            {pct}%
                           </span>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Quick info below buttons */}
+                {market.outcomes.length === 2 && (
+                  <div className="flex items-center justify-center gap-6 mt-3 text-[10px] text-white/25">
+                    <span>Pool: R$ {(market.pool_total || 0).toFixed(0)}</span>
+                    <span>•</span>
+                    <span>Taxa: {((market.house_fee_percent || 0.05) * 100).toFixed(0)}%</span>
+                  </div>
+                )}
               </div>
             </>
           )}
