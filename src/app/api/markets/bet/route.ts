@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { validateBet } from "@/lib/engines/risk-engine";
+import type { PredictionMarket, Bet } from "@/lib/engines/types";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,6 +47,40 @@ export async function POST(request: NextRequest) {
     }
     if (market.status !== "open") {
       return NextResponse.json({ error: "Mercado nao esta aberto" }, { status: 400 });
+    }
+
+    // Risk engine validation
+    const { data: userBetsRaw } = await supabase
+      .from("prediction_bets")
+      .select("*")
+      .eq("market_id", market_id)
+      .eq("user_id", user_id)
+      .eq("status", "pending");
+
+    const riskMarket: PredictionMarket = {
+      ...market,
+      outcomes: market.outcomes || [],
+      pool_total: Number(market.pool_total) || 0,
+      house_fee_percent: Number(market.house_fee_percent) || 0.05,
+      min_bet: Number(market.min_bet) || 1,
+      max_bet: Number(market.max_bet) || 10000,
+      max_liability: Number(market.max_liability) || 500000,
+      freeze_at: new Date(market.freeze_at).getTime(),
+      close_at: new Date(market.close_at).getTime(),
+    } as PredictionMarket;
+
+    const userBets = (userBetsRaw || []).map((b: Record<string, unknown>) => ({
+      ...b,
+      amount: Number(b.amount) || 0,
+    })) as Bet[];
+
+    const riskCheck = validateBet(
+      riskMarket, user_id, outcome_key, amount,
+      Number(userData.balance), userBets
+    );
+
+    if (!riskCheck.allowed) {
+      return NextResponse.json({ error: riskCheck.reason }, { status: 400 });
     }
 
     // Calculate payout
@@ -111,6 +147,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Update market pools
+    const userAlreadyBetOnOutcome = (userBetsRaw || []).some(
+      (b: Record<string, unknown>) => b.outcome_key === outcome_key
+    );
     const updatedOutcomes = outcomes.map((o: { key: string; pool: number; bet_count: number; unique_users: number; payout_per_unit: number }) => {
       if (o.key === outcome_key) {
         const newPool = (Number(o.pool) || 0) + amount;
@@ -118,7 +157,7 @@ export async function POST(request: NextRequest) {
           ...o,
           pool: newPool,
           bet_count: (o.bet_count || 0) + 1,
-          unique_users: (o.unique_users || 0) + 1,
+          unique_users: (o.unique_users || 0) + (userAlreadyBetOnOutcome ? 0 : 1),
           payout_per_unit: newPool > 0 ? ((newTotal) * (1 - fee)) / newPool : 0,
         };
       }

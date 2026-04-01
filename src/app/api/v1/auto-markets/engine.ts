@@ -810,7 +810,7 @@ export async function resolveExpiredMarkets(): Promise<{
               const j = await r.json();
               const sorted = [...(j.results || [])].sort((a: Record<string,number>, b: Record<string,number>) => (b.regularMarketChangePercent||0) - (a.regularMarketChangePercent||0));
               if (sorted[0]) {
-                winningKey = sorted[0].symbol as string;
+                winningKey = (sorted[0].symbol as string).toUpperCase();
                 resolveReason = `${winningKey} liderou com ${(sorted[0].regularMarketChangePercent as number)?.toFixed(2)}%`;
               }
             }
@@ -846,7 +846,7 @@ export async function resolveExpiredMarkets(): Promise<{
       // Calculate payouts
       const outcomes = market.outcomes || [];
       const poolTotal = outcomes.reduce((s: number, o: { pool: number }) => s + (o.pool || 0), 0);
-      const winnerPool = outcomes.find((o: { key: string }) => o.key === winningKey)?.pool || 0;
+      const winnerPool = outcomes.find((o: { key: string }) => o.key.toUpperCase() === winningKey?.toUpperCase())?.pool || 0;
       const houseFee = poolTotal * (market.house_fee_percent || 0.05);
       const distributable = poolTotal - houseFee;
       const payoutPerUnit = winnerPool > 0 ? distributable / winnerPool : 0;
@@ -873,7 +873,7 @@ export async function resolveExpiredMarkets(): Promise<{
 
       if (bets) {
         for (const bet of bets) {
-          const isWinner = bet.outcome_key === winningKey;
+          const isWinner = bet.outcome_key.toUpperCase() === winningKey?.toUpperCase();
           const payout = isWinner ? bet.amount * payoutPerUnit : 0;
 
           await supabase.from("prediction_bets").update({

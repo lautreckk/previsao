@@ -315,7 +315,7 @@ async function resolveStockPerformance(
   );
 
   const winner = sorted[0];
-  const winnerSymbol = winner.symbol as string;
+  const winnerSymbol = (winner.symbol as string).toUpperCase();
 
   return {
     market_id: marketId,
