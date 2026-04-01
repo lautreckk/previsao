@@ -34,130 +34,103 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
 }
 
 /* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
+const WEBRTC_BASE = "http://82.25.68.62:8889";
+
 function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // HLS for smooth video — worker reads the same HLS stream, so count is naturally in sync
-  const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
-  const [frameTs, setFrameTs] = useState(Date.now());
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
+  const [connected, setConnected] = useState(false);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
 
-  // Use our proxy URL instead of direct camera URL (avoids CORS/SSL, more stable)
-  const proxyUrl = `/api/camera/stream?cam=${cameraId}`;
-
-  // Try HLS first, fallback to frame after 10s or on error
+  // WebRTC via WHEP — annotated stream from worker with bounding boxes, <1s latency
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let hls: any = null;
-    const fallbackTimer = setTimeout(() => {
-      setMode((m) => m === "loading" ? "frame" : m);
-    }, 10000);
+    let pc: RTCPeerConnection | null = null;
+    let cancelled = false;
 
-    async function setup() {
-      if (!video) return;
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = proxyUrl;
-        video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
-      } else {
-        const { default: Hls } = await import("hls.js");
-        if (Hls.isSupported()) {
-          const h = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            liveSyncDurationCount: 2,
-            liveMaxLatencyDurationCount: 4,
-            maxBufferLength: 10,
-            maxMaxBufferLength: 20,
-            fragLoadingTimeOut: 15000,
-            manifestLoadingTimeOut: 15000,
-            levelLoadingTimeOut: 15000,
-          });
-          h.loadSource(proxyUrl);
-          h.attachMedia(video);
-          h.on(Hls.Events.MANIFEST_PARSED, () => {
-            video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
-          });
-          h.on(Hls.Events.ERROR, (_event: unknown, data: { fatal: boolean; type: string }) => {
-            if (data.fatal) {
-              // Try to recover once before giving up
-              setTimeout(() => { h.loadSource(proxyUrl); h.startLoad(); }, 2000);
-              setTimeout(() => { if (modeRef.current !== "hls") setMode("frame"); }, 8000);
+    async function connect() {
+      try {
+        pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+        pcRef.current = pc;
+
+        pc.ontrack = (ev) => {
+          if (video) {
+            video.srcObject = ev.streams[0];
+            video.play().catch(() => {});
+            if (!cancelled) setConnected(true);
+          }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          if (pc?.iceConnectionState === "disconnected" || pc?.iceConnectionState === "failed") {
+            if (!cancelled) {
+              setConnected(false);
+              // Retry after 3s
+              setTimeout(() => { if (!cancelled) connect(); }, 3000);
             }
-          });
-          hls = h;
-        } else {
-          setMode("frame");
+          }
+        };
+
+        // Add receive-only transceivers
+        pc.addTransceiver("video", { direction: "recvonly" });
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        // Wait for ICE gathering
+        await new Promise<void>((resolve) => {
+          if (pc!.iceGatheringState === "complete") { resolve(); return; }
+          const check = () => { if (pc!.iceGatheringState === "complete") { pc!.removeEventListener("icegatheringstatechange", check); resolve(); } };
+          pc!.addEventListener("icegatheringstatechange", check);
+          // Timeout after 3s
+          setTimeout(resolve, 3000);
+        });
+
+        // Send offer to MediaMTX WHEP endpoint
+        const whepUrl = `${WEBRTC_BASE}/${marketId}/whep`;
+        const res = await fetch(whepUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/sdp" },
+          body: pc.localDescription!.sdp,
+        });
+
+        if (!res.ok) throw new Error(`WHEP ${res.status}`);
+
+        const answer = await res.text();
+        await pc.setRemoteDescription({ type: "answer", sdp: answer });
+      } catch (err) {
+        console.error("[WebRTC] Connection failed:", err);
+        if (!cancelled) {
+          setConnected(false);
+          setTimeout(() => { if (!cancelled) connect(); }, 5000);
         }
       }
     }
 
-    setup();
-    return () => { hls?.destroy(); clearTimeout(fallbackTimer); };
-  }, [proxyUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+    connect();
 
-  // Refresh frame every 1.5s in frame mode
-  useEffect(() => {
-    if (mode !== "frame") return;
-    const iv = setInterval(() => setFrameTs(Date.now()), 1500);
-    return () => clearInterval(iv);
-  }, [mode]);
-
-  // Periodically retry HLS if stuck in frame mode (every 30s)
-  useEffect(() => {
-    if (mode !== "frame") return;
-    const video = videoRef.current;
-    if (!video) return;
-    const retryIv = setInterval(async () => {
-      try {
-        const res = await fetch(proxyUrl, { method: "HEAD" });
-        if (res.ok && video.canPlayType("application/vnd.apple.mpegurl")) {
-          video.src = proxyUrl;
-          video.play().then(() => setMode("hls")).catch(() => {});
-        } else if (res.ok) {
-          const { default: Hls } = await import("hls.js");
-          if (Hls.isSupported()) {
-            const h = new Hls({ enableWorker: true, lowLatencyMode: true, liveSyncDurationCount: 2, liveMaxLatencyDurationCount: 4, maxBufferLength: 10 });
-            h.loadSource(proxyUrl);
-            h.attachMedia(video);
-            h.on(Hls.Events.MANIFEST_PARSED, () => {
-              video.play().then(() => setMode("hls")).catch(() => { h.destroy(); });
-            });
-            h.on(Hls.Events.ERROR, (_e: unknown, d: { fatal: boolean }) => { if (d.fatal) h.destroy(); });
-          }
-        }
-      } catch {}
-    }, 30000);
-    return () => clearInterval(retryIv);
-  }, [mode, proxyUrl]);
-
-  const frameUrl = `${SUPABASE_URL}/storage/v1/object/public/camera-frames/${marketId}/latest.jpg?t=${frameTs}`;
+    return () => {
+      cancelled = true;
+      pc?.close();
+      pcRef.current = null;
+    };
+  }, [marketId]);
 
   return (
     <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-      {/* HLS video (hidden when frame mode active) */}
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
+        className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
       />
 
-      {/* Worker frame fallback (only when HLS fails) */}
-      {mode === "frame" && (
-        <img
-          src={frameUrl}
-          alt="Camera ao vivo"
-          className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
-          onError={() => {}}
-        />
-      )}
-
-      {/* Loading spinner */}
-      {mode === "loading" && (
+      {/* Loading */}
+      {!connected && (
         <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-2" />

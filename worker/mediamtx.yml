@@ -1,0 +1,12 @@
+logLevel: warn
+api: yes
+apiAddress: :9997
+rtsp: yes
+rtspAddress: :8554
+webrtc: yes
+webrtcAddress: :8889
+webrtcAllowOrigin: "*"
+hls: no
+paths:
+  all:
+    source: publisher

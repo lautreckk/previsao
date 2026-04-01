@@ -1,0 +1,28 @@
+FROM python:3.11-slim-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 ffmpeg curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# CPU-only torch
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir opencv-python-headless -r requirements.txt && \
+    pip uninstall -y nvidia-cuda-runtime-cu12 nvidia-cudnn-cu12 nvidia-cublas-cu12 \
+    nvidia-cuda-cupti-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cufft-cu12 nvidia-curand-cu12 \
+    nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-nccl-cu12 nvidia-nvjitlink-cu12 \
+    nvidia-nvtx-cu12 triton 2>/dev/null; true
+
+# Install MediaMTX
+RUN curl -sL https://github.com/bluenviron/mediamtx/releases/download/v1.12.2/mediamtx_v1.12.2_linux_amd64.tar.gz | tar xz -C /usr/local/bin/
+
+COPY counter_v2.py .
+COPY tick_rounds.py .
+COPY mediamtx.yml /app/mediamtx.yml
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+ENTRYPOINT ["/app/start.sh"]
