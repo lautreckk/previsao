@@ -3,13 +3,13 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { resolveBannerUrl } from "@/lib/banner-resolver";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const FAL_KEY = process.env.FAL_KEY || "";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const AI_MODEL = process.env.AI_MODEL || "anthropic/claude-sonnet-4-5";
 
@@ -211,9 +211,7 @@ Gere mercados FRESCOS e atuais. Responda SOMENTE com JSON array valido.`;
       try {
         // Generate banner image
         let bannerUrl = "";
-        if (FAL_KEY && gm.image_prompt) {
-          bannerUrl = await generateImage(gm.image_prompt);
-        }
+        bannerUrl = await resolveBannerUrl({ title: gm.title, category: gm.category, image_prompt: gm.image_prompt || "" }).catch(() => "");
 
         // Build market row
         const id = `mkt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -300,78 +298,6 @@ Gere mercados FRESCOS e atuais. Responda SOMENTE com JSON array valido.`;
     console.error("[markets/generate] Error:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-}
-
-// ---- fal.ai image generation ----
-
-async function generateImage(prompt: string): Promise<string> {
-  try {
-    const res = await fetch("https://queue.fal.run/fal-ai/nano-banana-2", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Key ${FAL_KEY}`,
-      },
-      body: JSON.stringify({
-        prompt: `${prompt}. Dark moody cinematic style, vibrant neon accents, suitable for prediction market banner, 16:9 aspect ratio`,
-        num_images: 1,
-        aspect_ratio: "16:9",
-        output_format: "jpeg",
-        resolution: "1K",
-        safety_tolerance: "4",
-        limit_generations: true,
-      }),
-    });
-
-    if (!res.ok) {
-      console.error("[fal.ai] Error:", await res.text());
-      return "";
-    }
-
-    const data = await res.json();
-
-    // queue.fal.run returns a request_id, need to poll for result
-    if (data.request_id) {
-      return await pollFalResult(data.request_id);
-    }
-
-    // Direct result (sync mode)
-    return data.images?.[0]?.url || "";
-  } catch (err) {
-    console.error("[fal.ai] Error:", err);
-    return "";
-  }
-}
-
-async function pollFalResult(requestId: string): Promise<string> {
-  const maxAttempts = 30;
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
-
-    try {
-      const res = await fetch(`https://queue.fal.run/fal-ai/nano-banana-2/requests/${requestId}/status`, {
-        headers: { Authorization: `Key ${FAL_KEY}` },
-      });
-      const status = await res.json();
-
-      if (status.status === "COMPLETED") {
-        // Fetch result
-        const resultRes = await fetch(`https://queue.fal.run/fal-ai/nano-banana-2/requests/${requestId}`, {
-          headers: { Authorization: `Key ${FAL_KEY}` },
-        });
-        const result = await resultRes.json();
-        return result.images?.[0]?.url || "";
-      }
-
-      if (status.status === "FAILED") {
-        console.error("[fal.ai] Generation failed:", status);
-        return "";
-      }
-    } catch {
-      // continue polling
-    }
-  }
-  return "";
 }
 
 interface GeneratedMarket {

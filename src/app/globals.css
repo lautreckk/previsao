@@ -235,6 +235,11 @@ body {
   100% { width: 100%; }
 }
 
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(120vh) rotate(720deg) scale(0.3); opacity: 0; }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }

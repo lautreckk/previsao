@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LiveChat from "./LiveChat";
+import Icon from "@/components/Icon";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -33,12 +34,7 @@ export default function BottomNav() {
                     : "text-white/30 opacity-70 hover:text-[#E09520] active:scale-110"
                 }`}
               >
-                <span
-                  className={`material-symbols-outlined text-2xl ${isActive ? "fill-icon" : ""}`}
-                  style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                >
-                  {item.icon}
-                </span>
+                <Icon name={item.icon} size={26} weight={isActive ? "fill" : "regular"} />
                 <span className="text-[9px] uppercase tracking-widest font-bold mt-0.5">{item.label}</span>
               </button>
             );
@@ -54,12 +50,7 @@ export default function BottomNav() {
                   : "text-white/30 opacity-70 hover:text-[#E09520] active:scale-110"
               }`}
             >
-              <span
-                className={`material-symbols-outlined text-2xl ${isActive ? "fill-icon" : ""}`}
-                style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
-              >
-                {item.icon}
-              </span>
+              <Icon name={item.icon} size={26} weight={isActive ? "fill" : "regular"} />
               <span className="text-[9px] uppercase tracking-widest font-bold mt-0.5">{item.label}</span>
             </Link>
           );

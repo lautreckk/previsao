@@ -7,9 +7,10 @@ import BottomNav from "@/components/BottomNav";
 import { initializeStore, getMarkets, tickAllMarkets } from "@/lib/engines/store";
 import { CATEGORY_META } from "@/lib/engines/types";
 import { useUser } from "@/lib/UserContext";
-import { useChat, avatarColor, getUserBadge } from "@/lib/ChatContext";
+import { useChat, getUserBadge } from "@/lib/ChatContext";
 import type { PredictionMarket, MarketCategory } from "@/lib/engines/types";
 import { supabase } from "@/lib/supabase";
+import Icon from "@/components/Icon";
 
 // ---- WINNERS TICKER (real data from Supabase) ----
 const FALLBACK_WINNERS = [
@@ -357,7 +358,7 @@ export default function Home() {
         </Link>
         <div className="flex-1 max-w-lg mx-auto hidden sm:block" ref={searchRef}>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">search</span>
+            <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -385,7 +386,7 @@ export default function Home() {
                           <img src={m.banner_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
                         ) : (
                           <div className="w-8 h-8 rounded-md bg-[#1A1722] flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-white/30 text-sm">monitoring</span>
+                            <Icon name="monitoring" size={16} className="text-white/30" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -409,7 +410,7 @@ export default function Home() {
           {user ? (
             <>
               <Link href="/deposito" className="kinetic-gradient text-[#1A0E00] px-4 py-2 rounded-lg text-sm font-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,166,35,0.3)] hover:shadow-[0_0_25px_rgba(245,166,35,0.5)] hover:scale-105 active:scale-95 transition-all">
-                <span className="material-symbols-outlined text-base">add</span>Depositar
+                <Icon name="add" size={18} weight="bold" />Depositar
               </Link>
               <Link href="/perfil" className="bg-[#1A1722] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#E09520]">R$ {user.balance.toFixed(2)}</Link>
             </>
@@ -422,7 +423,7 @@ export default function Home() {
       {/* MOBILE SEARCH - visible only on small screens */}
       <div className="sm:hidden px-4 pt-3 pb-1">
         <div className="relative" ref={searchRef}>
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">search</span>
+          <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -499,11 +500,11 @@ export default function Home() {
               className="px-4 lg:px-6 py-3 flex items-center gap-1 overflow-x-auto no-scrollbar"
             >
               <button onClick={() => setActiveCategory("all")} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === "all" ? "bg-[#F5A623]/10 border border-[#F5A623]/40 text-[#F5A623]" : "text-white/50 hover:text-white"}`}>
-                <span className="material-symbols-outlined text-sm">dashboard</span>Todos
+                <Icon name="dashboard" size={16} weight={activeCategory === "all" ? "fill" : "regular"} />Todos
               </button>
               {catEntries.map(([key, meta]) => (
                 <button key={key} onClick={() => setActiveCategory(key)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === key ? "bg-[#F5A623]/10 border border-[#F5A623]/40 text-[#F5A623]" : "text-white/50 hover:text-white"}`}>
-                  <span className="material-symbols-outlined text-sm">{meta.icon}</span>{meta.label}
+                  <Icon name={meta.icon} size={16} weight={activeCategory === key ? "fill" : "regular"} />{meta.label}
                 </button>
               ))}
             </div>
@@ -522,7 +523,7 @@ export default function Home() {
                 onClick={() => setActiveTab(t.key)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${activeTab === t.key ? t.activeColor : "border-transparent text-white/30 hover:text-white hover:bg-white/5"}`}
               >
-                {t.icon && <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{t.icon}</span>}
+                {t.icon && <Icon name={t.icon} size={14} weight={activeTab === t.key ? "fill" : "regular"} />}
                 {t.label}
               </button>
             ))}
@@ -571,7 +572,7 @@ export default function Home() {
               sorted.map((m) => <MarketCard key={m.id} market={m} />)
             ) : (
               <div className="col-span-full text-center py-12 text-white/30">
-                <span className="material-symbols-outlined text-4xl mb-2 block">search_off</span>
+                <Icon name="search_off" size={40} className="mb-2 mx-auto block" />
                 <p>Nenhum mercado encontrado.</p>
               </div>
             )}
@@ -586,7 +587,7 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-[#E09520]/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[#E09520] text-base">forum</span>
+                    <Icon name="forum" size={18} weight="fill" className="text-[#E09520]" />
                   </div>
                   <div>
                     <h3 className="font-black text-sm uppercase tracking-wider leading-none">Chat ao Vivo</h3>
@@ -597,7 +598,7 @@ export default function Home() {
                   </div>
                 </div>
                 <button onClick={() => setChatOpen(false)} className="w-8 h-8 rounded-lg bg-[#1A1722] flex items-center justify-center text-white/30 hover:text-white hover:bg-[#2a3444] transition-colors" title="Minimizar chat">
-                  <span className="material-symbols-outlined text-base">chevron_right</span>
+                  <Icon name="chevron_right" size={18} />
                 </button>
               </div>
             </div>
@@ -615,9 +616,11 @@ export default function Home() {
                   <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1A1722]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
                     {/* Avatar */}
                     {!isGrouped ? (
-                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[11px] font-black text-white shrink-0 mt-0.5`}>
-                        {msg.user.replace("@", "").charAt(0).toUpperCase()}
-                      </div>
+                      <img
+                        src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                        alt={msg.user}
+                        className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5"
+                      />
                     ) : (
                       <div className="w-8 shrink-0" />
                     )}
@@ -628,7 +631,7 @@ export default function Home() {
                           <span className="text-[#E09520] font-bold text-xs truncate">{msg.user}</span>
                           {badge && (
                             <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#1A1722] border border-white/[0.06] ${badge.color}`}>
-                              <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>{badge.icon}</span>
+                              <Icon name={badge.icon} size={11} />
                               <span className="text-[9px] font-black uppercase">{badge.label}</span>
                             </span>
                           )}
@@ -648,7 +651,7 @@ export default function Home() {
                 onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnreadCount(0); }}
                 className="absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#E09520] text-[#1A0E00] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(224,149,32,0.4)] hover:shadow-[0_4px_20px_rgba(224,149,32,0.6)] transition-all animate-bounce"
               >
-                <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+                <Icon name="keyboard_arrow_down" size={16} />
                 {unreadCount} {unreadCount === 1 ? "nova mensagem" : "novas mensagens"}
               </button>
             )}
@@ -659,8 +662,8 @@ export default function Home() {
                 <>
                   <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#E09520]/40 transition-colors px-3">
                     <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2.5 text-sm text-white outline-none placeholder-[#5A6478]" />
-                    <button className="text-white/30 hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
-                    <button onClick={sendChat} className="text-white/30 hover:text-[#E09520] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+                    <button className="text-white/30 hover:text-white transition-colors p-1"><Icon name="mood" size={20} /></button>
+                    <button onClick={sendChat} className="text-white/30 hover:text-[#E09520] transition-colors p-1"><Icon name="send" size={20} /></button>
                   </div>
                   <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#E09520]/70 hover:text-[#E09520] cursor-pointer">regras da comunidade</span></p>
                 </>
@@ -679,7 +682,7 @@ export default function Home() {
           onClick={() => setChatOpen(!chatOpen)}
           className={`hidden lg:flex ${chatOpen ? "xl:hidden" : ""} fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#E09520] text-[#1A0E00] items-center justify-center shadow-[0_4px_20px_rgba(224,149,32,0.4)] hover:shadow-[0_4px_30px_rgba(224,149,32,0.6)] hover:scale-105 active:scale-95 transition-all`}
         >
-          <span className="material-symbols-outlined text-xl">{chatOpen ? "close" : "forum"}</span>
+          <Icon name={chatOpen ? "close" : "forum"} size={24} weight={chatOpen ? "bold" : "fill"} />
           {!chatOpen && unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF5252] rounded-full text-white text-[10px] font-black flex items-center justify-center">{unreadCount > 9 ? "9+" : unreadCount}</span>
           )}
@@ -733,7 +736,7 @@ export default function Home() {
               </ul>
               <div className="flex items-center gap-3 mt-4">
                 <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-[#1A1722] flex items-center justify-center text-white/30 hover:text-[#E09520] hover:bg-[#1A1722]/80 transition-colors">
-                  <span className="material-symbols-outlined text-base">photo_camera</span>
+                  <Icon name="photo_camera" size={18} />
                 </a>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
-import { useChat, avatarColor } from "@/lib/ChatContext";
+import { useChat } from "@/lib/ChatContext";
 import { initializeStore, getMarket, placeBetFull, tickAllMarkets } from "@/lib/engines/store";
 import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { CATEGORY_META } from "@/lib/engines/types";
@@ -71,7 +71,7 @@ function EventChat() {
           return (
             <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${grouped ? "" : "mt-1.5"}`}>
               {!grouped ? (
-                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[10px] font-black text-white shrink-0 mt-0.5`}>{msg.user.replace("@", "").charAt(0).toUpperCase()}</div>
+                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5" />
               ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
                 {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#F5A623] font-bold text-[11px] truncate">{msg.user}</span></div>}

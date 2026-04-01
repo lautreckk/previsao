@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useUser } from "@/lib/UserContext";
-import { useChat, avatarColor, getUserBadge } from "@/lib/ChatContext";
+import { useChat, getUserBadge } from "@/lib/ChatContext";
 
 export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user } = useUser();
@@ -75,9 +75,11 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
           return (
             <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1A1722]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
               {!isGrouped ? (
-                <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[11px] font-black text-white shrink-0 mt-0.5`}>
-                  {msg.user.replace("@", "").charAt(0).toUpperCase()}
-                </div>
+                <img
+                  src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                  alt={msg.user}
+                  className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5"
+                />
               ) : (
                 <div className="w-8 shrink-0" />
               )}

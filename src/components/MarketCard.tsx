@@ -6,6 +6,7 @@ import { CATEGORY_META } from "@/lib/engines/types";
 import Link from "next/link";
 import { calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { supabase } from "@/lib/supabase";
+import Icon from "@/components/Icon";
 
 /* Mini round history from Supabase */
 function RoundHistoryDots({ marketId }: { marketId: string }) {
@@ -68,8 +69,18 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
       <div className={`relative rounded-2xl border overflow-hidden h-full flex flex-col transition-all duration-200 ${
         isClosed
           ? "bg-[#12101A]/60 border-white/[0.04] opacity-50"
-          : "bg-[#12101A] border-white/[0.06] hover:border-white/[0.15] hover:shadow-lg hover:shadow-black/20 hover:scale-[1.01]"
+          : "bg-gradient-to-br from-[#161320] to-[#12101A] border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:border-[#F5A623]/20 hover:shadow-xl hover:scale-[1.02]"
       }`}>
+
+        {/* Subtle category gradient at top */}
+        {!isClosed && (
+          <div
+            className="absolute top-0 left-0 right-0 h-16 pointer-events-none"
+            style={{
+              background: `linear-gradient(180deg, ${(meta?.color || "#888")}10 0%, transparent 100%)`
+            }}
+          />
+        )}
 
         {/* ── Category Badge ── */}
         <div className="px-3 pt-3 flex items-center justify-between">
@@ -77,7 +88,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
             className="text-[10px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1"
             style={{ backgroundColor: (meta?.color || "#888") + "15", color: meta?.color || "#888" }}
           >
-            {meta?.icon && <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>{meta.icon}</span>}
+            {meta?.icon && <Icon name={meta.icon} size={11} weight="duotone" />}
             {meta?.label || market.category}
           </span>
           {/* Live pulse or timer */}
@@ -174,21 +185,21 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
             </div>
           ) : (
             <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-white/20" style={{ fontSize: "12px" }}>check_circle</span>
+              <Icon name="check_circle" size={12} className="text-white/20" />
               <span className="text-[10px] font-bold text-white/20">Encerrado</span>
             </div>
           )}
           <div className="flex items-center gap-2.5">
             {market.pool_total > 0 && (
               <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-white/25" style={{ fontSize: "11px" }}>bar_chart</span>
+                <Icon name="bar_chart" size={11} className="text-white/25" />
                 <span className="text-[10px] text-white/30 font-bold font-mono tabular-nums">
                   R$ {market.pool_total >= 1000 ? (market.pool_total / 1000).toFixed(1) + "k" : market.pool_total.toFixed(0)}
                 </span>
               </div>
             )}
             <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-white/25" style={{ fontSize: "11px" }}>schedule</span>
+              <Icon name="schedule" size={11} className="text-white/25" />
               <span className={`text-[10px] font-bold font-mono tabular-nums ${
                 remaining > 0 && remaining < 600000 ? "text-[#FFB800]" : remaining > 0 ? "text-white/30" : "text-white/15"
               }`}>
