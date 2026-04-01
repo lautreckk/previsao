@@ -8,6 +8,51 @@ import { createClient } from "@supabase/supabase-js";
 const sb = () =>
   createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
+// ---- Image Generation (FAL.ai) ----
+
+async function generateBanner(prompt: string): Promise<string> {
+  const falKey = process.env.FAL_KEY;
+  if (!falKey || !prompt) return "";
+
+  try {
+    const res = await fetch("https://queue.fal.run/fal-ai/nano-banana-2", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Key ${falKey}` },
+      body: JSON.stringify({
+        prompt: `${prompt}. Dark moody cinematic style, vibrant neon accents, suitable for prediction market banner, 16:9 aspect ratio`,
+        num_images: 1, aspect_ratio: "16:9", output_format: "jpeg", resolution: "1K", safety_tolerance: "4",
+      }),
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+
+    if (data.request_id) {
+      // Poll for result (max 30s)
+      for (let i = 0; i < 15; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          const sr = await fetch(`https://queue.fal.run/fal-ai/nano-banana-2/requests/${data.request_id}/status`, {
+            headers: { Authorization: `Key ${falKey}` },
+          });
+          const status = await sr.json();
+          if (status.status === "COMPLETED") {
+            const rr = await fetch(`https://queue.fal.run/fal-ai/nano-banana-2/requests/${data.request_id}`, {
+              headers: { Authorization: `Key ${falKey}` },
+            });
+            const result = await rr.json();
+            return result.images?.[0]?.url || "";
+          }
+          if (status.status === "FAILED") return "";
+        } catch { /* keep polling */ }
+      }
+    }
+
+    return data.images?.[0]?.url || "";
+  } catch {
+    return "";
+  }
+}
+
 // ---- Types ----
 
 interface MarketTemplate {
@@ -633,7 +678,7 @@ export async function generateAutoMarkets(tiers?: ("curto" | "medio" | "longo")[
         category: tmpl.category,
         subcategory: tmpl.tier,
         tags: [tmpl.tier, tmpl.category],
-        banner_url: "", // Image will be generated separately if FAL_KEY exists
+        banner_url: await generateBanner(tmpl.image_prompt).catch(() => ""),
         is_featured: tmpl.is_featured,
         visibility: "public",
         market_type: outcomes.length === 2 ? "binary" : "multi_outcome",
