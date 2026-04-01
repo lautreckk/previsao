@@ -14,7 +14,7 @@ export interface AdminCredential {
 
 // Default admin - change in production
 const DEFAULT_ADMINS: AdminCredential[] = [
-  { email: "admin@winify.com.br", password: "W1n!fy@Adm2026#Mx", name: "Admin Master", role: "super_admin" },
+  { email: "admin@winify.com", password: "winify2026", name: "Admin Master", role: "super_admin" },
 ];
 
 function getAdminUsers(): AdminCredential[] {
