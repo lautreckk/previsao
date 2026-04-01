@@ -134,20 +134,26 @@ def update_count_direct(supa_url, supa_key, market_id, count):
         pass  # Non-critical — DB update is the source of truth
 
 
+# Cache last known good state to avoid false resets on timeout
+_last_known = {}  # market_id -> (round, phase, count)
+
 def get_current_round(supa_url, supa_key, market_id):
-    """Fetch current round_number and phase from Supabase."""
+    """Fetch current round_number and phase from Supabase. Returns last known on failure."""
     try:
         r = requests.get(
             f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}&select=round_number,phase,current_count",
             headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}"},
-            timeout=5,
+            timeout=8,
         )
         data = r.json()
         if data and len(data) > 0:
-            return data[0].get("round_number", 0), data[0].get("phase", "waiting"), data[0].get("current_count", 0)
-    except:
-        pass
-    return 0, "waiting", 0
+            result = (data[0].get("round_number", 0), data[0].get("phase", "waiting"), data[0].get("current_count", 0))
+            _last_known[market_id] = result
+            return result
+    except Exception as e:
+        print(f"[Worker] DB poll failed (using cached): {e}")
+    # Return last known good state instead of (0, "waiting", 0)
+    return _last_known.get(market_id, (0, "waiting", 0))
 
 
 def main():
@@ -252,10 +258,11 @@ def main():
             else:
                 counting_paused = False
 
-            # Reset on new round OR when transitioning from waiting to betting
-            needs_reset = (new_round != known_round) or (known_phase == "waiting" and new_phase == "betting")
+            # Reset on REAL new round (ignore round 0 — it means DB poll failed)
+            is_real_round_change = (new_round != known_round) and new_round > 0 and new_round > known_round
+            is_phase_start = (known_phase == "waiting" and new_phase == "betting") and new_round > 0
 
-            if needs_reset:
+            if is_real_round_change or is_phase_start:
                 print(f"[Worker] RESET: round {known_round}->{new_round} phase {known_phase}->{new_phase}")
                 total = 0
                 counted.clear()
@@ -264,14 +271,7 @@ def main():
                 update_count_direct(args.supabase_url, args.supabase_key, args.market_id, 0)
                 counting_paused = False
 
-            # Sync: if DB count is 0 but our total is high, DB was reset externally
-            if db_count == 0 and total > 5 and new_phase in ("betting", "observation"):
-                print(f"[Worker] DB count=0 but local total={total}. External reset detected. Resetting.")
-                total = 0
-                counted.clear()
-                last_sent_count = -1
-                tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
-
+            # External reset removed — caused false resets when DB poll returns stale cached data
             known_round = new_round
             known_phase = new_phase
             t_round_check = now
