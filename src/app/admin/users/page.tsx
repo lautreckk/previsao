@@ -11,7 +11,7 @@ interface UserSummary {
   totalLost: number; pnl: number; pendingBets: number; pendingExposure: number;
 }
 
-const inputCls = "w-full bg-[#0a0f1a] rounded-xl px-4 py-3 text-white/90 text-sm outline-none border border-white/[0.06] focus:border-white/[0.12] focus:ring-1 focus:ring-white/[0.06] transition-all placeholder:text-white/20";
+const inputCls = "w-full bg-[#0A0910] rounded-xl px-4 py-3 text-white/90 text-sm outline-none border border-white/[0.06] focus:border-white/[0.12] focus:ring-1 focus:ring-white/[0.06] transition-all placeholder:text-white/20";
 const labelCls = "text-[11px] text-white/40 font-medium block mb-1.5";
 
 export default function AdminUsers() {
@@ -219,7 +219,7 @@ export default function AdminUsers() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome, email, telefone ou ID..."
-          className="w-full bg-[#111827] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white/80 border border-white/[0.06] outline-none focus:border-white/[0.12] focus:ring-1 focus:ring-white/[0.06] transition-all placeholder:text-white/20"
+          className="w-full bg-[#12101A] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white/80 border border-white/[0.06] outline-none focus:border-white/[0.12] focus:ring-1 focus:ring-white/[0.06] transition-all placeholder:text-white/20"
         />
       </div>
 
@@ -232,7 +232,7 @@ export default function AdminUsers() {
           {/* Desktop: centered modal, Mobile: right sheet */}
           <div
             className={`
-              relative z-10 bg-[#111827] w-full max-h-[100dvh] overflow-y-auto overscroll-contain
+              relative z-10 bg-[#12101A] w-full max-h-[100dvh] overflow-y-auto overscroll-contain
               border-white/[0.06]
               /* Mobile: full-height sheet from right */
               fixed right-0 top-0 bottom-0 max-w-full border-l
@@ -251,7 +251,7 @@ export default function AdminUsers() {
             </div>
 
             {/* Header */}
-            <div className="px-5 py-4 border-b border-white/[0.06] flex justify-between items-center sticky top-0 bg-[#111827]/95 backdrop-blur-xl z-10">
+            <div className="px-5 py-4 border-b border-white/[0.06] flex justify-between items-center sticky top-0 bg-[#12101A]/95 backdrop-blur-xl z-10">
               <div className="min-w-0">
                 <h3 className="font-semibold text-[17px] text-white truncate">{selectedUserData.name}</h3>
                 <p className="text-xs text-white/35 truncate mt-0.5">{selectedUserData.email} -- {selectedUserData.id.slice(0, 12)}...</p>
@@ -270,7 +270,7 @@ export default function AdminUsers() {
                   { label: "Volume", value: `R$ ${selectedUserData.totalWagered.toFixed(0)}`, color: "text-white" },
                   { label: "PnL", value: `${selectedUserData.pnl >= 0 ? "+" : ""}R$ ${selectedUserData.pnl.toFixed(2)}`, color: selectedUserData.pnl >= 0 ? "text-[#10b981]" : "text-[#ef4444]" },
                 ].map((kpi) => (
-                  <div key={kpi.label} className="bg-[#0a0f1a] rounded-xl p-3.5">
+                  <div key={kpi.label} className="bg-[#0A0910] rounded-xl p-3.5">
                     <p className="text-[11px] text-white/30 font-medium">{kpi.label}</p>
                     <p className={`text-base font-semibold mt-0.5 ${kpi.color}`}>{kpi.value}</p>
                   </div>
@@ -312,7 +312,7 @@ export default function AdminUsers() {
 
               {/* BALANCE MANAGEMENT */}
               {editMode === "edit_balance" && (
-                <div className="bg-[#0a0f1a] rounded-2xl p-5 border border-[#10b981]/10 space-y-4">
+                <div className="bg-[#0A0910] rounded-2xl p-5 border border-[#10b981]/10 space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-white/80">Gerenciar Saldo</h4>
                     <span className="text-sm font-semibold text-[#10b981]">R$ {selectedUserData.balance.toFixed(2)}</span>
@@ -334,7 +334,7 @@ export default function AdminUsers() {
                   {/* Segmented control for action */}
                   <div>
                     <p className={labelCls}>Acao</p>
-                    <div className="flex bg-[#111827] rounded-xl p-1 border border-white/[0.06]">
+                    <div className="flex bg-[#12101A] rounded-xl p-1 border border-white/[0.06]">
                       {([
                         { key: "add" as const, label: "Adicionar" },
                         { key: "subtract" as const, label: "Remover" },
@@ -367,7 +367,7 @@ export default function AdminUsers() {
                   </div>
 
                   {balanceAmount && parseFloat(balanceAmount) > 0 && (
-                    <div className="bg-[#111827] rounded-xl p-3.5 flex justify-between items-center border border-white/[0.06]">
+                    <div className="bg-[#12101A] rounded-xl p-3.5 flex justify-between items-center border border-white/[0.06]">
                       <span className="text-xs text-white/35">Novo saldo:</span>
                       <span className="font-semibold text-[#f59e0b]">
                         R$ {(balanceAction === "set" ? parseFloat(balanceAmount) : balanceAction === "add" ? selectedUserData.balance + parseFloat(balanceAmount) : Math.max(0, selectedUserData.balance - parseFloat(balanceAmount))).toFixed(2)}
@@ -383,7 +383,7 @@ export default function AdminUsers() {
 
               {/* EDIT USER INFO */}
               {editMode === "edit_info" && (
-                <div className="bg-[#0a0f1a] rounded-2xl p-5 border border-[#3b82f6]/10 space-y-4">
+                <div className="bg-[#0A0910] rounded-2xl p-5 border border-[#3b82f6]/10 space-y-4">
                   <h4 className="text-sm font-semibold text-white/80">Editar Dados</h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -424,7 +424,7 @@ export default function AdminUsers() {
                 <div className="space-y-1.5 max-h-48 overflow-y-auto">
                   {userBets.length === 0 ? <p className="text-sm text-white/25 text-center py-6">Nenhuma aposta</p> :
                   userBets.map((b) => (
-                    <div key={b.id} className="bg-[#0a0f1a] rounded-xl p-3 flex justify-between items-center border border-white/[0.04]">
+                    <div key={b.id} className="bg-[#0A0910] rounded-xl p-3 flex justify-between items-center border border-white/[0.04]">
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-white/80 truncate">{b.outcome_label}</p>
                         <p className="text-[11px] text-white/25 mt-0.5">{b.outcome_key} -- {new Date(b.created_at).toLocaleString("pt-BR")}</p>
@@ -447,7 +447,7 @@ export default function AdminUsers() {
                 <div className="space-y-1.5 max-h-48 overflow-y-auto">
                   {userLedger.length === 0 ? <p className="text-sm text-white/25 text-center py-6">Nenhuma entrada</p> :
                   [...userLedger].reverse().map((l) => (
-                    <div key={l.id} className={`bg-[#0a0f1a] rounded-xl p-3 flex justify-between items-center border border-white/[0.04] ${l.type === "admin_adjustment" ? "border-l-2 border-l-[#f59e0b]/50" : ""}`}>
+                    <div key={l.id} className={`bg-[#0A0910] rounded-xl p-3 flex justify-between items-center border border-white/[0.04] ${l.type === "admin_adjustment" ? "border-l-2 border-l-[#f59e0b]/50" : ""}`}>
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-white/80 truncate">{l.description}</p>
                         <p className="text-[11px] text-white/25 mt-0.5">{l.type} {l.created_by === "admin" ? "-- ADMIN" : ""} -- {new Date(l.created_at).toLocaleString("pt-BR")}</p>
@@ -463,7 +463,7 @@ export default function AdminUsers() {
       )}
 
       {/* USERS TABLE (Desktop) */}
-      <div className="hidden sm:block bg-[#111827] rounded-2xl border border-white/[0.06] overflow-hidden">
+      <div className="hidden sm:block bg-[#12101A] rounded-2xl border border-white/[0.06] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -504,12 +504,12 @@ export default function AdminUsers() {
       {/* USERS CARDS (Mobile) */}
       <div className="sm:hidden space-y-2.5">
         {filtered.length === 0 ? (
-          <div className="bg-[#111827] rounded-2xl border border-white/[0.06] p-8 text-center text-white/25 text-sm">Nenhum usuario encontrado</div>
+          <div className="bg-[#12101A] rounded-2xl border border-white/[0.06] p-8 text-center text-white/25 text-sm">Nenhum usuario encontrado</div>
         ) : filtered.map((u) => (
           <div
             key={u.id}
             onClick={() => handleSelectUser(u.id)}
-            className="bg-[#111827] rounded-2xl border border-white/[0.06] p-4 active:scale-[0.98] transition-all cursor-pointer"
+            className="bg-[#12101A] rounded-2xl border border-white/[0.06] p-4 active:scale-[0.98] transition-all cursor-pointer"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="min-w-0">

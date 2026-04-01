@@ -22,7 +22,7 @@ function RoundHistoryDots({ marketId }: { marketId: string }) {
     <div className="px-3 pb-1 flex items-center gap-1">
       <span className="text-[9px] text-white/30 font-bold mr-1">Ultimos</span>
       {results.map((isOver, i) => (
-        <div key={i} className={`w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black text-white ${isOver ? "bg-[#00D4AA]" : "bg-[#FF5252]"}`}>
+        <div key={i} className={`w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black text-white ${isOver ? "bg-[#10B981]" : "bg-[#FF5252]"}`}>
           {isOver ? "▲" : "▼"}
         </div>
       ))}
@@ -67,8 +67,8 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
     >
       <div className={`relative rounded-2xl border overflow-hidden h-full flex flex-col transition-all duration-200 ${
         isClosed
-          ? "bg-[#111827]/60 border-white/[0.04] opacity-50"
-          : "bg-[#111827] border-white/[0.06] hover:border-white/[0.15] hover:shadow-lg hover:shadow-black/20 hover:scale-[1.01]"
+          ? "bg-[#12101A]/60 border-white/[0.04] opacity-50"
+          : "bg-[#12101A] border-white/[0.06] hover:border-white/[0.15] hover:shadow-lg hover:shadow-black/20 hover:scale-[1.01]"
       }`}>
 
         {/* ── Category Badge ── */}
@@ -120,7 +120,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
               })()}
             </div>
           )}
-          <h4 className="text-[13px] font-bold leading-snug text-white line-clamp-2 group-hover:text-[#00FFB8] transition-colors">
+          <h4 className="text-[13px] font-bold leading-snug text-white line-clamp-2 group-hover:text-[#F5A623] transition-colors">
             {market.title}
           </h4>
         </div>
@@ -139,14 +139,17 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: o.color }} />
                 {/* Label */}
                 <span className="text-[11px] text-white/80 truncate flex-1 min-w-0 font-medium">{o.label}</span>
-                {/* Odds */}
-                <span className="text-[11px] text-white/50 font-mono shrink-0 tabular-nums">{odds.toFixed(2)}x</span>
-                {/* Percentage badge */}
+                {/* Odds — golden for high odds (3x+) */}
+                <span className={`text-[11px] font-mono shrink-0 tabular-nums font-bold ${odds >= 3 ? "text-[#FFD700]" : "text-white/50"}`}>
+                  {odds.toFixed(2)}x
+                </span>
+                {/* Percentage badge with glow */}
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded min-w-[38px] text-center shrink-0"
                   style={{
-                    backgroundColor: o.color + "18",
+                    backgroundColor: o.color + "25",
                     color: o.color,
+                    boxShadow: `0 0 6px ${o.color}20`,
                   }}
                 >
                   {pct}%
@@ -164,10 +167,10 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
           {isLive && remaining > 0 ? (
             <div className="flex items-center gap-1.5">
               <div className="relative w-2 h-2">
-                <div className="absolute inset-0 rounded-full bg-[#00D4AA] animate-ping opacity-75" />
-                <div className="relative w-2 h-2 rounded-full bg-[#00D4AA]" />
+                <div className="absolute inset-0 rounded-full bg-[#FF4444] animate-ping opacity-75" />
+                <div className="relative w-2 h-2 rounded-full bg-[#FF4444]" />
               </div>
-              <span className="text-[10px] font-black text-[#00D4AA] uppercase tracking-wider">AO VIVO</span>
+              <span className="text-[10px] font-black text-[#FF4444] uppercase tracking-wider">AO VIVO</span>
             </div>
           ) : (
             <div className="flex items-center gap-1">

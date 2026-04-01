@@ -210,7 +210,7 @@ export default function AdminMarkets() {
       {showCreate && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto" onClick={() => setShowCreate(false)}>
           <div
-            className="bg-[#111827] rounded-2xl w-full max-w-2xl mx-auto my-10 border border-white/[0.06] shadow-2xl shadow-black/40 animate-in slide-in-from-bottom-4 duration-300"
+            className="bg-[#12101A] rounded-2xl w-full max-w-2xl mx-auto my-10 border border-white/[0.06] shadow-2xl shadow-black/40 animate-in slide-in-from-bottom-4 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sheet header */}
@@ -340,7 +340,7 @@ export default function AdminMarkets() {
       {resolveModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setResolveModal(null)}>
           <div
-            className="bg-[#111827] rounded-2xl w-full max-w-md border border-white/[0.06] shadow-2xl shadow-black/40 animate-in zoom-in-95 duration-200"
+            className="bg-[#12101A] rounded-2xl w-full max-w-md border border-white/[0.06] shadow-2xl shadow-black/40 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -398,7 +398,7 @@ export default function AdminMarkets() {
       )}
 
       {/* ── MARKETS: Desktop table ── */}
-      <div className="hidden md:block bg-[#111827] rounded-2xl border border-white/[0.06] overflow-hidden">
+      <div className="hidden md:block bg-[#12101A] rounded-2xl border border-white/[0.06] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/[0.06]">
@@ -463,7 +463,7 @@ export default function AdminMarkets() {
           filtered.map((m) => {
             const meta = CATEGORY_META[m.category];
             return (
-              <div key={m.id} className="bg-[#111827] rounded-2xl border border-white/[0.06] p-4 space-y-3">
+              <div key={m.id} className="bg-[#12101A] rounded-2xl border border-white/[0.06] p-4 space-y-3">
                 {/* Card header */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">

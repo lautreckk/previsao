@@ -69,7 +69,7 @@ export default function AdminMonitor() {
               {openMarkets.length} mercado{openMarkets.length !== 1 ? "s" : ""} ativo{openMarkets.length !== 1 ? "s" : ""} &middot; {bets.length} apostas
             </p>
           </div>
-          <div className="flex items-center gap-2.5 bg-[#111827] border border-white/[0.06] rounded-full px-3.5 py-2">
+          <div className="flex items-center gap-2.5 bg-[#12101A] border border-white/[0.06] rounded-full px-3.5 py-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]" />

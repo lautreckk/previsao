@@ -127,7 +127,7 @@ export default function LivePage() {
         ctx.lineTo(currentX + 30, line.y + 5);
         ctx.stroke();
         // Bounding box
-        ctx.strokeStyle = `rgba(0,212,170,${alpha * 0.6})`;
+        ctx.strokeStyle = `rgba(245,166,35,${alpha * 0.6})`;
         ctx.strokeRect(currentX - 20, line.y - 15, 40, 25);
       });
 
@@ -138,7 +138,7 @@ export default function LivePage() {
         detectionLines.current.push({
           x: 50, y: laneY, w: w - 100,
           progress: 0,
-          color: Math.random() > 0.5 ? "#00D4AA" : "#FFB800",
+          color: Math.random() > 0.5 ? "#F5A623" : "#FFB800",
         });
         // Increment count
         setCount((c) => c + 1);
@@ -239,15 +239,15 @@ export default function LivePage() {
   return (
     <div className="min-h-screen bg-[#111a27] text-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#151e2d]/95 backdrop-blur-xl border-b border-[#2a3444] px-4 h-14 flex items-center gap-4">
+      <header className="sticky top-0 z-50 bg-[#151e2d]/95 backdrop-blur-xl border-b border-white/[0.06] px-4 h-14 flex items-center gap-4">
         <Link href="/" className="shrink-0"><img src="/logo.png" alt="Winify" className="h-10 w-auto" /></Link>
         <div className="flex-1 hidden sm:block max-w-lg mx-auto">
-          <input placeholder="Buscar mercados..." className="w-full bg-[#1a2332] rounded-lg pl-10 pr-4 py-2 text-sm text-white border border-[#2a3444] outline-none placeholder-[#5A6478]" />
+          <input placeholder="Buscar mercados..." className="w-full bg-[#1A1722] rounded-lg pl-10 pr-4 py-2 text-sm text-white border border-white/[0.06] outline-none placeholder-[#5A6478]" />
         </div>
         {user ? (
-          <Link href="/perfil" className="bg-[#1a2332] border border-[#2a3444] px-3 py-1.5 rounded-lg text-sm font-bold text-[#00D4AA] ml-auto">R$ {user.balance.toFixed(2)}</Link>
+          <Link href="/perfil" className="bg-[#1A1722] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#F5A623] ml-auto">R$ {user.balance.toFixed(2)}</Link>
         ) : (
-          <Link href="/login" className="bg-[#00D4AA] text-[#003D2E] px-5 py-2 rounded-lg text-sm font-black ml-auto">Entrar</Link>
+          <Link href="/login" className="bg-[#F5A623] text-[#1A0E00] px-5 py-2 rounded-lg text-sm font-black ml-auto">Entrar</Link>
         )}
       </header>
 
@@ -258,29 +258,29 @@ export default function LivePage() {
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <div className="flex items-center gap-1.5 bg-[#00D4AA]/10 px-3 py-1 rounded-full">
-                  <div className="w-2 h-2 rounded-full bg-[#00D4AA] animate-pulse" />
-                  <span className="text-xs font-black text-[#00D4AA]">AO VIVO</span>
+                <div className="flex items-center gap-1.5 bg-[#F5A623]/10 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 rounded-full bg-[#F5A623] animate-pulse" />
+                  <span className="text-xs font-black text-[#F5A623]">AO VIVO</span>
                 </div>
               </div>
               <h1 className="text-xl sm:text-2xl font-black font-headline">Rodovia (5 minutos): quantos carros?</h1>
-              <p className="text-xs text-[#8B95A8] mt-1">{loc.region} - {loc.cam}</p>
+              <p className="text-xs text-white/50 mt-1">{loc.region} - {loc.cam}</p>
             </div>
             <div className="text-right">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black font-headline text-[#00D4AA] tabular-nums">{String(mins).padStart(2, "0")}</span>
-                <span className="text-xs text-[#5A6478] uppercase">min</span>
-                <span className="text-4xl font-black font-headline text-[#00D4AA] tabular-nums">{String(secs).padStart(2, "0")}</span>
-                <span className="text-xs text-[#5A6478] uppercase">seg</span>
+                <span className="text-4xl font-black font-headline text-[#F5A623] tabular-nums">{String(mins).padStart(2, "0")}</span>
+                <span className="text-xs text-white/30 uppercase">min</span>
+                <span className="text-4xl font-black font-headline text-[#F5A623] tabular-nums">{String(secs).padStart(2, "0")}</span>
+                <span className="text-xs text-white/30 uppercase">seg</span>
               </div>
             </div>
           </div>
 
           {/* Recent results */}
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs text-[#5A6478]">Ultimos</span>
+            <span className="text-xs text-white/30">Ultimos</span>
             {recentResults.map((r, i) => (
-              <div key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${r === "up" ? "bg-[#00D4AA]/20 text-[#00D4AA]" : "bg-[#FF6B5A]/20 text-[#FF6B5A]"}`}>
+              <div key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${r === "up" ? "bg-[#F5A623]/20 text-[#F5A623]" : "bg-[#FF6B5A]/20 text-[#FF6B5A]"}`}>
                 {r === "up" ? "▲" : "▼"}
               </div>
             ))}
@@ -290,17 +290,17 @@ export default function LivePage() {
             {/* Video + detection */}
             <div>
               <div className="flex justify-between text-xs mb-2">
-                <div><span className="text-[#5A6478] uppercase font-bold">Contagem Atual</span><p className="text-3xl font-black font-headline text-white">{count}</p></div>
-                <div className="text-right"><span className="text-[#5A6478] uppercase font-bold">Previsoes Encerram Em</span><p className="text-3xl font-black font-headline text-[#FFB800] tabular-nums">{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}</p></div>
+                <div><span className="text-white/30 uppercase font-bold">Contagem Atual</span><p className="text-3xl font-black font-headline text-white">{count}</p></div>
+                <div className="text-right"><span className="text-white/30 uppercase font-bold">Previsoes Encerram Em</span><p className="text-3xl font-black font-headline text-[#FFB800] tabular-nums">{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}</p></div>
               </div>
 
-              <div className="relative rounded-xl overflow-hidden bg-[#0a0f18] border border-[#2a3444]">
+              <div className="relative rounded-xl overflow-hidden bg-[#0a0f18] border border-white/[0.06]">
                 <canvas ref={canvasRef} width={640} height={400} className="w-full h-auto" />
                 {/* Floating bet animations */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
                   {betAnimations.map((anim) => (
                     <div key={anim.id} className="absolute left-2 animate-fade-in-up" style={{ top: `${(anim.y / 400) * 100}%` }}>
-                      <span className="text-[#00D4AA] font-black text-sm drop-shadow-lg">{anim.text}</span>
+                      <span className="text-[#F5A623] font-black text-sm drop-shadow-lg">{anim.text}</span>
                     </div>
                   ))}
                 </div>
@@ -309,30 +309,30 @@ export default function LivePage() {
 
             {/* Bet panel */}
             <div>
-              <div className="bg-[#1a2332] rounded-xl border border-[#2a3444] p-5">
+              <div className="bg-[#1A1722] rounded-xl border border-white/[0.06] p-5">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="text-xs text-[#5A6478]">Sua previsao</p>
-                    <p className="text-lg font-black text-[#00D4AA]">{selectedOutcome === "up" ? `Mais de ${threshold}` : selectedOutcome === "down" ? `Ate ${threshold}` : "Selecione"}</p>
+                    <p className="text-xs text-white/30">Sua previsao</p>
+                    <p className="text-lg font-black text-[#F5A623]">{selectedOutcome === "up" ? `Mais de ${threshold}` : selectedOutcome === "down" ? `Ate ${threshold}` : "Selecione"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-[#5A6478]">Retorno</p>
-                    <p className="text-lg font-black">{selectedOutcome === "up" ? payoutUp : selectedOutcome === "down" ? payoutDown : "—"}x <span className="text-xs text-[#5A6478]">· {probUp}%</span></p>
+                    <p className="text-xs text-white/30">Retorno</p>
+                    <p className="text-lg font-black">{selectedOutcome === "up" ? payoutUp : selectedOutcome === "down" ? payoutDown : "—"}x <span className="text-xs text-white/30">· {probUp}%</span></p>
                   </div>
                 </div>
 
-                <div className="bg-[#111a27] rounded-xl p-6 text-center mb-4 border border-[#2a3444]">
+                <div className="bg-[#111a27] rounded-xl p-6 text-center mb-4 border border-white/[0.06]">
                   <p className="text-3xl font-black font-headline">R$ {betAmount || "0"}</p>
                 </div>
 
                 <div className="flex gap-3 mb-4">
                   {[20, 50, 100].map((v) => (
-                    <button key={v} onClick={() => setBetAmount(String(v))} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all active:scale-95 ${betAmount === String(v) ? "bg-[#00D4AA]/10 border-[#00D4AA] text-[#00D4AA]" : "border-[#2a3444] text-[#8B95A8]"}`}>R$ {v}</button>
+                    <button key={v} onClick={() => setBetAmount(String(v))} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all active:scale-95 ${betAmount === String(v) ? "bg-[#F5A623]/10 border-[#F5A623] text-[#F5A623]" : "border-white/[0.06] text-white/50"}`}>R$ {v}</button>
                   ))}
-                  <button onClick={() => user && setBetAmount(String(Math.floor(user.balance)))} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all active:scale-95 border-[#2a3444] text-[#8B95A8]`}>Maximo</button>
+                  <button onClick={() => user && setBetAmount(String(Math.floor(user.balance)))} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all active:scale-95 border-white/[0.06] text-white/50`}>Maximo</button>
                 </div>
 
-                <div className="flex justify-between text-xs text-[#5A6478] mb-4">
+                <div className="flex justify-between text-xs text-white/30 mb-4">
                   <span>Ao acertar a previsao</span>
                   <span className="text-[#FFB800] font-black text-sm">R$ {betAmount ? (parseFloat(betAmount) * parseFloat(selectedOutcome === "up" ? payoutUp : payoutDown)).toFixed(2) : "0,00"}</span>
                 </div>
@@ -344,7 +344,7 @@ export default function LivePage() {
 
               {/* Outcome buttons */}
               <div className="grid grid-cols-2 gap-3 mt-4">
-                <button onClick={() => setSelectedOutcome("up")} className={`py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${selectedOutcome === "up" ? "bg-[#00D4AA] text-[#003D2E]" : "bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/30"}`}>
+                <button onClick={() => setSelectedOutcome("up")} className={`py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${selectedOutcome === "up" ? "bg-[#F5A623] text-[#1A0E00]" : "bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30"}`}>
                   <span>▲</span> Mais de {threshold} ({payoutUp}x)
                 </button>
                 <button onClick={() => setSelectedOutcome("down")} className={`py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${selectedOutcome === "down" ? "bg-[#FF6B5A] text-white" : "bg-[#FF6B5A]/10 text-[#FF6B5A] border border-[#FF6B5A]/30"}`}>
@@ -356,32 +356,32 @@ export default function LivePage() {
         </main>
 
         {/* Chat sidebar */}
-        <aside className="hidden lg:flex flex-col w-80 xl:w-96 border-l border-[#2a3444] bg-[#151e2d] sticky top-14 h-[calc(100vh-56px)]">
-          <div className="px-4 py-3 border-b border-[#2a3444] flex items-center justify-between shrink-0">
+        <aside className="hidden lg:flex flex-col w-80 xl:w-96 border-l border-white/[0.06] bg-[#151e2d] sticky top-14 h-[calc(100vh-56px)]">
+          <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#8B95A8] text-lg">chevron_right</span>
+              <span className="material-symbols-outlined text-white/50 text-lg">chevron_right</span>
               <h3 className="font-black text-sm uppercase tracking-wider">Chat ao Vivo</h3>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-[#00D4AA]" />
-              <span className="text-xs text-[#00D4AA] font-bold">{onlineCount.current} online</span>
+              <div className="w-2 h-2 rounded-full bg-[#F5A623]" />
+              <span className="text-xs text-[#F5A623] font-bold">{onlineCount.current} online</span>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 no-scrollbar">
             {chatMsgs.map((msg) => (
               <div key={msg.id}>
-                <p className="text-[#00D4AA] font-bold text-sm">{msg.user}</p>
+                <p className="text-[#F5A623] font-bold text-sm">{msg.user}</p>
                 <p className="text-[#c8cdd4] text-sm">{msg.text}</p>
               </div>
             ))}
           </div>
-          <div className="px-4 py-3 border-t border-[#2a3444] shrink-0">
+          <div className="px-4 py-3 border-t border-white/[0.06] shrink-0">
             <div className="flex items-center gap-2">
-              <input placeholder="Enviar mensagem..." className="flex-1 bg-[#1a2332] rounded-lg px-4 py-2.5 text-sm text-white border border-[#2a3444] outline-none placeholder-[#5A6478]" />
-              <button className="text-[#5A6478] hover:text-white"><span className="material-symbols-outlined text-xl">mood</span></button>
-              <button className="text-[#5A6478] hover:text-[#00D4AA]"><span className="material-symbols-outlined text-xl">send</span></button>
+              <input placeholder="Enviar mensagem..." className="flex-1 bg-[#1A1722] rounded-lg px-4 py-2.5 text-sm text-white border border-white/[0.06] outline-none placeholder-[#5A6478]" />
+              <button className="text-white/30 hover:text-white"><span className="material-symbols-outlined text-xl">mood</span></button>
+              <button className="text-white/30 hover:text-[#F5A623]"><span className="material-symbols-outlined text-xl">send</span></button>
             </div>
-            <p className="text-[10px] text-[#5A6478] mt-1.5">Seja respeitoso. Siga as <span className="text-[#00D4AA]">regras da comunidade</span></p>
+            <p className="text-[10px] text-white/30 mt-1.5">Seja respeitoso. Siga as <span className="text-[#F5A623]">regras da comunidade</span></p>
           </div>
         </aside>
       </div>

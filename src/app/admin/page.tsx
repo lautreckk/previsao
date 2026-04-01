@@ -161,7 +161,7 @@ export default function AdminDashboard() {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">Dashboard</h1>
           <p className="text-sm text-white/40 mt-1 capitalize">{greeting}</p>
         </div>
-        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#111827] border border-white/[0.06]">
+        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-[#12101A] border border-white/[0.06]">
           <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
           <span className="text-xs text-white/50 font-medium tracking-wide">Ao vivo &middot; {timeStr}</span>
         </div>
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
       <div className="grid lg:grid-cols-2 gap-6">
 
         {/* Recent Winners */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] overflow-hidden">
           <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#f59e0b]/10 flex items-center justify-center">
               <span className="material-symbols-outlined text-base text-[#f59e0b]" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* PIX Deposits */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] overflow-hidden">
           <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#6366f1]/10 flex items-center justify-center">
               <span className="material-symbols-outlined text-base text-[#6366f1]">pix</span>
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Category Breakdown -- horizontally scrollable on mobile */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
+      <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] p-6">
         <h3 className="text-sm font-semibold text-white mb-5">Volume por Categoria</h3>
         <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
           {Object.entries(stats.catBreakdown).map(([cat, data]) => {
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Markets -- Table on desktop, Cards on mobile */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+      <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] overflow-hidden">
         <div className="px-6 py-4 border-b border-white/[0.06] flex justify-between items-center">
           <h3 className="text-sm font-semibold text-white">Mercados Ativos</h3>
           <span className="text-[11px] text-white/30 font-medium">
@@ -492,7 +492,7 @@ export default function AdminDashboard() {
       <div className="grid lg:grid-cols-2 gap-6">
 
         {/* Recent Bets */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] overflow-hidden">
           <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#10b981]/10 flex items-center justify-center">
               <span className="material-symbols-outlined text-base text-[#10b981]">receipt_long</span>
@@ -579,7 +579,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Risk Alerts */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] overflow-hidden">
           <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#ef4444]/10 flex items-center justify-center">
               <span className="material-symbols-outlined text-base text-[#ef4444]">warning</span>

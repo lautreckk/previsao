@@ -25,7 +25,7 @@ export function useChat() {
 
 // Avatar colors (deterministic from username)
 const AVATAR_COLORS = [
-  "from-[#FF6B6B] to-[#EE5A24]", "from-[#00D4AA] to-[#00B894]",
+  "from-[#FF6B6B] to-[#EE5A24]", "from-[#F5A623] to-[#C4841A]",
   "from-[#6C5CE7] to-[#A29BFE]", "from-[#FDCB6E] to-[#F39C12]",
   "from-[#00CEFF] to-[#0984E3]", "from-[#FD79A8] to-[#E84393]",
   "from-[#55E6C1] to-[#58B19F]", "from-[#FF9FF3] to-[#F368E0]",
@@ -41,7 +41,7 @@ export function avatarColor(name: string) {
 const BADGES: { min: number; icon: string; color: string; label: string }[] = [
   { min: 100, icon: "local_fire_department", color: "text-[#FF6B6B]", label: "Top" },
   { min: 50, icon: "bolt", color: "text-[#FDCB6E]", label: "Ativo" },
-  { min: 20, icon: "trending_up", color: "text-[#00D4AA]", label: "Regular" },
+  { min: 20, icon: "trending_up", color: "text-[#10B981]", label: "Regular" },
 ];
 
 export function getUserBadge(text: string) {

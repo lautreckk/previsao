@@ -50,7 +50,7 @@ export default function AdminFinance() {
         ].map((kpi) => (
           <div
             key={kpi.label}
-            className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111827]/80 backdrop-blur-xl p-5"
+            className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#12101A]/80 backdrop-blur-xl p-5"
           >
             {/* Subtle glow */}
             <div
@@ -70,7 +70,7 @@ export default function AdminFinance() {
 
       {/* Settlements */}
       {settlements.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827]/80 backdrop-blur-xl overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#12101A]/80 backdrop-blur-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-white/30">gavel</span>
             <h3 className="font-semibold text-[15px] text-white/90">Liquidacoes</h3>
@@ -157,7 +157,7 @@ export default function AdminFinance() {
       )}
 
       {/* Ledger */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#111827]/80 backdrop-blur-xl overflow-hidden">
+      <div className="rounded-2xl border border-white/[0.06] bg-[#12101A]/80 backdrop-blur-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-white/30">receipt_long</span>

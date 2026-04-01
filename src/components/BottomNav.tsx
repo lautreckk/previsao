@@ -29,8 +29,8 @@ export default function BottomNav() {
                 onClick={item.action}
                 className={`flex flex-col items-center justify-center transition-all px-3 py-1.5 ${
                   isActive
-                    ? "text-[#00D4AA]"
-                    : "text-[#5A6478] opacity-70 hover:text-[#00D4AA] active:scale-110"
+                    ? "text-[#E09520]"
+                    : "text-white/30 opacity-70 hover:text-[#E09520] active:scale-110"
                 }`}
               >
                 <span
@@ -50,8 +50,8 @@ export default function BottomNav() {
               href={item.href}
               className={`flex flex-col items-center justify-center transition-all px-3 py-1.5 ${
                 isActive
-                  ? "text-[#00D4AA]"
-                  : "text-[#5A6478] opacity-70 hover:text-[#00D4AA] active:scale-110"
+                  ? "text-[#E09520]"
+                  : "text-white/30 opacity-70 hover:text-[#E09520] active:scale-110"
               }`}
             >
               <span

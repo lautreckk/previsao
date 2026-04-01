@@ -153,7 +153,7 @@ export default function AdminPix() {
         ].map((kpi) => (
           <div
             key={kpi.label}
-            className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111827]/80 backdrop-blur-xl p-4"
+            className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#12101A]/80 backdrop-blur-xl p-4"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
             <p className="relative text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-2">
@@ -230,7 +230,7 @@ export default function AdminPix() {
       )}
 
       {/* Desktop Table */}
-      <div className="hidden md:block rounded-2xl border border-white/[0.06] bg-[#111827]/60 backdrop-blur-xl overflow-hidden">
+      <div className="hidden md:block rounded-2xl border border-white/[0.06] bg-[#12101A]/60 backdrop-blur-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -364,7 +364,7 @@ export default function AdminPix() {
         ) : filtered.map((tx) => (
           <div
             key={tx.id}
-            className="rounded-2xl border border-white/[0.06] bg-[#111827]/60 backdrop-blur-xl p-4 space-y-3"
+            className="rounded-2xl border border-white/[0.06] bg-[#12101A]/60 backdrop-blur-xl p-4 space-y-3"
           >
             {/* Card header: user + status */}
             <div className="flex items-start justify-between gap-2">

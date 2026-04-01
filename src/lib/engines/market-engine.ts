@@ -186,7 +186,7 @@ export function presetBinary(title: string, category: MarketCategory, desc: stri
     market_type: "yes_no",
     outcome_type: "yes_no",
     outcomes: [
-      { key: "YES", label: "Sim", color: "#00D4AA" },
+      { key: "YES", label: "Sim", color: "#10B981" },
       { key: "NO", label: "Nao", color: "#FF6B5A" },
     ],
     resolution_type: "manual",
@@ -205,7 +205,7 @@ export function presetUpDown(asset: string, timeframeMin: number, opts?: Partial
     market_type: "up_down",
     outcome_type: "up_down",
     outcomes: [
-      { key: "UP", label: "Sobe", color: "#00D4AA" },
+      { key: "UP", label: "Sobe", color: "#10B981" },
       { key: "DOWN", label: "Desce", color: "#FF6B5A" },
     ],
     resolution_type: "automatic",
@@ -229,7 +229,7 @@ export function presetSports(home: string, away: string, league: string, opts?: 
     market_type: "multi_outcome",
     outcome_type: "team_win_draw",
     outcomes: [
-      { key: "HOME", label: home, color: "#00D4AA" },
+      { key: "HOME", label: home, color: "#10B981" },
       { key: "DRAW", label: "Empate", color: "#FFB800" },
       { key: "AWAY", label: away, color: "#FF6B5A" },
     ],
@@ -242,7 +242,7 @@ export function presetSports(home: string, away: string, league: string, opts?: 
 }
 
 export function presetMultiChoice(title: string, category: MarketCategory, desc: string, choices: string[], opts?: Partial<CreateMarketParams>): CreateMarketParams {
-  const colors = ["#00D4AA", "#FFB800", "#FF6B5A", "#5B9DFF", "#E040FB", "#8B95A8"];
+  const colors = ["#10B981", "#FFB800", "#FF6B5A", "#5B9DFF", "#E040FB", "#8B95A8"];
   return {
     title,
     short_description: desc,

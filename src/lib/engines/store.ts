@@ -280,7 +280,7 @@ export function initializeStore() {
   urban1.subcategory = "Av. Curitiba, Goioere - PR";
   urban1.stream_url = "https://www.youtube.com/watch?v=ZWk3xR9mdtA";
   urban1.stream_type = "youtube";
-  urban1.outcomes[0] = { ...urban1.outcomes[0], key: "MAIS", label: "Mais de 26", pool: 2900, color: "#00FFB8" };
+  urban1.outcomes[0] = { ...urban1.outcomes[0], key: "MAIS", label: "Mais de 26", pool: 2900, color: "#10B981" };
   urban1.outcomes[1] = { ...urban1.outcomes[1], key: "ATE", label: "Ate 26", pool: 7100, color: "#FF5252" };
   seeds.push(urban1);
 
@@ -495,56 +495,56 @@ export function initializeStore() {
   };
 
   // Financeiro
-  seeds.push(q("Dolar (diario): sobe ou desce?", "economy", "Cotacao dolar comercial", [["Sobe", 2600, "#00D4AA"], ["Desce", 7400, "#FF6B5A"]], 4*H, "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=200&q=80", "Financeiro"));
-  seeds.push(q("Barril de Petroleo (5 minutos): sobe ou desce?", "economy", "Preco do petroleo Brent", [["Sobe", 3900, "#00D4AA"], ["Desce", 6100, "#FF6B5A"]], H, "https://images.unsplash.com/photo-1513828583688-c52646db42da?w=200&q=80", "Financeiro"));
-  seeds.push(q("O preco do Diesel vai subir esta semana?", "economy", "Monitoramento ANP", [["Sim", 7300, "#00D4AA"], ["Nao", 2700, "#FF6B5A"]], 11*H, "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=200&q=80", "Financeiro"));
-  seeds.push(q("IBOVESPA (Marco): Acima ou Abaixo?", "economy", "Indice Bovespa fechamento mensal", [["Acima", 1500, "#00D4AA"], ["Abaixo", 8500, "#FF6B5A"]], 4*D, "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=200&q=80", "Financeiro"));
-  seeds.push(q("Qual acao tera o maior retorno esta semana?", "economy", "PETR4, VALE3, ITUB4, BBDC4", [["PETR...", 6970, "#00D4AA"], ["VALE...", 1190, "#5B9DFF"]], 4*D, "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=200&q=80", "Financeiro"));
+  seeds.push(q("Dolar (diario): sobe ou desce?", "economy", "Cotacao dolar comercial", [["Sobe", 2600, "#10B981"], ["Desce", 7400, "#FF6B5A"]], 4*H, "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=200&q=80", "Financeiro"));
+  seeds.push(q("Barril de Petroleo (5 minutos): sobe ou desce?", "economy", "Preco do petroleo Brent", [["Sobe", 3900, "#10B981"], ["Desce", 6100, "#FF6B5A"]], H, "https://images.unsplash.com/photo-1513828583688-c52646db42da?w=200&q=80", "Financeiro"));
+  seeds.push(q("O preco do Diesel vai subir esta semana?", "economy", "Monitoramento ANP", [["Sim", 7300, "#10B981"], ["Nao", 2700, "#FF6B5A"]], 11*H, "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=200&q=80", "Financeiro"));
+  seeds.push(q("IBOVESPA (Marco): Acima ou Abaixo?", "economy", "Indice Bovespa fechamento mensal", [["Acima", 1500, "#10B981"], ["Abaixo", 8500, "#FF6B5A"]], 4*D, "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=200&q=80", "Financeiro"));
+  seeds.push(q("Qual acao tera o maior retorno esta semana?", "economy", "PETR4, VALE3, ITUB4, BBDC4", [["PETR...", 6970, "#10B981"], ["VALE...", 1190, "#5B9DFF"]], 4*D, "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=200&q=80", "Financeiro"));
 
   // Entretenimento
-  seeds.push(q("Carlinhos: stories ativos as 19h?", "entertainment", "Contagem de stories Carlinhos Maia", [["Mais de 94", 8320, "#00D4AA"], ["Ate 94", 620, "#FF6B5A"]], 6*H, "https://ui-avatars.com/api/?name=CM&background=e91e63&color=fff&size=200&bold=true", "Entretenimento"));
+  seeds.push(q("Carlinhos: stories ativos as 19h?", "entertainment", "Contagem de stories Carlinhos Maia", [["Mais de 94", 8320, "#10B981"], ["Ate 94", 620, "#FF6B5A"]], 6*H, "https://ui-avatars.com/api/?name=CM&background=e91e63&color=fff&size=200&bold=true", "Entretenimento"));
   seeds.push(q("Virginia: stories ativos as 19h?", "entertainment", "Contagem de stories Virginia Fonseca", [["36 a 50", 4570, "#FFB800"], ["50 a 70", 3310, "#5B9DFF"]], 6*H, "https://ui-avatars.com/api/?name=VF&background=FF69B4&color=fff&size=200&bold=true", "Entretenimento"));
   seeds.push(q("Virginia: stories ativos as 13h?", "entertainment", "Contagem de stories Virginia 13h", [["Ate 38", 2780, "#FFB800"], ["39 a 60", 2720, "#5B9DFF"]], 24*H, "https://ui-avatars.com/api/?name=VF&background=FF69B4&color=fff&size=200&bold=true", "Entretenimento"));
-  seeds.push(q("GTA VI: Preco acima de R$400 no lancamento?", "entertainment", "Rockstar Games", [["Sim", 7400, "#00D4AA"], ["Nao", 2600, "#FF6B5A"]], 33*W, "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=200&q=80", "Games"));
+  seeds.push(q("GTA VI: Preco acima de R$400 no lancamento?", "entertainment", "Rockstar Games", [["Sim", 7400, "#10B981"], ["Nao", 2600, "#FF6B5A"]], 33*W, "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=200&q=80", "Games"));
   seeds.push(q("Qual boi vencera o Festival de Parintins 2026?", "entertainment", "Festival Folclorico de Parintins", [["Boi Garantido", 5100, "#FF6B5A"], ["Boi Caprichoso", 4900, "#5B9DFF"]], 13*W, "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=200&q=80", "Cultura"));
-  seeds.push(q("Buzeira sera solto em 2026?", "entertainment", "Celebridades", [["Sim", 5400, "#00D4AA"], ["Nao", 4600, "#FF6B5A"]], 39*W, "https://ui-avatars.com/api/?name=BZ&background=FFB800&color=fff&size=200&bold=true", "Celebridades"));
+  seeds.push(q("Buzeira sera solto em 2026?", "entertainment", "Celebridades", [["Sim", 5400, "#10B981"], ["Nao", 4600, "#FF6B5A"]], 39*W, "https://ui-avatars.com/api/?name=BZ&background=FFB800&color=fff&size=200&bold=true", "Celebridades"));
   seeds.push(q("Jesus Cristo retornara ate 2030?", "entertainment", "Previsao mistica", [["Sim", 2000, "#FFB800"], ["Nao", 8000, "#FF6B5A"]], 39*W, "https://images.unsplash.com/photo-1445112098124-3e76dd67983c?w=200&q=80", "Celebridades"));
 
   // Esportes
-  seeds.push(q("Serie A: Atletico-MG vs Cruzeiro", "sports", "Brasileirao Serie A", [["Atletico", 3560, "#00D4AA"], ["Cruzeiro", 3800, "#FF6B5A"]], 2*D, "https://ui-avatars.com/api/?name=ATL&background=000000&color=fff&size=200&bold=true", "Brasileirao"));
-  seeds.push(q("Serie A: Botafogo vs Fluminense", "sports", "Brasileirao Serie A", [["Botaf...", 3850, "#00D4AA"], ["Mirando...", 3160, "#FF6B5A"]], 5*D, "https://ui-avatars.com/api/?name=BOT&background=000000&color=fff&size=200&bold=true", "Brasileirao"));
+  seeds.push(q("Serie A: Atletico-MG vs Cruzeiro", "sports", "Brasileirao Serie A", [["Atletico", 3560, "#10B981"], ["Cruzeiro", 3800, "#FF6B5A"]], 2*D, "https://ui-avatars.com/api/?name=ATL&background=000000&color=fff&size=200&bold=true", "Brasileirao"));
+  seeds.push(q("Serie A: Botafogo vs Fluminense", "sports", "Brasileirao Serie A", [["Botaf...", 3850, "#10B981"], ["Mirando...", 3160, "#FF6B5A"]], 5*D, "https://ui-avatars.com/api/?name=BOT&background=000000&color=fff&size=200&bold=true", "Brasileirao"));
   seeds.push(q("Serie A: Internacional vs Gremio", "sports", "Grenal", [["Inter", 3940, "#FF6B5A"], ["Gremio", 3200, "#5B9DFF"]], 35*W, "https://ui-avatars.com/api/?name=INT&background=CC0000&color=fff&size=200&bold=true", "Brasileirao"));
-  seeds.push(q("Serie A: Coritiba vs Vasco", "sports", "Brasileirao Serie A", [["Vasco...", 4320, "#5B9DFF"], ["Coritiba", 2800, "#00D4AA"]], 35*W, "https://ui-avatars.com/api/?name=VAS&background=000000&color=fff&size=200&bold=true", "Brasileirao"));
-  seeds.push(q("Serie A: Fluminense vs Corinthians", "sports", "Brasileirao Serie A", [["Corin...", 3770, "#00D4AA"], ["Flu", 3100, "#FF6B5A"]], 35*W, "https://ui-avatars.com/api/?name=FLU&background=8B0000&color=fff&size=200&bold=true", "Brasileirao"));
-  seeds.push(q("Brasileirao: Flamengo sera campeao 2026?", "sports", "Campeonato Brasileiro", [["Sim", 2800, "#00D4AA"], ["Nao", 7200, "#FF6B5A"]], 35*W, "https://ui-avatars.com/api/?name=FLA&background=FF0000&color=fff&size=200&bold=true", "Brasileirao"));
-  seeds.push(q("Brasileirao: Palmeiras sera campeao 2026?", "sports", "Campeonato Brasileiro", [["Sim", 2800, "#00D4AA"], ["Nao", 7200, "#FF6B5A"]], 35*W, "https://ui-avatars.com/api/?name=PAL&background=006400&color=fff&size=200&bold=true", "Brasileirao"));
-  seeds.push(q("Copa do Brasil: Corinthians avanca?", "sports", "Copa do Brasil 2026", [["Sim", 3800, "#00D4AA"], ["Nao", 6200, "#FF6B5A"]], 36*W, "https://ui-avatars.com/api/?name=COR&background=000000&color=fff&size=200&bold=true", "Copa do Brasil"));
-  seeds.push(q("Champions League: Real Madrid avanca?", "sports", "UEFA Champions League", [["Sim", 2800, "#00D4AA"], ["Nao", 7200, "#FF6B5A"]], 9*W, "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=200&q=80", "Champions"));
-  seeds.push(q("Champions League: Barcelona avanca?", "sports", "UEFA Champions League", [["Sim", 2300, "#00D4AA"], ["Nao", 7700, "#FF6B5A"]], 9*W, "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=200&q=80", "Champions"));
-  seeds.push(q("Neymar Jr sera convocado para a Selecao?", "sports", "Selecao Brasileira", [["Sim", 6200, "#00D4AA"], ["Nao", 3800, "#FF6B5A"]], 10*W, "https://ui-avatars.com/api/?name=NEY&background=FFFF00&color=000&size=200&bold=true", "Selecao"));
-  seeds.push(q("Copa do Mundo 2026: Brasil sera campeao?", "sports", "FIFA World Cup 2026", [["Sim", 1300, "#00D4AA"], ["Nao", 8700, "#FF6B5A"]], 16*W, "https://ui-avatars.com/api/?name=BR&background=009739&color=fff&size=200&bold=true", "Copa do Mundo"));
-  seeds.push(q("Dudu Fit x Ganley: Quem vence?", "sports", "Luta de exibicao", [["Ganley", 6000, "#00D4AA"], ["Dudu Fit", 4000, "#FF6B5A"]], 16*W, "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=200&q=80", "Lutas"));
-  seeds.push(q("Boxe: Floyd Mayweather x Manny Pacquiao 3?", "sports", "Luta confirmada?", [["Floyd...", 6800, "#00D4AA"], ["Manny...", 3200, "#FF6B5A"]], 25*W, "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=200&q=80", "Boxe"));
-  seeds.push(q("Mr. Olympia 2026: Ramon Dino vence?", "sports", "Fisiculturismo", [["Sim", 6300, "#00D4AA"], ["Nao", 3700, "#FF6B5A"]], 26*W, "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80", "Fisiculturismo"));
+  seeds.push(q("Serie A: Coritiba vs Vasco", "sports", "Brasileirao Serie A", [["Vasco...", 4320, "#5B9DFF"], ["Coritiba", 2800, "#10B981"]], 35*W, "https://ui-avatars.com/api/?name=VAS&background=000000&color=fff&size=200&bold=true", "Brasileirao"));
+  seeds.push(q("Serie A: Fluminense vs Corinthians", "sports", "Brasileirao Serie A", [["Corin...", 3770, "#10B981"], ["Flu", 3100, "#FF6B5A"]], 35*W, "https://ui-avatars.com/api/?name=FLU&background=8B0000&color=fff&size=200&bold=true", "Brasileirao"));
+  seeds.push(q("Brasileirao: Flamengo sera campeao 2026?", "sports", "Campeonato Brasileiro", [["Sim", 2800, "#10B981"], ["Nao", 7200, "#FF6B5A"]], 35*W, "https://ui-avatars.com/api/?name=FLA&background=FF0000&color=fff&size=200&bold=true", "Brasileirao"));
+  seeds.push(q("Brasileirao: Palmeiras sera campeao 2026?", "sports", "Campeonato Brasileiro", [["Sim", 2800, "#10B981"], ["Nao", 7200, "#FF6B5A"]], 35*W, "https://ui-avatars.com/api/?name=PAL&background=006400&color=fff&size=200&bold=true", "Brasileirao"));
+  seeds.push(q("Copa do Brasil: Corinthians avanca?", "sports", "Copa do Brasil 2026", [["Sim", 3800, "#10B981"], ["Nao", 6200, "#FF6B5A"]], 36*W, "https://ui-avatars.com/api/?name=COR&background=000000&color=fff&size=200&bold=true", "Copa do Brasil"));
+  seeds.push(q("Champions League: Real Madrid avanca?", "sports", "UEFA Champions League", [["Sim", 2800, "#10B981"], ["Nao", 7200, "#FF6B5A"]], 9*W, "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=200&q=80", "Champions"));
+  seeds.push(q("Champions League: Barcelona avanca?", "sports", "UEFA Champions League", [["Sim", 2300, "#10B981"], ["Nao", 7700, "#FF6B5A"]], 9*W, "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=200&q=80", "Champions"));
+  seeds.push(q("Neymar Jr sera convocado para a Selecao?", "sports", "Selecao Brasileira", [["Sim", 6200, "#10B981"], ["Nao", 3800, "#FF6B5A"]], 10*W, "https://ui-avatars.com/api/?name=NEY&background=FFFF00&color=000&size=200&bold=true", "Selecao"));
+  seeds.push(q("Copa do Mundo 2026: Brasil sera campeao?", "sports", "FIFA World Cup 2026", [["Sim", 1300, "#10B981"], ["Nao", 8700, "#FF6B5A"]], 16*W, "https://ui-avatars.com/api/?name=BR&background=009739&color=fff&size=200&bold=true", "Copa do Mundo"));
+  seeds.push(q("Dudu Fit x Ganley: Quem vence?", "sports", "Luta de exibicao", [["Ganley", 6000, "#10B981"], ["Dudu Fit", 4000, "#FF6B5A"]], 16*W, "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=200&q=80", "Lutas"));
+  seeds.push(q("Boxe: Floyd Mayweather x Manny Pacquiao 3?", "sports", "Luta confirmada?", [["Floyd...", 6800, "#10B981"], ["Manny...", 3200, "#FF6B5A"]], 25*W, "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=200&q=80", "Boxe"));
+  seeds.push(q("Mr. Olympia 2026: Ramon Dino vence?", "sports", "Fisiculturismo", [["Sim", 6300, "#10B981"], ["Nao", 3700, "#FF6B5A"]], 26*W, "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&q=80", "Fisiculturismo"));
 
   // Politica
-  seeds.push(q("Jair Bolsonaro entra no Caso...?", "politics", "Investigacao policial", [["Sim", 2200, "#00D4AA"], ["Nao", 7800, "#FF6B5A"]], 13*W, "https://ui-avatars.com/api/?name=JB&background=009739&color=fff&size=200&bold=true", "Politica BR"));
-  seeds.push(q("Andre Valadao entra no Caso...?", "politics", "Politica e religiao", [["Sim", 3300, "#00D4AA"], ["Nao", 6700, "#FF6B5A"]], 13*W, "https://ui-avatars.com/api/?name=AV&background=5B9DFF&color=fff&size=200&bold=true", "Politica BR"));
-  seeds.push(q("Tarcisio de Freitas entra no Caso...?", "politics", "Governador de SP", [["Sim", 3200, "#00D4AA"], ["Nao", 6800, "#FF6B5A"]], 13*W, "https://ui-avatars.com/api/?name=TF&background=FFB800&color=fff&size=200&bold=true", "Politica BR"));
-  seeds.push(q("O regime iraniano caira ate 2027?", "politics", "Geopolitica", [["Sim", 5000, "#00D4AA"], ["Nao", 5000, "#FF6B5A"]], 4*52*W, "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=200&q=80", "Geopolitica"));
-  seeds.push(q("O conflito entre Ira e Israel sera resolvido em 2026?", "politics", "Geopolitica Oriente Medio", [["Sim", 1100, "#00D4AA"], ["Nao", 8900, "#FF6B5A"]], 4*D, "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=200&q=80", "Geopolitica"));
-  seeds.push(q("Quem sera o candidato a presidencia dos EUA em 2028?", "politics", "Eleicoes americanas", [["Soldado...", 3420, "#00D4AA"], ["Gerla...", 2880, "#5B9DFF"]], 20*W, "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=200&q=80", "Politica EUA"));
-  seeds.push(q("Lulinha sera preso ate 2027?", "politics", "Investigacao", [["Sim", 3600, "#00D4AA"], ["Nao", 6400, "#FF6B5A"]], 39*W, "https://ui-avatars.com/api/?name=LL&background=CC0000&color=fff&size=200&bold=true", "Politica BR"));
-  seeds.push(q("O mercado preditivo sera regulamentado no Brasil?", "politics", "Legislacao brasileira", [["Sim", 7000, "#00D4AA"], ["Nao", 3000, "#FF6B5A"]], 39*W, "https://ui-avatars.com/api/?name=BR&background=009739&color=fff&size=200&bold=true", "Regulamentacao"));
-  seeds.push(q("EUA adquirem a Groenlandia ate 2030?", "politics", "Geopolitica internacional", [["Sim", 2600, "#00D4AA"], ["Nao", 7400, "#FF6B5A"]], 39*W, "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=200&q=80", "Geopolitica"));
-  seeds.push(q("Eleicao: Presidente do Brasil 2026", "politics", "Corrida eleitoral", [["Flavio...", 3920, "#00D4AA"], ["Lula", 3310, "#FF6B5A"]], 30*W, "https://ui-avatars.com/api/?name=BR&background=009739&color=fff&size=200&bold=true", "Eleicoes 2026"));
+  seeds.push(q("Jair Bolsonaro entra no Caso...?", "politics", "Investigacao policial", [["Sim", 2200, "#10B981"], ["Nao", 7800, "#FF6B5A"]], 13*W, "https://ui-avatars.com/api/?name=JB&background=009739&color=fff&size=200&bold=true", "Politica BR"));
+  seeds.push(q("Andre Valadao entra no Caso...?", "politics", "Politica e religiao", [["Sim", 3300, "#10B981"], ["Nao", 6700, "#FF6B5A"]], 13*W, "https://ui-avatars.com/api/?name=AV&background=5B9DFF&color=fff&size=200&bold=true", "Politica BR"));
+  seeds.push(q("Tarcisio de Freitas entra no Caso...?", "politics", "Governador de SP", [["Sim", 3200, "#10B981"], ["Nao", 6800, "#FF6B5A"]], 13*W, "https://ui-avatars.com/api/?name=TF&background=FFB800&color=fff&size=200&bold=true", "Politica BR"));
+  seeds.push(q("O regime iraniano caira ate 2027?", "politics", "Geopolitica", [["Sim", 5000, "#10B981"], ["Nao", 5000, "#FF6B5A"]], 4*52*W, "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=200&q=80", "Geopolitica"));
+  seeds.push(q("O conflito entre Ira e Israel sera resolvido em 2026?", "politics", "Geopolitica Oriente Medio", [["Sim", 1100, "#10B981"], ["Nao", 8900, "#FF6B5A"]], 4*D, "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=200&q=80", "Geopolitica"));
+  seeds.push(q("Quem sera o candidato a presidencia dos EUA em 2028?", "politics", "Eleicoes americanas", [["Soldado...", 3420, "#10B981"], ["Gerla...", 2880, "#5B9DFF"]], 20*W, "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=200&q=80", "Politica EUA"));
+  seeds.push(q("Lulinha sera preso ate 2027?", "politics", "Investigacao", [["Sim", 3600, "#10B981"], ["Nao", 6400, "#FF6B5A"]], 39*W, "https://ui-avatars.com/api/?name=LL&background=CC0000&color=fff&size=200&bold=true", "Politica BR"));
+  seeds.push(q("O mercado preditivo sera regulamentado no Brasil?", "politics", "Legislacao brasileira", [["Sim", 7000, "#10B981"], ["Nao", 3000, "#FF6B5A"]], 39*W, "https://ui-avatars.com/api/?name=BR&background=009739&color=fff&size=200&bold=true", "Regulamentacao"));
+  seeds.push(q("EUA adquirem a Groenlandia ate 2030?", "politics", "Geopolitica internacional", [["Sim", 2600, "#10B981"], ["Nao", 7400, "#FF6B5A"]], 39*W, "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=200&q=80", "Geopolitica"));
+  seeds.push(q("Eleicao: Presidente do Brasil 2026", "politics", "Corrida eleitoral", [["Flavio...", 3920, "#10B981"], ["Lula", 3310, "#FF6B5A"]], 30*W, "https://ui-avatars.com/api/?name=BR&background=009739&color=fff&size=200&bold=true", "Eleicoes 2026"));
 
   // Clima extra
-  seeds.push(q("Chove em Sao Paulo, SP em marco?", "weather", "INMET SP", [["Sim", 1400, "#00D4AA"], ["Nao", 8600, "#FF6B5A"]], 11*H, "https://images.unsplash.com/photo-1501691223387-dd0500403074?w=200&q=80", "Clima SP"));
-  seeds.push(q("Rio de Janeiro, RJ atinge 31°C amanha?", "weather", "Temperatura maxima INMET", [["Sim", 1600, "#00D4AA"], ["Nao", 8400, "#FF6B5A"]], D, "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=200&q=80", "Clima RJ"));
+  seeds.push(q("Chove em Sao Paulo, SP em marco?", "weather", "INMET SP", [["Sim", 1400, "#10B981"], ["Nao", 8600, "#FF6B5A"]], 11*H, "https://images.unsplash.com/photo-1501691223387-dd0500403074?w=200&q=80", "Clima SP"));
+  seeds.push(q("Rio de Janeiro, RJ atinge 31°C amanha?", "weather", "Temperatura maxima INMET", [["Sim", 1600, "#10B981"], ["Nao", 8400, "#FF6B5A"]], D, "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=200&q=80", "Clima RJ"));
 
   // Rodovia - Porto de Santos
-  const rodovia = q("Rodovia (5 min): quantos veiculos passam no Porto de Santos?", "custom", "Contagem automatica via IA. Camera ao vivo 24h - Entrada do Canal do Porto.", [["Mais de 97", 2900, "#00FFB8"], ["Ate 97", 7100, "#FF5252"]], 5 * 60000, "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=200&q=80", "Porto de Santos - SP");
+  const rodovia = q("Rodovia (5 min): quantos veiculos passam no Porto de Santos?", "custom", "Contagem automatica via IA. Camera ao vivo 24h - Entrada do Canal do Porto.", [["Mais de 97", 2900, "#10B981"], ["Ate 97", 7100, "#FF5252"]], 5 * 60000, "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=200&q=80", "Porto de Santos - SP");
   rodovia.stream_url = "https://www.youtube.com/watch?v=tMYtrEBNVAU";
   rodovia.stream_type = "youtube";
   seeds.push(rodovia);

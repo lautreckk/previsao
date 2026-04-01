@@ -45,9 +45,9 @@ function AdminLoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0A0910] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Ambient glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-[#00D4AA]/[0.04] blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-[#F5A623]/[0.04] blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[320px] h-[320px] rounded-full bg-[#FFB800]/[0.03] blur-[100px] pointer-events-none" />
 
       <div className="w-full max-w-[380px] relative z-10">
@@ -154,7 +154,7 @@ function MoreSheet({
           open ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="backdrop-blur-xl bg-[#111827]/95 border-t border-white/[0.06] rounded-t-3xl px-6 pt-4 pb-8">
+        <div className="backdrop-blur-xl bg-[#12101A]/95 border-t border-white/[0.06] rounded-t-3xl px-6 pt-4 pb-8">
           {/* Handle */}
           <div className="w-10 h-1 rounded-full bg-white/[0.12] mx-auto mb-6" />
           <div className="space-y-1">
@@ -179,7 +179,7 @@ function MoreSheet({
                   </span>
                   <span className="text-[15px] font-medium">{item.label}</span>
                   {isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00D4AA]" />
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#F5A623]" />
                   )}
                 </Link>
               );
@@ -224,7 +224,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   /* Loading state */
   if (checking) {
     return (
-      <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0910] flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
       </div>
     );
@@ -251,7 +251,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const moreItemActive = moreSheetItems.some((item) => pathname === item.href);
 
   return (
-    <div className="min-h-screen bg-[#0a0f1a] text-white">
+    <div className="min-h-screen bg-[#0A0910] text-white">
       {/* ============ DESKTOP SIDEBAR (lg+) ============ */}
       <aside className="hidden lg:flex fixed top-0 left-0 h-full w-[260px] flex-col z-40 backdrop-blur-xl bg-[#0b1120]/80 border-r border-white/[0.06]">
         {/* Sidebar header */}
@@ -278,11 +278,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 {/* Active pill indicator */}
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-[#00D4AA]" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-[#F5A623]" />
                 )}
                 <span
                   className={`material-symbols-outlined text-xl transition-colors duration-200 ${
-                    isActive ? "text-[#00D4AA]" : "text-white/30 group-hover:text-white/50"
+                    isActive ? "text-[#F5A623]" : "text-white/30 group-hover:text-white/50"
                   }`}
                   style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
@@ -327,7 +327,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ============ MAIN CONTENT ============ */}
       <div className="lg:pl-[260px] flex flex-col min-h-screen">
         {/* Header */}
-        <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0a0f1a]/80 border-b border-white/[0.04]">
+        <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#0A0910]/80 border-b border-white/[0.04]">
           <div className="h-12 lg:h-14 flex items-center px-5 lg:px-8">
             <span className="text-[13px] lg:text-sm text-white/30 font-medium">
               Admin
@@ -363,11 +363,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }`}
               >
                 {isActive && (
-                  <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#00D4AA]" />
+                  <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#F5A623]" />
                 )}
                 <span
                   className={`material-symbols-outlined text-[22px] transition-all duration-200 ${
-                    isActive ? "text-[#00D4AA]" : ""
+                    isActive ? "text-[#F5A623]" : ""
                   }`}
                   style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
@@ -385,11 +385,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             }`}
           >
             {moreItemActive && (
-              <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#00D4AA]" />
+              <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#F5A623]" />
             )}
             <span
               className={`material-symbols-outlined text-[22px] ${
-                moreItemActive ? "text-[#00D4AA]" : ""
+                moreItemActive ? "text-[#F5A623]" : ""
               }`}
               style={moreItemActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
             >

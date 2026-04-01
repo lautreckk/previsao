@@ -156,7 +156,7 @@ export async function generateWeatherMarkets(tier: "curto" | "medio" | "longo"):
         category: "weather",
         outcome_type: "yes_no",
         outcomes: [
-          { key: "YES", label: "Sim", color: "#00FFB8" },
+          { key: "YES", label: "Sim", color: "#10B981" },
           { key: "NO", label: "Nao", color: "#FF5252" },
         ],
         close_hours: 2,
@@ -245,7 +245,7 @@ export async function generateCryptoMarkets(tier: "curto" | "medio" | "longo"): 
         category: "crypto",
         outcome_type: "up_down",
         outcomes: [
-          { key: "UP", label: "Sobe", color: "#00FFB8" },
+          { key: "UP", label: "Sobe", color: "#10B981" },
           { key: "DOWN", label: "Desce", color: "#FF5252" },
         ],
         close_hours: 0.083,
@@ -271,7 +271,7 @@ export async function generateCryptoMarkets(tier: "curto" | "medio" | "longo"): 
         category: "crypto",
         outcome_type: "up_down",
         outcomes: [
-          { key: "UP", label: "Sobe", color: "#00FFB8" },
+          { key: "UP", label: "Sobe", color: "#10B981" },
           { key: "DOWN", label: "Desce", color: "#FF5252" },
         ],
         close_hours: 0.25,
@@ -297,7 +297,7 @@ export async function generateCryptoMarkets(tier: "curto" | "medio" | "longo"): 
         category: "crypto",
         outcome_type: "up_down",
         outcomes: [
-          { key: "UP", label: "Sobe", color: "#00FFB8" },
+          { key: "UP", label: "Sobe", color: "#10B981" },
           { key: "DOWN", label: "Desce", color: "#FF5252" },
         ],
         close_hours: 1,
@@ -324,7 +324,7 @@ export async function generateCryptoMarkets(tier: "curto" | "medio" | "longo"): 
         category: "crypto",
         outcome_type: "yes_no",
         outcomes: [
-          { key: "YES", label: `Sim, acima`, color: "#00FFB8" },
+          { key: "YES", label: `Sim, acima`, color: "#10B981" },
           { key: "NO", label: `Nao, abaixo`, color: "#FF5252" },
         ],
         close_hours: 24,
@@ -362,7 +362,7 @@ export async function generateForexMarkets(tier: "curto" | "medio" | "longo"): P
         category: "economy",
         outcome_type: "up_down",
         outcomes: [
-          { key: "UP", label: "Sobe", color: "#00FFB8" },
+          { key: "UP", label: "Sobe", color: "#10B981" },
           { key: "DOWN", label: "Desce", color: "#FF5252" },
         ],
         close_hours: 0.5,
@@ -387,7 +387,7 @@ export async function generateForexMarkets(tier: "curto" | "medio" | "longo"): P
         outcome_type: "yes_no",
         outcomes: [
           { key: "YES", label: `Sim, acima de R$ ${threshold.toFixed(2)}`, color: "#FF5252" },
-          { key: "NO", label: `Nao, abaixo`, color: "#00FFB8" },
+          { key: "NO", label: `Nao, abaixo`, color: "#10B981" },
         ],
         close_hours: 6,
         is_featured: false,
@@ -410,7 +410,7 @@ export async function generateForexMarkets(tier: "curto" | "medio" | "longo"): P
         outcome_type: "up_down",
         outcomes: [
           { key: "UP", label: "Sobe na semana", color: "#FF5252" },
-          { key: "DOWN", label: "Desce na semana", color: "#00FFB8" },
+          { key: "DOWN", label: "Desce na semana", color: "#10B981" },
         ],
         close_hours: 120,
         is_featured: false,
@@ -466,7 +466,7 @@ export async function generateStockMarkets(tier: "curto" | "medio" | "longo"): P
         category: "economy",
         outcome_type: "up_down",
         outcomes: [
-          { key: "UP", label: "Fecha em alta", color: "#00FFB8" },
+          { key: "UP", label: "Fecha em alta", color: "#10B981" },
           { key: "DOWN", label: "Fecha em queda", color: "#FF5252" },
         ],
         close_hours: 6,
@@ -490,7 +490,7 @@ export async function generateStockMarkets(tier: "curto" | "medio" | "longo"): P
         category: "economy",
         outcome_type: "multiple_choice",
         outcomes: [
-          { key: "PETR4", label: "PETR4", color: "#00FFB8" },
+          { key: "PETR4", label: "PETR4", color: "#10B981" },
           { key: "VALE3", label: "VALE3", color: "#FFB800" },
           { key: "ITUB4", label: "ITUB4", color: "#5B9DFF" },
         ],
@@ -546,7 +546,7 @@ export async function generateFootballMarkets(tier: "curto" | "medio" | "longo")
         category: "sports",
         outcome_type: "team_win_draw",
         outcomes: [
-          { key: "HOME", label: home, color: "#00FFB8" },
+          { key: "HOME", label: home, color: "#10B981" },
           { key: "DRAW", label: "Empate", color: "#FFB800" },
           { key: "AWAY", label: away, color: "#FF5252" },
         ],
@@ -577,7 +577,7 @@ export async function generateFootballMarkets(tier: "curto" | "medio" | "longo")
           category: "sports",
           outcome_type: "yes_no",
           outcomes: [
-            { key: "YES", label: "Mais de 8 gols", color: "#00FFB8" },
+            { key: "YES", label: "Mais de 8 gols", color: "#10B981" },
             { key: "NO", label: "8 gols ou menos", color: "#FF5252" },
           ],
           close_hours: 72,

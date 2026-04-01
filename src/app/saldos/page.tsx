@@ -17,7 +17,7 @@ export default function SaldosPage() {
         <div className="text-center">
           <span className="material-symbols-outlined text-5xl text-on-surface-variant">confirmation_number</span>
           <p className="mt-2 text-on-surface-variant mb-4">Faca login para ver seus saldos</p>
-          <Link href="/login" className="px-6 py-3 rounded-2xl kinetic-gradient text-[#003D2E] font-black font-headline text-sm uppercase">Entrar</Link>
+          <Link href="/login" className="px-6 py-3 rounded-2xl kinetic-gradient text-[#1A0E00] font-black font-headline text-sm uppercase">Entrar</Link>
         </div>
       </div>
     );
@@ -32,12 +32,12 @@ export default function SaldosPage() {
       <header className="bg-[#0b1120]/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 shadow-2xl shadow-emerald-500/10 overflow-hidden">
         <div className="flex justify-between items-center px-4 h-16">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()}><span className="material-symbols-outlined text-[#00D4AA]">arrow_back</span></button>
+            <button onClick={() => router.back()}><span className="material-symbols-outlined text-[#F5A623]">arrow_back</span></button>
             <Link href="/"><img src="/logo.png" alt="Winify" className="h-16 w-auto" /></Link>
           </div>
           <div className="bg-surface-container-highest px-4 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
-            <span className="text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">Saldo</span>
-            <span className="font-headline font-bold text-[#00D4AA]">R$ {user.balance.toFixed(2)}</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Saldo</span>
+            <span className="font-headline font-bold text-[#F5A623]">R$ {user.balance.toFixed(2)}</span>
           </div>
         </div>
       </header>
@@ -50,7 +50,7 @@ export default function SaldosPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-2 rounded-full font-headline font-bold text-sm whitespace-nowrap transition-all ${
                 activeTab === tab
-                  ? "bg-[#00D4AA]/10 text-[#00D4AA] shadow-[0_0_15px_rgba(0,212,170,0.2)]"
+                  ? "bg-[#F5A623]/10 text-[#F5A623] shadow-[0_0_15px_rgba(245,166,35,0.2)]"
                   : "text-on-surface-variant"
               }`}
             >
@@ -65,7 +65,7 @@ export default function SaldosPage() {
               {activeTab === "ativas" ? "Apostas Ativas" : activeTab === "resolvidas" ? "Resolvidas" : "Canceladas"}
             </h2>
             {activeTab === "ativas" && activeBets.length > 0 && (
-              <span className="text-[10px] font-bold text-[#00D4AA] uppercase tracking-[0.2em]">Live Tracking</span>
+              <span className="text-[10px] font-bold text-[#F5A623] uppercase tracking-[0.2em]">Live Tracking</span>
             )}
           </div>
 
@@ -73,18 +73,18 @@ export default function SaldosPage() {
             <div className="bg-surface-container rounded-2xl p-8 text-center">
               <span className="material-symbols-outlined text-3xl text-on-surface-variant mb-2 block">receipt_long</span>
               <p className="text-sm text-on-surface-variant">{activeTab === "ativas" ? "Nenhuma aposta ativa" : "Nenhuma aposta encontrada"}</p>
-              <Link href="/" className="text-[#00D4AA] text-sm font-bold font-headline mt-2 inline-block">Explorar mercados</Link>
+              <Link href="/" className="text-[#F5A623] text-sm font-bold font-headline mt-2 inline-block">Explorar mercados</Link>
             </div>
           ) : (
             displayedBets.map((bet) => (
-              <div key={bet.id} className={`bg-surface-container rounded-2xl overflow-hidden relative ${bet.status === "pending" ? "border-l-4 border-[#00D4AA]" : ""}`}>
+              <div key={bet.id} className={`bg-surface-container rounded-2xl overflow-hidden relative ${bet.status === "pending" ? "border-l-4 border-[#F5A623]" : ""}`}>
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1 min-w-0 flex-1 mr-3">
                       {bet.status === "pending" && (
                         <div className="flex items-center gap-2">
-                          <span className="flex h-2 w-2 rounded-full bg-[#00D4AA] animate-pulse" />
-                          <p className="text-[10px] font-black text-[#00D4AA] uppercase tracking-widest">Pendente</p>
+                          <span className="flex h-2 w-2 rounded-full bg-[#F5A623] animate-pulse" />
+                          <p className="text-[10px] font-black text-[#F5A623] uppercase tracking-widest">Pendente</p>
                         </div>
                       )}
                       <h3 className="font-headline font-bold text-lg leading-tight truncate">{bet.marketTitle}</h3>
@@ -100,10 +100,10 @@ export default function SaldosPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="space-y-1">
-                      <p className={`text-[10px] font-black uppercase tracking-widest ${bet.status === "won" ? "text-[#00D4AA]" : bet.status === "lost" ? "text-error" : "text-[#00D4AA]"}`}>
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${bet.status === "won" ? "text-[#F5A623]" : bet.status === "lost" ? "text-error" : "text-[#F5A623]"}`}>
                         {bet.status === "pending" ? "Retorno Potencial" : bet.status === "won" ? "Ganho" : "Perdido"}
                       </p>
-                      <p className={`font-headline font-black text-3xl tracking-tighter ${bet.status === "won" ? "text-[#00D4AA]" : bet.status === "lost" ? "text-error" : "text-[#00D4AA]"}`}>
+                      <p className={`font-headline font-black text-3xl tracking-tighter ${bet.status === "won" ? "text-[#F5A623]" : bet.status === "lost" ? "text-error" : "text-[#F5A623]"}`}>
                         R$ {bet.potentialWin.toFixed(2)}
                       </p>
                     </div>

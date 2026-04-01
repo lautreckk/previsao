@@ -70,7 +70,7 @@ export default function CameraFrameView({
             <div className="absolute inset-0 z-10" />
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-[#8B95A8]">
+          <div className="absolute inset-0 flex items-center justify-center text-white/50">
             <span className="material-symbols-outlined text-4xl">videocam_off</span>
           </div>
         )}
@@ -85,15 +85,15 @@ export default function CameraFrameView({
 
         {/* IA badge */}
         {hasFrame && (
-          <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#00FFB8]/20">
-            <span className="text-[10px] font-bold text-[#00FFB8] uppercase tracking-widest">IA YOLO</span>
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#F5A623]/20">
+            <span className="text-[10px] font-bold text-[#F5A623] uppercase tracking-widest">IA YOLO</span>
           </div>
         )}
 
         {/* Live count overlay (bottom-left) */}
-        <div className="absolute bottom-3 left-3 z-20 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#00FFB8]/30">
-          <p className="text-[8px] uppercase tracking-widest text-[#8B95A8] font-bold">Contagem Atual</p>
-          <p className="text-3xl font-black font-headline text-[#00FFB8] leading-none">{count}</p>
+        <div className="absolute bottom-3 left-3 z-20 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#F5A623]/30">
+          <p className="text-[8px] uppercase tracking-widest text-white/50 font-bold">Contagem Atual</p>
+          <p className="text-3xl font-black font-headline text-[#F5A623] leading-none">{count}</p>
         </div>
 
         {/* Recent detections ticker (bottom-right) */}
@@ -103,7 +103,7 @@ export default function CameraFrameView({
               const prev = i > 0 ? recentHistory[i - 1].count : h.count - 1;
               const isUp = h.count > prev;
               return (
-                <div key={i} className={`w-4 h-4 flex items-center justify-center rounded-sm ${isUp ? "bg-[#00FFB8]/80" : "bg-[#FFC700]/80"}`}>
+                <div key={i} className={`w-4 h-4 flex items-center justify-center rounded-sm ${isUp ? "bg-[#F5A623]/80" : "bg-[#FFC700]/80"}`}>
                   <span className="text-[8px] font-black text-black">{isUp ? "\u25B2" : "="}</span>
                 </div>
               );

@@ -52,14 +52,14 @@ function EventChat() {
 
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a3444] shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#00D4AA]/10 flex items-center justify-center"><span className="material-symbols-outlined text-[#00D4AA] text-sm">forum</span></div>
+          <div className="w-7 h-7 rounded-lg bg-[#F5A623]/10 flex items-center justify-center"><span className="material-symbols-outlined text-[#F5A623] text-sm">forum</span></div>
           <div>
             <span className="text-xs font-black text-white uppercase tracking-wider">CHAT AO VIVO</span>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00D4AA]" /></span>
-              <span className="text-[9px] text-[#00D4AA] font-bold">{onlineCount} online</span>
+              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F5A623] opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#F5A623]" /></span>
+              <span className="text-[9px] text-[#F5A623] font-bold">{onlineCount} online</span>
             </div>
           </div>
         </div>
@@ -74,7 +74,7 @@ function EventChat() {
                 <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[10px] font-black text-white shrink-0 mt-0.5`}>{msg.user.replace("@", "").charAt(0).toUpperCase()}</div>
               ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
-                {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#00D4AA] font-bold text-[11px] truncate">{msg.user}</span></div>}
+                {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#F5A623] font-bold text-[11px] truncate">{msg.user}</span></div>}
                 <p className="text-[12px] text-gray-300 break-words leading-relaxed">{msg.text}</p>
               </div>
             </div>
@@ -83,23 +83,23 @@ function EventChat() {
       </div>
       {!isAtBottom && unread > 0 && (
         <button onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnread(0); }}
-          className="absolute bottom-[56px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-[#00D4AA] text-[#003D2E] px-2.5 py-1 rounded-full text-[10px] font-black shadow-[0_4px_12px_rgba(0,212,170,0.4)] animate-bounce">
+          className="absolute bottom-[56px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-[#F5A623] text-[#1A0E00] px-2.5 py-1 rounded-full text-[10px] font-black shadow-[0_4px_12px_rgba(245,166,35,0.4)] animate-bounce">
           <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>keyboard_arrow_down</span>{unread} novas
         </button>
       )}
-      <div className="px-3 py-2.5 border-t border-[#2a3444] shrink-0 bg-[#0a1020]">
+      <div className="px-3 py-2.5 border-t border-white/[0.06] shrink-0 bg-[#0a1020]">
         {user ? (
           <>
-            <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
+            <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#F5A623]/40 transition-colors px-3">
               <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder-[#5A6478]" />
-              <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
-              <button onClick={send} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+              <button className="text-white/30 hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
+              <button onClick={send} className="text-white/30 hover:text-[#F5A623] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
             </div>
-            <p className="text-[10px] text-[#3a4a5a] mt-1 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70">regras da comunidade</span></p>
+            <p className="text-[10px] text-[#3a4a5a] mt-1 text-center">Seja respeitoso. Siga as <span className="text-[#F5A623]/70">regras da comunidade</span></p>
           </>
         ) : (
           <div className="text-center py-1.5">
-            <p className="text-[11px] text-[#5A6478]">Faca <a href="/login" className="text-[#00D4AA] font-bold">login</a> para participar do chat</p>
+            <p className="text-[11px] text-white/30">Faca <a href="/login" className="text-[#F5A623] font-bold">login</a> para participar do chat</p>
           </div>
         )}
       </div>
@@ -287,7 +287,7 @@ export default function EventoPage() {
 
   if (!market) return (
     <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white">
-      <div className="text-center"><span className="material-symbols-outlined text-5xl text-[#8B95A8]">error</span><p className="mt-2 text-[#8B95A8]">Mercado nao encontrado</p><button onClick={() => router.push("/")} className="mt-4 text-[#00D4AA] font-bold">Voltar</button></div>
+      <div className="text-center"><span className="material-symbols-outlined text-5xl text-white/50">error</span><p className="mt-2 text-white/50">Mercado nao encontrado</p><button onClick={() => router.push("/")} className="mt-4 text-[#F5A623] font-bold">Voltar</button></div>
     </div>
   );
 
@@ -346,12 +346,12 @@ export default function EventoPage() {
         {/* ─── LEFT: Market info + Outcomes ─── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
           {/* Header */}
-          <header className="flex items-center justify-between px-4 py-3 border-b border-[#1a2a3a] bg-[#0d1525] shrink-0">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14] shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/" className="text-[#00D4AA] shrink-0"><span className="material-symbols-outlined">arrow_back</span></Link>
+              <Link href="/" className="text-[#F5A623] shrink-0"><span className="material-symbols-outlined">arrow_back</span></Link>
               <img src="/logo.png" alt="Winify" className="h-8 w-auto" />
             </div>
-            {user && <Link href="/perfil" className="bg-[#1a2332] border border-[#2a3444] px-3 py-1.5 rounded-lg text-sm font-bold text-[#00D4AA]">R$ {user.balance.toFixed(2)}</Link>}
+            {user && <Link href="/perfil" className="bg-[#1A1722] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#F5A623]">R$ {user.balance.toFixed(2)}</Link>}
           </header>
 
           {/* Result Banner (resolved markets) */}
@@ -372,17 +372,17 @@ export default function EventoPage() {
             <div className="flex items-center gap-2 mb-1.5">
               {meta && <span className="material-symbols-outlined text-sm" style={{ color: meta.color }}>{meta.icon}</span>}
               <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: meta?.color }}>{meta?.label}</span>
-              {market.subcategory && <span className="text-[10px] text-[#5A6478]">/ {market.subcategory}</span>}
+              {market.subcategory && <span className="text-[10px] text-white/30">/ {market.subcategory}</span>}
             </div>
             <h1 className="text-xl lg:text-2xl font-black leading-tight mb-1 line-clamp-2 lg:line-clamp-none">{market.title}</h1>
-            {market.short_description && <p className="text-sm text-[#8B95A8] mb-3">{market.short_description}</p>}
+            {market.short_description && <p className="text-sm text-white/50 mb-3">{market.short_description}</p>}
             {!isLiveRound && (
               <div className="flex items-center gap-3 flex-wrap mb-4">
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-[#00D4AA] animate-pulse" : "bg-[#FF5252]"}`} /> {market.status.toUpperCase()}
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-[#F5A623] animate-pulse" : "bg-[#FF5252]"}`} /> {market.status.toUpperCase()}
                 </div>
-                <span className="text-xs text-[#8B95A8] font-bold tabular-nums">{timeStr}</span>
-                <span className="text-xs text-[#5A6478]">Pool: R$ {market.pool_total.toFixed(0)}</span>
+                <span className="text-xs text-white/50 font-bold tabular-nums">{timeStr}</span>
+                <span className="text-xs text-white/30">Pool: R$ {market.pool_total.toFixed(0)}</span>
               </div>
             )}
           </div>
@@ -427,14 +427,14 @@ export default function EventoPage() {
 
               {/* Probability bars (like Palpitano chart area) */}
               <div className="px-5 mb-4">
-                <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-4">
+                <div className="bg-[#0D0B14] rounded-xl border border-white/[0.04] p-4">
                   <div className="flex items-center gap-3 flex-wrap mb-4">
                     {market.outcomes.map((o) => {
                       const prob = probabilities.find((p) => p.key === o.key);
                       return (
                         <div key={o.key} className="flex items-center gap-1.5">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: o.color }} />
-                          <span className="text-xs text-[#8B95A8]">{o.label}: <span className="text-white font-bold">{prob ? (prob.probability * 100).toFixed(1) : "0"}%</span></span>
+                          <span className="text-xs text-white/50">{o.label}: <span className="text-white font-bold">{prob ? (prob.probability * 100).toFixed(1) : "0"}%</span></span>
                         </div>
                       );
                     })}
@@ -465,7 +465,7 @@ export default function EventoPage() {
                       key={o.key}
                       onClick={() => { if (!isOpen) return; setSelectedOutcome(o.key); setError(""); }}
                       disabled={!isOpen}
-                      className={`w-full text-left bg-[#0d1525] rounded-xl border p-3 transition-all cursor-pointer active:scale-[0.98] ${isActive ? "border-[#00D4AA]/50 bg-[#00D4AA]/5 ring-1 ring-[#00D4AA]/30" : "border-[#1a2a3a] hover:border-[#2a3a4a]"} disabled:opacity-50 disabled:cursor-not-allowed ${flashKeys[o.key] === "up" ? "ring-2 ring-[#00D4AA]" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252]" : ""}`}
+                      className={`w-full text-left bg-[#0D0B14] rounded-xl border p-3 transition-all cursor-pointer active:scale-[0.98] ${isActive ? "border-[#F5A623]/50 bg-[#F5A623]/5 ring-1 ring-[#F5A623]/30" : "border-white/[0.04] hover:border-[#2a3a4a]"} disabled:opacity-50 disabled:cursor-not-allowed ${flashKeys[o.key] === "up" ? "ring-2 ring-[#F5A623]" : ""} ${flashKeys[o.key] === "down" ? "ring-2 ring-[#FF5252]" : ""}`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ backgroundColor: o.color + "15", color: o.color }}>
@@ -473,13 +473,13 @@ export default function EventoPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="font-bold text-sm block truncate">{o.label}</span>
-                          <span className="text-[10px] text-[#5A6478]">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
+                          <span className="text-[10px] text-white/30">{prob ? (prob.probability * 100).toFixed(0) : "0"}% chance</span>
                         </div>
                         <div className="text-right shrink-0">
                           <span className="block text-sm font-black" style={{ color: o.color }}>
                             {(o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95)).toFixed(2)}x
                           </span>
-                          <span className="block text-[10px] text-[#5A6478]">
+                          <span className="block text-[10px] text-white/30">
                             {isActive ? "Selecionado" : "Clique para apostar"}
                           </span>
                         </div>
@@ -493,29 +493,29 @@ export default function EventoPage() {
         </div>
 
         {/* ─── MIDDLE: Bet form + Positions ─── */}
-        <div className="w-full lg:w-[340px] lg:border-l border-t lg:border-t-0 border-[#1a2a3a] flex flex-col bg-[#0a1222] overflow-hidden lg:max-h-screen">
+        <div className="w-full lg:w-[340px] lg:border-l border-t lg:border-t-0 border-white/[0.04] flex flex-col bg-[#0a1222] overflow-hidden lg:max-h-screen">
           {selected ? (
             <div className="flex-1 overflow-y-auto">
               {/* Bet header */}
-              <div className="px-4 py-3 border-b border-[#1a2a3a] flex items-center justify-between">
+              <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: selected.color + "15" }}>
                     <span className="text-xs font-black" style={{ color: selected.color }}>{selected.key.slice(0, 2).toUpperCase()}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-[#8B95A8]">Sim</span>
+                    <span className="text-xs text-white/50">Sim</span>
                     <span className="block text-sm font-black" style={{ color: selected.color }}>{selected.label}</span>
                   </div>
                 </div>
-                <button onClick={() => setSelectedOutcome(null)} className="text-[#5A6478] hover:text-white"><span className="material-symbols-outlined text-sm">close</span></button>
+                <button onClick={() => setSelectedOutcome(null)} className="text-white/30 hover:text-white"><span className="material-symbols-outlined text-sm">close</span></button>
               </div>
 
               <div className="p-4 space-y-4">
                 {/* Comprar / Vender tabs */}
-                <div className="flex gap-1 bg-[#111827] rounded-lg p-1">
+                <div className="flex gap-1 bg-[#12101A] rounded-lg p-1">
                   <button className="flex-1 py-2 rounded-md text-xs font-black bg-[#1a2a3a] text-white">Comprar</button>
-                  <button className="flex-1 py-2 rounded-md text-xs font-black text-[#5A6478]">Vender</button>
-                  <button className="py-2 px-3 rounded-md text-[#5A6478] hover:text-white"><span className="material-symbols-outlined text-sm">sync_alt</span> <span className="text-[10px]">A mercado</span></button>
+                  <button className="flex-1 py-2 rounded-md text-xs font-black text-white/30">Vender</button>
+                  <button className="py-2 px-3 rounded-md text-white/30 hover:text-white"><span className="material-symbols-outlined text-sm">sync_alt</span> <span className="text-[10px]">A mercado</span></button>
                 </div>
 
                 {/* Outcome buttons */}
@@ -533,33 +533,33 @@ export default function EventoPage() {
                 {/* Amount */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-[#8B95A8] font-bold">Quantia</span>
-                    {user && <span className="text-[10px] text-[#5A6478]">Saldo: R$ {user.balance.toFixed(2)}</span>}
+                    <span className="text-xs text-white/50 font-bold">Quantia</span>
+                    {user && <span className="text-[10px] text-white/30">Saldo: R$ {user.balance.toFixed(2)}</span>}
                   </div>
                   <div className="flex items-center gap-2 mb-2">
-                    <button onClick={() => { const v = Math.max(0, (parseFloat(betAmount) || 0) - 1); setBetAmount(v > 0 ? String(v) : ""); }} className="w-10 h-10 rounded-lg bg-[#1a2a3a] text-[#8B95A8] hover:text-white flex items-center justify-center text-lg font-bold">-</button>
+                    <button onClick={() => { const v = Math.max(0, (parseFloat(betAmount) || 0) - 1); setBetAmount(v > 0 ? String(v) : ""); }} className="w-10 h-10 rounded-lg bg-[#1a2a3a] text-white/50 hover:text-white flex items-center justify-center text-lg font-bold">-</button>
                     <div className="flex-1 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <span className="text-[#8B95A8] text-lg font-bold">R$</span>
+                        <span className="text-white/50 text-lg font-bold">R$</span>
                         <input type="number" value={betAmount} onChange={(e) => { setBetAmount(e.target.value); setError(""); }} placeholder="0" className="bg-transparent text-center text-2xl sm:text-3xl font-black text-white outline-none w-24 sm:w-32 tabular-nums" />
                       </div>
                     </div>
-                    <button onClick={() => setBetAmount(String((parseFloat(betAmount) || 0) + 1))} className="w-10 h-10 rounded-lg bg-[#1a2a3a] text-[#8B95A8] hover:text-white flex items-center justify-center text-lg font-bold">+</button>
+                    <button onClick={() => setBetAmount(String((parseFloat(betAmount) || 0) + 1))} className="w-10 h-10 rounded-lg bg-[#1a2a3a] text-white/50 hover:text-white flex items-center justify-center text-lg font-bold">+</button>
                   </div>
                   <div className="grid grid-cols-5 gap-1.5">
                     {[1, 10, 50, 100].map((v) => (
-                      <button key={v} onClick={() => setBetAmount(String(v))} className={`py-2.5 rounded-lg text-xs font-bold transition-all ${betAmount === String(v) ? "bg-[#00D4AA]/20 text-[#00D4AA] border border-[#00D4AA]/40" : "bg-[#1a2a3a] text-[#8B95A8] hover:text-white"}`}>{v}</button>
+                      <button key={v} onClick={() => setBetAmount(String(v))} className={`py-2.5 rounded-lg text-xs font-bold transition-all ${betAmount === String(v) ? "bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/40" : "bg-[#1a2a3a] text-white/50 hover:text-white"}`}>{v}</button>
                     ))}
-                    <button onClick={() => user && setBetAmount(String(Math.floor(user.balance)))} className="py-2.5 rounded-lg text-xs font-bold bg-[#1a2a3a] text-[#8B95A8] hover:text-white">MAX</button>
+                    <button onClick={() => user && setBetAmount(String(Math.floor(user.balance)))} className="py-2.5 rounded-lg text-xs font-bold bg-[#1a2a3a] text-white/50 hover:text-white">MAX</button>
                   </div>
                 </div>
 
                 {/* Potential win */}
-                <div className="flex items-center justify-between py-3 border-t border-[#1a2a3a]">
-                  <span className="text-sm text-[#8B95A8]">Para ganhar</span>
+                <div className="flex items-center justify-between py-3 border-t border-white/[0.04]">
+                  <span className="text-sm text-white/50">Para ganhar</span>
                   <div className="text-right">
-                    <span className="text-xl font-black text-[#00D4AA]">R$ {potentialWin.toFixed(2)}</span>
-                    <span className="block text-[10px] text-[#5A6478]">{potentialPayout.toFixed(2)}x</span>
+                    <span className="text-xl font-black text-[#F5A623]">R$ {potentialWin.toFixed(2)}</span>
+                    <span className="block text-[10px] text-white/30">{potentialPayout.toFixed(2)}x</span>
                   </div>
                 </div>
 
@@ -572,7 +572,7 @@ export default function EventoPage() {
 
                 {/* Confirm button */}
                 {!user ? (
-                  <Link href="/login" className="block w-full py-4 rounded-xl bg-[#00D4AA] text-[#003D2E] font-black text-sm text-center uppercase tracking-wider">Faca login para apostar</Link>
+                  <Link href="/login" className="block w-full py-4 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black text-sm text-center uppercase tracking-wider">Faca login para apostar</Link>
                 ) : (
                   <div>
                     <button onClick={() => {
@@ -581,12 +581,12 @@ export default function EventoPage() {
                       if (user.balance < amt) { setError("Saldo insuficiente"); return; }
                       setShowConfirm(true);
                     }} disabled={!betAmount || parseFloat(betAmount) <= 0}
-                      className="w-full py-4 rounded-xl bg-[#00D4AA] text-[#003D2E] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(0,212,170,0.3)]"
+                      className="w-full py-4 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(245,166,35,0.3)]"
                     >
                       Comprar {selected.label}
                     </button>
                     {(!betAmount || parseFloat(betAmount) <= 0) && (
-                      <p className="text-[10px] text-[#5A6478] text-center mt-2 flex items-center justify-center gap-1">
+                      <p className="text-[10px] text-white/30 text-center mt-2 flex items-center justify-center gap-1">
                         <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>info</span>
                         Insira um valor acima para apostar
                       </p>
@@ -598,9 +598,9 @@ export default function EventoPage() {
           ) : (
             /* No outcome selected — show positions */
             <>
-              <div className="flex border-b border-[#1a2a3a]">
+              <div className="flex border-b border-white/[0.04]">
                 {(["posicoes", "aberto", "encerradas"] as const).map((t) => (
-                  <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#00D4AA] border-b-2 border-[#00D4AA]" : "text-[#5A6478]"}`}>
+                  <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#F5A623] border-b-2 border-[#F5A623]" : "text-white/30"}`}>
                     {t === "posicoes" ? "Posicoes" : t === "aberto" ? "Em aberto" : "Encerradas"}
                   </button>
                 ))}
@@ -608,19 +608,19 @@ export default function EventoPage() {
               <div className="flex-1 overflow-y-auto p-4">
                 {!user ? (
                   <div className="text-center py-8">
-                    <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-6">
-                      <div className="w-14 h-14 rounded-2xl bg-[#00D4AA]/10 flex items-center justify-center mx-auto mb-3">
-                        <span className="material-symbols-outlined text-[#00D4AA] text-2xl">account_circle</span>
+                    <div className="bg-[#0D0B14] rounded-xl border border-white/[0.04] p-6">
+                      <div className="w-14 h-14 rounded-2xl bg-[#F5A623]/10 flex items-center justify-center mx-auto mb-3">
+                        <span className="material-symbols-outlined text-[#F5A623] text-2xl">account_circle</span>
                       </div>
                       <p className="text-sm text-white font-bold mb-1">Faca login para comecar</p>
-                      <p className="text-xs text-[#5A6478] mb-4">Veja suas posicoes, historico e gerencie suas previsoes.</p>
-                      <Link href="/login" className="inline-block px-6 py-2.5 rounded-lg bg-[#00D4AA] text-[#003D2E] text-sm font-black uppercase tracking-wider hover:bg-[#00D4AA]/90 active:scale-95 transition-all">Entrar</Link>
+                      <p className="text-xs text-white/30 mb-4">Veja suas posicoes, historico e gerencie suas previsoes.</p>
+                      <Link href="/login" className="inline-block px-6 py-2.5 rounded-lg bg-[#F5A623] text-[#1A0E00] text-sm font-black uppercase tracking-wider hover:bg-[#F5A623]/90 active:scale-95 transition-all">Entrar</Link>
                     </div>
                   </div>
                 ) : betsLoading ? (
                   <div className="text-center py-8">
-                    <div className="w-8 h-8 border-2 border-[#00D4AA]/30 border-t-[#00D4AA] rounded-full animate-spin mx-auto" />
-                    <p className="text-xs text-[#5A6478] mt-3">Carregando posicoes...</p>
+                    <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-white/30 mt-3">Carregando posicoes...</p>
                   </div>
                 ) : (() => {
                   // POSICOES = bets on THIS market. EM ABERTO / ENCERRADAS = ALL user bets across all markets
@@ -633,16 +633,16 @@ export default function EventoPage() {
                   if (filteredBets.length === 0) {
                     return (
                       <div className="text-center py-8">
-                        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-6">
+                        <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-6">
                           <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
-                            <span className="material-symbols-outlined text-[#5A6478] text-2xl">
+                            <span className="material-symbols-outlined text-white/30 text-2xl">
                               {tab === "posicoes" ? "touch_app" : tab === "aberto" ? "hourglass_empty" : "check_circle"}
                             </span>
                           </div>
                           <p className="text-sm text-white font-bold mb-1">
                             {tab === "posicoes" ? "Nenhuma posicao ainda" : tab === "aberto" ? "Nenhuma aposta em aberto" : "Nenhuma aposta encerrada"}
                           </p>
-                          <p className="text-xs text-[#5A6478]">Selecione um resultado ao lado para fazer sua previsao.</p>
+                          <p className="text-xs text-white/30">Selecione um resultado ao lado para fazer sua previsao.</p>
                         </div>
                       </div>
                     );
@@ -655,28 +655,28 @@ export default function EventoPage() {
                   return (
                     <div className="space-y-3">
                       {/* Summary bar */}
-                      <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-3 flex items-center justify-between">
+                      <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 flex items-center justify-between">
                         <div>
-                          <span className="text-[10px] text-[#5A6478] uppercase tracking-wider font-bold">Investido</span>
+                          <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Investido</span>
                           <p className="text-sm font-black text-white font-mono">R$ {totalInvested.toFixed(2)}</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-[#5A6478] uppercase tracking-wider font-bold">Potencial</span>
-                          <p className="text-sm font-black text-[#00D4AA] font-mono">R$ {totalPotential.toFixed(2)}</p>
+                          <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Potencial</span>
+                          <p className="text-sm font-black text-[#F5A623] font-mono">R$ {totalPotential.toFixed(2)}</p>
                         </div>
                       </div>
 
                       {/* Bet cards */}
                       {filteredBets.map((bet) => {
                         const outcomeObj = market.outcomes.find((o) => o.key === bet.outcome_key);
-                        const outcomeColor = outcomeObj?.color || "#00D4AA";
+                        const outcomeColor = outcomeObj?.color || "#F5A623";
                         const isWon = bet.status === "won";
                         const isLost = bet.status === "lost";
                         const isPending = bet.status === "pending";
                         const potentialReturn = bet.amount * bet.payout_at_entry;
 
                         return (
-                          <div key={bet.id} className="bg-[#111827] rounded-xl border border-white/[0.06] p-3 transition-all hover:border-white/[0.12]">
+                          <div key={bet.id} className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 transition-all hover:border-white/[0.12]">
                             {/* Header: outcome + status */}
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
@@ -689,17 +689,17 @@ export default function EventoPage() {
                                   <span className="text-sm font-bold text-white">{bet.outcome_label}</span>
                                   {/* Show market title for bets from other markets */}
                                   {"market_title" in bet && (bet as AllUserBet).market_title && (bet as AllUserBet).market_id !== market.id && (
-                                    <span className="block text-[10px] text-[#00D4AA] truncate max-w-[140px]">{(bet as AllUserBet).market_title}</span>
+                                    <span className="block text-[10px] text-[#F5A623] truncate max-w-[140px]">{(bet as AllUserBet).market_title}</span>
                                   )}
-                                  <span className="block text-[10px] text-[#5A6478]">
+                                  <span className="block text-[10px] text-white/30">
                                     {new Date(bet.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                   </span>
                                 </div>
                               </div>
                               <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                isWon ? "bg-[#00D4AA]/10 text-[#00D4AA]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#FFD700]/10 text-[#FFD700]"
+                                isWon ? "bg-[#F5A623]/10 text-[#F5A623]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#FFD700]/10 text-[#FFD700]"
                               }`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#00D4AA]" : isLost ? "bg-[#FF5252]" : "bg-[#FFD700] animate-pulse"}`} />
+                                <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#F5A623]" : isLost ? "bg-[#FF5252]" : "bg-[#FFD700] animate-pulse"}`} />
                                 {isWon ? "Ganhou" : isLost ? "Perdeu" : "Em aberto"}
                               </div>
                             </div>
@@ -707,22 +707,22 @@ export default function EventoPage() {
                             {/* Bet details */}
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
                               <div className="flex justify-between">
-                                <span className="text-[#5A6478]">Valor</span>
+                                <span className="text-white/30">Valor</span>
                                 <span className="font-bold text-white font-mono">R$ {bet.amount.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-[#5A6478]">Odds</span>
+                                <span className="text-white/30">Odds</span>
                                 <span className="font-bold text-white font-mono">{bet.payout_at_entry.toFixed(2)}x</span>
                               </div>
                               <div className="flex justify-between col-span-2">
-                                <span className="text-[#5A6478]">Potencial</span>
-                                <span className={`font-bold font-mono ${isPending ? "text-[#00D4AA]" : isWon ? "text-[#00D4AA]" : "text-[#FF5252]"}`}>
+                                <span className="text-white/30">Potencial</span>
+                                <span className={`font-bold font-mono ${isPending ? "text-[#F5A623]" : isWon ? "text-[#F5A623]" : "text-[#FF5252]"}`}>
                                   {isLost ? "- R$ " + bet.amount.toFixed(2) : "R$ " + potentialReturn.toFixed(2)}
                                 </span>
                               </div>
                               {bet.entry_price && (
                                 <div className="flex justify-between col-span-2 pt-1.5 border-t border-white/[0.06]">
-                                  <span className="text-[#5A6478]">Entrada</span>
+                                  <span className="text-white/30">Entrada</span>
                                   <span className="font-bold text-white font-mono">R$ {bet.entry_price.toFixed(4)}</span>
                                 </div>
                               )}
@@ -739,7 +739,7 @@ export default function EventoPage() {
         </div>
 
         {/* ─── RIGHT: Chat ─── */}
-        <div className="w-full lg:w-[340px] border-l border-[#1a2a3a] flex flex-col bg-[#0d1525] overflow-hidden hidden lg:flex">
+        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden hidden lg:flex">
           <EventChat />
         </div>
       </div>
@@ -747,29 +747,29 @@ export default function EventoPage() {
       {/* Confirm modal */}
       {showConfirm && selected && user && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="bg-[#0d1525] rounded-2xl p-6 w-full max-w-sm border border-[#2a3444]">
+          <div className="bg-[#0D0B14] rounded-2xl p-6 w-full max-w-sm border border-white/[0.06]">
             <h3 className="text-lg font-black mb-4 text-center uppercase">Confirmar Previsao</h3>
             <div className="space-y-2 text-sm mb-6">
-              <div className="flex justify-between"><span className="text-[#5A6478]">Mercado</span><span className="font-bold text-right max-w-[200px] truncate">{market.title}</span></div>
-              <div className="flex justify-between"><span className="text-[#5A6478]">Resultado</span><span className="font-bold" style={{ color: selected.color }}>{selected.label}</span></div>
-              <div className="flex justify-between"><span className="text-[#5A6478]">Valor</span><span className="font-bold">R$ {parseFloat(betAmount).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-[#5A6478]">Payout est.</span><span className="font-bold">{potentialPayout.toFixed(2)}x</span></div>
-              <div className="flex justify-between border-t border-[#1a2a3a] pt-2"><span className="text-[#5A6478]">Retorno est.</span><span className="font-black text-[#00D4AA]">R$ {potentialWin.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-white/30">Mercado</span><span className="font-bold text-right max-w-[200px] truncate">{market.title}</span></div>
+              <div className="flex justify-between"><span className="text-white/30">Resultado</span><span className="font-bold" style={{ color: selected.color }}>{selected.label}</span></div>
+              <div className="flex justify-between"><span className="text-white/30">Valor</span><span className="font-bold">R$ {parseFloat(betAmount).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-white/30">Payout est.</span><span className="font-bold">{potentialPayout.toFixed(2)}x</span></div>
+              <div className="flex justify-between border-t border-white/[0.04] pt-2"><span className="text-white/30">Retorno est.</span><span className="font-black text-[#F5A623]">R$ {potentialWin.toFixed(2)}</span></div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 rounded-xl bg-[#1a2a3a] text-[#8B95A8] font-bold">Cancelar</button>
-              <button onClick={handleBet} disabled={placing} className="flex-1 py-3 rounded-xl bg-[#00D4AA] text-[#003D2E] font-black uppercase disabled:opacity-50">{placing ? "Enviando..." : "Confirmar"}</button>
+              <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 rounded-xl bg-[#1a2a3a] text-white/50 font-bold">Cancelar</button>
+              <button onClick={handleBet} disabled={placing} className="flex-1 py-3 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black uppercase disabled:opacity-50">{placing ? "Enviando..." : "Confirmar"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {betPlaced && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-[#00D4AA] text-[#003D2E] px-6 py-3 rounded-xl font-black text-sm shadow-[0_4px_20px_rgba(0,212,170,0.4)]">Previsao realizada!</div>}
+      {betPlaced && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-[#F5A623] text-[#1A0E00] px-6 py-3 rounded-xl font-black text-sm shadow-[0_4px_20px_rgba(245,166,35,0.4)]">Previsao realizada!</div>}
 
       {/* Mobile chat FAB */}
       <button
         onClick={() => setMobileChatOpen(true)}
-        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-[#00D4AA] text-[#003D2E] flex items-center justify-center shadow-[0_4px_20px_rgba(0,212,170,0.4)] hover:scale-105 active:scale-95 transition-all"
+        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-[#F5A623] text-[#1A0E00] flex items-center justify-center shadow-[0_4px_20px_rgba(245,166,35,0.4)] hover:scale-105 active:scale-95 transition-all"
       >
         <span className="material-symbols-outlined text-lg">forum</span>
       </button>

@@ -306,10 +306,10 @@ export const DEFAULT_CONFIG: PlatformConfig = {
 export const CATEGORY_META: Record<MarketCategory, { label: string; icon: string; color: string }> = {
   crypto: { label: "Criptomoedas", icon: "currency_bitcoin", color: "#FFB800" },
   politics: { label: "Politica", icon: "account_balance", color: "#5B9DFF" },
-  sports: { label: "Esportes", icon: "sports_soccer", color: "#00D4AA" },
+  sports: { label: "Esportes", icon: "sports_soccer", color: "#10B981" },
   weather: { label: "Clima", icon: "wb_sunny", color: "#FFB800" },
   war: { label: "Geopolitica", icon: "public", color: "#FF6B5A" },
-  economy: { label: "Economia", icon: "trending_up", color: "#00D4AA" },
+  economy: { label: "Economia", icon: "trending_up", color: "#10B981" },
   entertainment: { label: "Entretenimento", icon: "movie", color: "#E040FB" },
   social_media: { label: "Redes Sociais", icon: "forum", color: "#5B9DFF" },
   custom: { label: "Outros", icon: "category", color: "#8B95A8" },

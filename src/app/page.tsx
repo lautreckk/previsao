@@ -95,7 +95,7 @@ function WinnersTicker() {
   const translateX = -(offset % totalWidth);
 
   return (
-    <div className="bg-[#060d18] border-b border-[#1a2a3a] overflow-hidden h-10 flex items-center">
+    <div className="bg-[#060d18] border-b border-white/[0.04] overflow-hidden h-10 flex items-center">
       <div className="flex items-center gap-0 whitespace-nowrap" style={{ transform: `translateX(${translateX}px)`, transition: "none" }}>
         {items.map((w, i) => (
           <div key={i} className="flex items-center gap-2.5 px-5 shrink-0" style={{ minWidth: `${itemWidth}px` }}>
@@ -103,8 +103,8 @@ function WinnersTicker() {
               {w.name.charAt(0)}
             </div>
             <span className="text-white font-black text-xs">{w.name}</span>
-            <span className="text-[#5A6478] text-[10px]">{w.time}</span>
-            <span className="text-[#00FFB8] font-black text-xs">{typeof w.amount === "number" ? `R$ ${w.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : w.amount}</span>
+            <span className="text-white/30 text-[10px]">{w.time}</span>
+            <span className="text-[#F5A623] font-black text-xs">{typeof w.amount === "number" ? `R$ ${w.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : w.amount}</span>
           </div>
         ))}
       </div>
@@ -351,26 +351,26 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#080d1a] overflow-x-hidden">
       {/* HEADER */}
-      <header className="sticky top-0 z-50 bg-[#0d1525]/95 backdrop-blur-xl border-b border-[#1a2a3a] px-4 lg:px-6 h-14 flex items-center gap-4">
+      <header className="sticky top-0 z-50 bg-[#0D0B14]/95 backdrop-blur-xl border-b border-white/[0.04] px-4 lg:px-6 h-14 flex items-center gap-4">
         <Link href="/" className="shrink-0">
           <img src="/logo.png" alt="Winify" className="h-10 w-auto" />
         </Link>
         <div className="flex-1 max-w-lg mx-auto hidden sm:block" ref={searchRef}>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6478] text-sm">search</span>
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">search</span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               placeholder="Buscar mercados..."
-              className="w-full bg-[#0d1525] rounded-lg pl-10 pr-4 py-2 text-sm text-white border border-[#2a3444] outline-none focus:border-[#00D4AA]/40 placeholder-[#5A6478]"
+              className="w-full bg-[#0D0B14] rounded-lg pl-10 pr-4 py-2 text-sm text-white border border-white/[0.06] outline-none focus:border-[#E09520]/40 placeholder-[#5A6478]"
             />
             {search.length > 0 && searchFocused && (() => {
               const results = openMarkets
                 .filter((m) => m.title.toLowerCase().includes(search.toLowerCase()))
                 .slice(0, 6);
               return results.length > 0 ? (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[#0D0B14] border border-white/[0.06] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
                   {results.map((m) => {
                     const isCam = !!m.stream_url || m.id.startsWith("cam_");
                     const href = isCam ? `/camera/${m.id}` : `/evento/${m.id}`;
@@ -379,26 +379,26 @@ export default function Home() {
                         key={m.id}
                         href={href}
                         onClick={() => { setSearch(""); setSearchFocused(false); }}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1a2332] transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1A1722] transition-colors"
                       >
                         {m.banner_url ? (
                           <img src={m.banner_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
                         ) : (
-                          <div className="w-8 h-8 rounded-md bg-[#1a2332] flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-[#5A6478] text-sm">monitoring</span>
+                          <div className="w-8 h-8 rounded-md bg-[#1A1722] flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-white/30 text-sm">monitoring</span>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-white truncate">{m.title}</p>
-                          <p className="text-xs text-[#5A6478]">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p>
+                          <p className="text-xs text-white/30">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p>
                         </div>
-                        <span className="text-xs text-[#00D4AA] font-bold shrink-0">R$ {(m.pool_total || 0).toFixed(2)}</span>
+                        <span className="text-xs text-[#E09520] font-bold shrink-0">R$ {(m.pool_total || 0).toFixed(2)}</span>
                       </Link>
                     );
                   })}
                 </div>
               ) : (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 z-[60] px-4 py-3 text-center text-sm text-[#5A6478]">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[#0D0B14] border border-white/[0.06] rounded-lg shadow-2xl shadow-black/50 z-[60] px-4 py-3 text-center text-sm text-white/30">
                   Nenhum mercado encontrado
                 </div>
               );
@@ -408,13 +408,13 @@ export default function Home() {
         <div className="ml-auto flex items-center gap-2">
           {user ? (
             <>
-              <Link href="/deposito" className="kinetic-gradient text-[#003D2E] px-4 py-2 rounded-lg text-sm font-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,255,184,0.3)] hover:shadow-[0_0_25px_rgba(0,255,184,0.5)] hover:scale-105 active:scale-95 transition-all">
+              <Link href="/deposito" className="kinetic-gradient text-[#1A0E00] px-4 py-2 rounded-lg text-sm font-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,166,35,0.3)] hover:shadow-[0_0_25px_rgba(245,166,35,0.5)] hover:scale-105 active:scale-95 transition-all">
                 <span className="material-symbols-outlined text-base">add</span>Depositar
               </Link>
-              <Link href="/perfil" className="bg-[#1a2332] border border-[#2a3444] px-3 py-1.5 rounded-lg text-sm font-bold text-[#00D4AA]">R$ {user.balance.toFixed(2)}</Link>
+              <Link href="/perfil" className="bg-[#1A1722] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#E09520]">R$ {user.balance.toFixed(2)}</Link>
             </>
           ) : (
-            <Link href="/login" className="kinetic-gradient text-[#003D2E] px-5 py-2 rounded-lg text-sm font-black shadow-[0_0_20px_rgba(0,212,170,0.4)]">Entrar</Link>
+            <Link href="/login" className="kinetic-gradient text-[#1A0E00] px-5 py-2 rounded-lg text-sm font-black shadow-[0_0_20px_rgba(224,149,32,0.4)]">Entrar</Link>
           )}
         </div>
       </header>
@@ -422,20 +422,20 @@ export default function Home() {
       {/* MOBILE SEARCH - visible only on small screens */}
       <div className="sm:hidden px-4 pt-3 pb-1">
         <div className="relative" ref={searchRef}>
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6478] text-sm">search</span>
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm">search</span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             placeholder="Buscar mercados..."
-            className="w-full bg-[#0d1525] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white border border-[#2a3444] outline-none focus:border-[#00D4AA]/40 placeholder-[#5A6478]"
+            className="w-full bg-[#0D0B14] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white border border-white/[0.06] outline-none focus:border-[#E09520]/40 placeholder-[#5A6478]"
           />
           {search.length > 0 && searchFocused && (() => {
             const results = openMarkets
               .filter((m) => m.title.toLowerCase().includes(search.toLowerCase()))
               .slice(0, 6);
             return results.length > 0 ? (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#0D0B14] border border-white/[0.06] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
                 {results.map((m) => {
                   const isCam = !!m.stream_url || m.id.startsWith("cam_");
                   const href = isCam ? `/camera/${m.id}` : `/evento/${m.id}`;
@@ -444,25 +444,25 @@ export default function Home() {
                       key={m.id}
                       href={href}
                       onClick={() => { setSearch(""); setSearchFocused(false); }}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1a2332] transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1A1722] transition-colors"
                     >
                       {m.banner_url ? (
                         <img src={m.banner_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
                       ) : (
-                        <div className="w-8 h-8 rounded-md bg-[#1a2332] flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-[#5A6478] text-sm">monitoring</span>
+                        <div className="w-8 h-8 rounded-md bg-[#1A1722] flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-white/30 text-sm">monitoring</span>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white truncate">{m.title}</p>
-                        <p className="text-xs text-[#5A6478]">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p>
+                        <p className="text-xs text-white/30">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p>
                       </div>
                     </Link>
                   );
                 })}
               </div>
             ) : (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1525] border border-[#2a3444] rounded-lg shadow-2xl shadow-black/50 z-[60] px-4 py-3 text-center text-sm text-[#5A6478]">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#0D0B14] border border-white/[0.06] rounded-lg shadow-2xl shadow-black/50 z-[60] px-4 py-3 text-center text-sm text-white/30">
                 Nenhum mercado encontrado
               </div>
             );
@@ -476,7 +476,7 @@ export default function Home() {
       {/* PROMO BANNER */}
       <div className="px-4 lg:px-6 py-3 max-w-screen-xl mx-auto">
         <Link href="/criar-conta">
-          <div className="relative w-full rounded-2xl overflow-hidden group cursor-pointer hover:shadow-[0_0_40px_rgba(0,212,170,0.3)] transition-all border border-[#00D4AA]/20 max-h-[200px] sm:max-h-[260px] lg:max-h-[320px]">
+          <div className="relative w-full rounded-2xl overflow-hidden group cursor-pointer hover:shadow-[0_0_40px_rgba(224,149,32,0.3)] transition-all border border-[#E09520]/20 max-h-[200px] sm:max-h-[260px] lg:max-h-[320px]">
             <img src="/banner-promo.png" alt="Aqui tudo que voce sabe vira dinheiro! Jogue a partir de R$10" className="w-full h-full object-cover rounded-2xl" />
           </div>
         </Link>
@@ -486,7 +486,7 @@ export default function Home() {
         {/* MAIN CONTENT */}
         <main className="flex-1 min-w-0">
           {/* Categories row with scroll indicators */}
-          <div className="relative border-b border-[#2a3444]">
+          <div className="relative border-b border-white/[0.06]">
             {catScrollState.left && (
               <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0d1525] to-transparent z-10 pointer-events-none" />
             )}
@@ -498,11 +498,11 @@ export default function Home() {
               onScroll={updateCatScroll}
               className="px-4 lg:px-6 py-3 flex items-center gap-1 overflow-x-auto no-scrollbar"
             >
-              <button onClick={() => setActiveCategory("all")} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === "all" ? "bg-[#00FFB8]/10 border border-[#00FFB8]/40 text-[#00FFB8]" : "text-[#8B95A8] hover:text-white"}`}>
+              <button onClick={() => setActiveCategory("all")} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === "all" ? "bg-[#F5A623]/10 border border-[#F5A623]/40 text-[#F5A623]" : "text-white/50 hover:text-white"}`}>
                 <span className="material-symbols-outlined text-sm">dashboard</span>Todos
               </button>
               {catEntries.map(([key, meta]) => (
-                <button key={key} onClick={() => setActiveCategory(key)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === key ? "bg-[#00FFB8]/10 border border-[#00FFB8]/40 text-[#00FFB8]" : "text-[#8B95A8] hover:text-white"}`}>
+                <button key={key} onClick={() => setActiveCategory(key)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 transition-all ${activeCategory === key ? "bg-[#F5A623]/10 border border-[#F5A623]/40 text-[#F5A623]" : "text-white/50 hover:text-white"}`}>
                   <span className="material-symbols-outlined text-sm">{meta.icon}</span>{meta.label}
                 </button>
               ))}
@@ -510,8 +510,8 @@ export default function Home() {
           </div>
 
           {/* Sub tabs — ordenacao */}
-          <div className="px-4 lg:px-6 py-2.5 flex items-center gap-2 border-b border-[#2a3444]">
-            <span className="text-[10px] text-[#5A6478] font-bold uppercase tracking-wider shrink-0 mr-1">Ordenar</span>
+          <div className="px-4 lg:px-6 py-2.5 flex items-center gap-2 border-b border-white/[0.06]">
+            <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider shrink-0 mr-1">Ordenar</span>
             {([
               { key: "closing" as const, label: "Encerram em breve", icon: null, activeColor: "bg-white/10 text-white border-white/20" },
               { key: "relampago" as const, label: "Relampago", icon: "bolt", activeColor: "bg-[#FFB800]/10 text-[#FFB800] border-[#FFB800]/30" },
@@ -520,7 +520,7 @@ export default function Home() {
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${activeTab === t.key ? t.activeColor : "border-transparent text-[#5A6478] hover:text-white hover:bg-white/5"}`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${activeTab === t.key ? t.activeColor : "border-transparent text-white/30 hover:text-white hover:bg-white/5"}`}
               >
                 {t.icon && <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{t.icon}</span>}
                 {t.label}
@@ -533,7 +533,7 @@ export default function Home() {
             {marketsLoading ? (
               /* Skeleton loading cards */
               Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4 h-[200px] animate-pulse">
+                <div key={i} className="rounded-2xl border border-white/[0.06] bg-[#12101A] p-4 h-[200px] animate-pulse">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-16 h-5 rounded-md bg-white/[0.06]" />
                     <div className="flex-1" />
@@ -548,9 +548,9 @@ export default function Home() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#00D4AA]/30" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#E09520]/30" />
                       <div className="h-3 rounded bg-white/[0.04] flex-1" />
-                      <div className="w-10 h-4 rounded bg-[#00D4AA]/10" />
+                      <div className="w-10 h-4 rounded bg-[#E09520]/10" />
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#FF5252]/30" />
@@ -560,8 +560,8 @@ export default function Home() {
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-white/[0.04] pt-2">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-[#00D4AA]/30 animate-ping" />
-                      <div className="w-12 h-3 rounded bg-[#00D4AA]/10" />
+                      <div className="w-2 h-2 rounded-full bg-[#E09520]/30 animate-ping" />
+                      <div className="w-12 h-3 rounded bg-[#E09520]/10" />
                     </div>
                     <div className="w-14 h-3 rounded bg-white/[0.04]" />
                   </div>
@@ -570,7 +570,7 @@ export default function Home() {
             ) : sorted.length > 0 ? (
               sorted.map((m) => <MarketCard key={m.id} market={m} />)
             ) : (
-              <div className="col-span-full text-center py-12 text-[#5A6478]">
+              <div className="col-span-full text-center py-12 text-white/30">
                 <span className="material-symbols-outlined text-4xl mb-2 block">search_off</span>
                 <p>Nenhum mercado encontrado.</p>
               </div>
@@ -580,23 +580,23 @@ export default function Home() {
 
         {/* CHAT SIDEBAR - desktop only, collapsible */}
         {chatOpen ? (
-          <aside className="hidden xl:flex flex-col w-80 2xl:w-96 border-l border-[#2a3444] bg-[#0d1525] sticky top-14 h-[calc(100vh-56px)] relative">
+          <aside className="hidden xl:flex flex-col w-80 2xl:w-96 border-l border-white/[0.06] bg-[#0D0B14] sticky top-14 h-[calc(100vh-56px)] relative">
             {/* Chat header */}
-            <div className="px-4 py-3 border-b border-[#2a3444] shrink-0">
+            <div className="px-4 py-3 border-b border-white/[0.06] shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#00D4AA]/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[#00D4AA] text-base">forum</span>
+                  <div className="w-8 h-8 rounded-lg bg-[#E09520]/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[#E09520] text-base">forum</span>
                   </div>
                   <div>
                     <h3 className="font-black text-sm uppercase tracking-wider leading-none">Chat ao Vivo</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D4AA]" /></span>
-                      <span className="text-[10px] text-[#00D4AA] font-bold">{onlineCount} online</span>
+                      <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E09520] opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-[#E09520]" /></span>
+                      <span className="text-[10px] text-[#E09520] font-bold">{onlineCount} online</span>
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setChatOpen(false)} className="w-8 h-8 rounded-lg bg-[#1a2332] flex items-center justify-center text-[#5A6478] hover:text-white hover:bg-[#2a3444] transition-colors" title="Minimizar chat">
+                <button onClick={() => setChatOpen(false)} className="w-8 h-8 rounded-lg bg-[#1A1722] flex items-center justify-center text-white/30 hover:text-white hover:bg-[#2a3444] transition-colors" title="Minimizar chat">
                   <span className="material-symbols-outlined text-base">chevron_right</span>
                 </button>
               </div>
@@ -612,7 +612,7 @@ export default function Home() {
                 const timeStr = timeAgo === 0 ? "agora" : `${timeAgo}min`;
 
                 return (
-                  <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1a2332]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
+                  <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1A1722]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
                     {/* Avatar */}
                     {!isGrouped ? (
                       <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColor(msg.user)} flex items-center justify-center text-[11px] font-black text-white shrink-0 mt-0.5`}>
@@ -625,9 +625,9 @@ export default function Home() {
                     <div className="min-w-0 flex-1">
                       {!isGrouped && (
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[#00D4AA] font-bold text-xs truncate">{msg.user}</span>
+                          <span className="text-[#E09520] font-bold text-xs truncate">{msg.user}</span>
                           {badge && (
-                            <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#1a2332] border border-[#2a3444] ${badge.color}`}>
+                            <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#1A1722] border border-white/[0.06] ${badge.color}`}>
                               <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>{badge.icon}</span>
                               <span className="text-[9px] font-black uppercase">{badge.label}</span>
                             </span>
@@ -646,7 +646,7 @@ export default function Home() {
             {!isAtBottom && unreadCount > 0 && (
               <button
                 onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnreadCount(0); }}
-                className="absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#00D4AA] text-[#003D2E] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(0,212,170,0.4)] hover:shadow-[0_4px_20px_rgba(0,212,170,0.6)] transition-all animate-bounce"
+                className="absolute bottom-[72px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#E09520] text-[#1A0E00] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(224,149,32,0.4)] hover:shadow-[0_4px_20px_rgba(224,149,32,0.6)] transition-all animate-bounce"
               >
                 <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
                 {unreadCount} {unreadCount === 1 ? "nova mensagem" : "novas mensagens"}
@@ -654,20 +654,20 @@ export default function Home() {
             )}
 
             {/* Chat input */}
-            <div className="px-3 py-3 border-t border-[#2a3444] shrink-0 bg-[#0a1020]">
+            <div className="px-3 py-3 border-t border-white/[0.06] shrink-0 bg-[#0a1020]">
               {user ? (
                 <>
-                  <div className="flex items-center gap-2 bg-[#1a2332] rounded-xl border border-[#2a3444] focus-within:border-[#00D4AA]/40 transition-colors px-3">
+                  <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#E09520]/40 transition-colors px-3">
                     <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2.5 text-sm text-white outline-none placeholder-[#5A6478]" />
-                    <button className="text-[#5A6478] hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
-                    <button onClick={sendChat} className="text-[#5A6478] hover:text-[#00D4AA] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+                    <button className="text-white/30 hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
+                    <button onClick={sendChat} className="text-white/30 hover:text-[#E09520] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
                   </div>
-                  <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#00D4AA]/70 hover:text-[#00D4AA] cursor-pointer">regras da comunidade</span></p>
+                  <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">Seja respeitoso. Siga as <span className="text-[#E09520]/70 hover:text-[#E09520] cursor-pointer">regras da comunidade</span></p>
                 </>
               ) : (
                 <div className="text-center py-2">
-                  <p className="text-xs text-[#5A6478] mb-2">Faca login para participar do chat</p>
-                  <Link href="/login" className="inline-block px-4 py-2 rounded-lg bg-[#00D4AA]/10 text-[#00D4AA] text-xs font-bold border border-[#00D4AA]/30 hover:bg-[#00D4AA]/20 transition-colors">Entrar</Link>
+                  <p className="text-xs text-white/30 mb-2">Faca login para participar do chat</p>
+                  <Link href="/login" className="inline-block px-4 py-2 rounded-lg bg-[#E09520]/10 text-[#E09520] text-xs font-bold border border-[#E09520]/30 hover:bg-[#E09520]/20 transition-colors">Entrar</Link>
                 </div>
               )}
             </div>
@@ -677,7 +677,7 @@ export default function Home() {
         {/* Chat FAB - visible on lg when chat sidebar is hidden, or when collapsed */}
         <button
           onClick={() => setChatOpen(!chatOpen)}
-          className={`hidden lg:flex ${chatOpen ? "xl:hidden" : ""} fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#00D4AA] text-[#003D2E] items-center justify-center shadow-[0_4px_20px_rgba(0,212,170,0.4)] hover:shadow-[0_4px_30px_rgba(0,212,170,0.6)] hover:scale-105 active:scale-95 transition-all`}
+          className={`hidden lg:flex ${chatOpen ? "xl:hidden" : ""} fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#E09520] text-[#1A0E00] items-center justify-center shadow-[0_4px_20px_rgba(224,149,32,0.4)] hover:shadow-[0_4px_30px_rgba(224,149,32,0.6)] hover:scale-105 active:scale-95 transition-all`}
         >
           <span className="material-symbols-outlined text-xl">{chatOpen ? "close" : "forum"}</span>
           {!chatOpen && unreadCount > 0 && (
@@ -687,20 +687,20 @@ export default function Home() {
       </div>
 
       {/* FOOTER */}
-      <footer className="border-t border-[#1a2a3a] bg-[#060d18] mt-8">
+      <footer className="border-t border-white/[0.04] bg-[#060d18] mt-8">
         <div className="max-w-screen-xl mx-auto px-6 py-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8">
             {/* Logo */}
             <div className="col-span-2 sm:col-span-4 lg:col-span-1">
               <img src="/logo.png" alt="Palpitano" className="h-10 w-auto mb-3" />
-              <p className="text-xs text-[#5A6478] leading-relaxed max-w-[240px]">A plataforma onde seu conhecimento vira oportunidade. Mercados de previsao em tempo real.</p>
+              <p className="text-xs text-white/30 leading-relaxed max-w-[240px]">A plataforma onde seu conhecimento vira oportunidade. Mercados de previsao em tempo real.</p>
             </div>
             {/* Categorias */}
             <div>
               <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Categorias</h4>
               <ul className="space-y-2">
                 {(["Criptomoedas", "Esportes", "Entretenimento", "Politica"] as const).map((c) => (
-                  <li key={c}><button onClick={() => { setActiveCategory(c === "Criptomoedas" ? "crypto" : c === "Esportes" ? "sports" : c === "Entretenimento" ? "entertainment" : "politics"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">{c}</button></li>
+                  <li key={c}><button onClick={() => { setActiveCategory(c === "Criptomoedas" ? "crypto" : c === "Esportes" ? "sports" : c === "Entretenimento" ? "entertainment" : "politics"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-white/50 hover:text-[#E09520] transition-colors">{c}</button></li>
                 ))}
               </ul>
             </div>
@@ -708,38 +708,38 @@ export default function Home() {
             <div>
               <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Mercados</h4>
               <ul className="space-y-2">
-                <li><button onClick={() => { setActiveTab("closing"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Encerram em breve</button></li>
-                <li><button onClick={() => { setActiveTab("hot"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Em Alta</button></li>
-                <li><button onClick={() => { setActiveTab("relampago"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Relampago</button></li>
-                <li><button onClick={() => { setActiveCategory("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Todos os mercados</button></li>
+                <li><button onClick={() => { setActiveTab("closing"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-white/50 hover:text-[#E09520] transition-colors">Encerram em breve</button></li>
+                <li><button onClick={() => { setActiveTab("hot"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-white/50 hover:text-[#E09520] transition-colors">Em Alta</button></li>
+                <li><button onClick={() => { setActiveTab("relampago"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-white/50 hover:text-[#E09520] transition-colors">Relampago</button></li>
+                <li><button onClick={() => { setActiveCategory("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-white/50 hover:text-[#E09520] transition-colors">Todos os mercados</button></li>
               </ul>
             </div>
             {/* Minha conta */}
             <div>
               <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Minha conta</h4>
               <ul className="space-y-2">
-                <li><Link href="/perfil" className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Perfil</Link></li>
-                <li><Link href="/saldos" className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Minhas apostas</Link></li>
-                <li><Link href="/deposito" className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors">Deposito</Link></li>
+                <li><Link href="/perfil" className="text-xs text-white/50 hover:text-[#E09520] transition-colors">Perfil</Link></li>
+                <li><Link href="/saldos" className="text-xs text-white/50 hover:text-[#E09520] transition-colors">Minhas apostas</Link></li>
+                <li><Link href="/deposito" className="text-xs text-white/50 hover:text-[#E09520] transition-colors">Deposito</Link></li>
               </ul>
             </div>
             {/* Suporte */}
             <div>
               <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Suporte</h4>
               <ul className="space-y-2">
-                <li><span className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors cursor-pointer">FAQ</span></li>
-                <li><span className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors cursor-pointer">Termos de Uso</span></li>
-                <li><span className="text-xs text-[#8B95A8] hover:text-[#00D4AA] transition-colors cursor-pointer">Privacidade</span></li>
+                <li><span className="text-xs text-white/50 hover:text-[#E09520] transition-colors cursor-pointer">FAQ</span></li>
+                <li><span className="text-xs text-white/50 hover:text-[#E09520] transition-colors cursor-pointer">Termos de Uso</span></li>
+                <li><span className="text-xs text-white/50 hover:text-[#E09520] transition-colors cursor-pointer">Privacidade</span></li>
               </ul>
               <div className="flex items-center gap-3 mt-4">
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-[#1a2332] flex items-center justify-center text-[#5A6478] hover:text-[#00D4AA] hover:bg-[#1a2332]/80 transition-colors">
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-[#1A1722] flex items-center justify-center text-white/30 hover:text-[#E09520] hover:bg-[#1A1722]/80 transition-colors">
                   <span className="material-symbols-outlined text-base">photo_camera</span>
                 </a>
               </div>
             </div>
           </div>
           {/* Copyright */}
-          <div className="border-t border-[#1a2a3a] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="border-t border-white/[0.04] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p className="text-[10px] text-[#3a4a5a]">Todos os direitos reservados | Copyright &copy; 2026 | Powered by Oracore</p>
             <p className="text-[10px] text-[#3a4a5a]">Jogue com responsabilidade. +18</p>
           </div>

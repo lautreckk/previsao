@@ -5,23 +5,26 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #080d1a;
-  --color-foreground: #f1f3fc;
-  --color-surface-dim: #080d1a;
-  --color-surface: #080d1a;
-  --color-surface-container-lowest: #060b16;
-  --color-surface-container-low: #0f1729;
-  --color-surface-container: #141d30;
-  --color-surface-container-high: #1a2540;
-  --color-surface-container-highest: #212e4a;
-  --color-surface-bright: #283654;
-  --color-surface-variant: #212e4a;
-  --color-primary: #00FFB8;
-  --color-primary-dim: #00D4AA;
-  --color-primary-fixed: #00FFCC;
-  --color-primary-container: #00B894;
-  --color-on-primary: #003D2E;
-  --color-on-primary-container: #00291F;
+  --color-background: #0A0910;
+  --color-foreground: #F0EDF5;
+  --color-surface-dim: #0A0910;
+  --color-surface: #0A0910;
+  --color-surface-container-lowest: #070612;
+  --color-surface-container-low: #110F1A;
+  --color-surface-container: #161320;
+  --color-surface-container-high: #1C1828;
+  --color-surface-container-highest: #241F32;
+  --color-surface-bright: #2D2640;
+  --color-surface-variant: #241F32;
+  --color-primary: #F5A623;
+  --color-primary-dim: #E09520;
+  --color-primary-fixed: #FFCB47;
+  --color-primary-container: #C4841A;
+  --color-on-primary: #1A0E00;
+  --color-on-primary-container: #120900;
+  --color-success: #10B981;
+  --color-success-dim: #059669;
+  --color-live: #FF4444;
   --color-secondary: #FFC700;
   --color-secondary-dim: #E6A600;
   --color-secondary-container: #7A5C00;
@@ -34,14 +37,14 @@
   --color-error-container: #B92902;
   --color-on-error: #450900;
   --color-on-surface: #f1f3fc;
-  --color-on-surface-variant: #8B95A8;
+  --color-on-surface-variant: #9B95A8;
   --color-on-background: #f1f3fc;
-  --color-outline: #5A6478;
-  --color-outline-variant: #3A4560;
+  --color-outline: #5A5468;
+  --color-outline-variant: #3A3450;
   --color-inverse-surface: #f8f9ff;
   --color-inverse-on-surface: #51555d;
-  --color-inverse-primary: #007A5E;
-  --color-surface-tint: #00D4AA;
+  --color-inverse-primary: #8B6914;
+  --color-surface-tint: #E09520;
   --font-headline: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Be Vietnam Pro', sans-serif;
   --font-label: 'Be Vietnam Pro', sans-serif;
@@ -84,7 +87,7 @@
 }
 
 :root {
-  --color-primary: #00FFB8;
+  --color-primary: #F5A623;
   --color-secondary: #FFC700;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -131,7 +134,7 @@ html, body {
 }
 
 body {
-  background: #080d1a;
+  background: #0A0910;
   color: #f1f3fc;
   font-family: var(--font-body), 'Be Vietnam Pro', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -182,7 +185,7 @@ body {
 }
 
 .kinetic-gradient {
-  background: linear-gradient(135deg, #00FFB8 0%, #00E8A0 40%, #FFD700 100%);
+  background: linear-gradient(135deg, #F5A623 0%, #FFCB47 50%, #FFD700 100%);
 }
 
 .kinetic-gradient-gold {
@@ -190,11 +193,19 @@ body {
 }
 
 .pulse-glow {
-  box-shadow: 0 0 25px rgba(0, 255, 184, 0.2);
+  box-shadow: 0 0 25px rgba(245, 166, 35, 0.25);
+}
+
+.glow-gold {
+  box-shadow: 0 0 25px rgba(245, 166, 35, 0.4);
 }
 
 .glow-green {
-  box-shadow: 0 0 25px rgba(0, 255, 184, 0.4);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+}
+
+.glow-live {
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
 }
 
 .glow-gold {

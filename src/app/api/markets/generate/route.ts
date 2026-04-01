@@ -234,7 +234,7 @@ Gere mercados FRESCOS e atuais. Responda SOMENTE com JSON array valido.`;
           id: `out_${Date.now()}_${i}`,
           key: o.key || o.label.toUpperCase().replace(/\s+/g, "_"),
           label: o.label,
-          color: o.color || (i === 0 ? "#00FFB8" : "#FF5252"),
+          color: o.color || (i === 0 ? "#10B981" : "#FF5252"),
           description: "",
           pool: 0,
           bet_count: 0,

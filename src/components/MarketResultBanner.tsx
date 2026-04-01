@@ -62,7 +62,7 @@ export function MarketResultBanner({
 
     const confettiColors = [
       "#FFD700",
-      "#00D4AA",
+      "#F5A623",
       "#5B9DFF",
       "#E040FB",
       "#FF6B5A",
@@ -134,7 +134,7 @@ export function MarketResultBanner({
               Resultado:{" "}
               <span
                 className="font-bold"
-                style={{ color: winningOutcome.color || "#00D4AA" }}
+                style={{ color: winningOutcome.color || "#F5A623" }}
               >
                 {winningOutcome.label}
               </span>{" "}

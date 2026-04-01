@@ -73,7 +73,7 @@ function HistoryDots({ history }: { history: HistoryEntry[] }) {
           <div
             key={i}
             className={`w-2.5 h-2.5 rounded-full transition-all ${
-              isUp ? "bg-[#00D4AA]" : "bg-[#FF5252]"
+              isUp ? "bg-[#E09520]" : "bg-[#FF5252]"
             }`}
             title={isUp ? "Subiu" : "Desceu"}
           />
@@ -89,10 +89,10 @@ function PhaseBadge({ phase, timeLeft }: { phase: RoundPhase; timeLeft: string }
   if (phase === "betting") {
     return (
       <div className="flex items-center gap-3">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/30">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#FF4444]/10 text-[#FF4444] border border-[#FF4444]/30">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4AA] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D4AA]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4444] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF4444]" />
           </span>
           AO VIVO
         </div>
@@ -115,7 +115,7 @@ function PhaseBadge({ phase, timeLeft }: { phase: RoundPhase; timeLeft: string }
 
   if (phase === "result") {
     return (
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/30">
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30">
         <span className="material-symbols-outlined text-xs">emoji_events</span>
         RESULTADO
       </div>
@@ -125,7 +125,7 @@ function PhaseBadge({ phase, timeLeft }: { phase: RoundPhase; timeLeft: string }
   // next_round
   return (
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/5 text-white/60 border border-white/10">
-      <div className="animate-spin w-3 h-3 border-2 border-white/20 border-t-[#00D4AA] rounded-full" />
+      <div className="animate-spin w-3 h-3 border-2 border-white/20 border-t-[#F5A623] rounded-full" />
       PROXIMA RODADA
     </div>
   );
@@ -186,11 +186,11 @@ function NextRoundProgress() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6 text-center">
+    <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] p-6 text-center">
       <p className="text-sm font-bold text-white/60 mb-3">Proxima previsao...</p>
       <div className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-[#00D4AA] to-[#00FFB8] rounded-full transition-all duration-100"
+          className="h-full bg-gradient-to-r from-[#E09520] to-[#F5A623] rounded-full transition-all duration-100"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -231,7 +231,7 @@ function OddsButtons({
         const isSelected = selectedOutcome === o.key;
         const isUp = o.key === "up" || o.key === "sobe";
 
-        const baseColor = isUp ? "#00D4AA" : "#FF5252";
+        const baseColor = isUp ? "#E09520" : "#FF5252";
         const flash = flashKeys[o.key];
 
         return (
@@ -243,7 +243,7 @@ function OddsButtons({
               isSelected
                 ? "border-white/30 ring-1 ring-white/20"
                 : "border-white/[0.06] hover:border-white/10"
-            } ${flash === "up" ? "ring-2 ring-[#00D4AA]/50" : ""} ${
+            } ${flash === "up" ? "ring-2 ring-[#E09520]/50" : ""} ${
               flash === "down" ? "ring-2 ring-[#FF5252]/50" : ""
             }`}
             style={{ backgroundColor: baseColor + "08" }}
@@ -423,7 +423,7 @@ export default function LiveRoundCycle({
 
       setResultData({
         winnerLabel: winOutcome?.label || winKey || "?",
-        winnerColor: winOutcome?.color || "#00D4AA",
+        winnerColor: winOutcome?.color || "#F5A623",
         payout: round.payout_multiplier || 0,
         openPrice: round.open_price || 0,
         closePrice: round.close_price || 0,

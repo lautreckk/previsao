@@ -15,7 +15,7 @@ interface Point {
   price: number;
 }
 
-const UP_COLOR = "#00FFB8";
+const UP_COLOR = "#10B981";
 const DOWN_COLOR = "#FF5252";
 const GRID_COLOR = "rgba(255,255,255,0.04)";
 const AXIS_COLOR = "rgba(255,255,255,0.2)";
@@ -265,7 +265,7 @@ export default function LivePriceChart({ symbol, category, openPrice, entryPrice
       ctx.closePath();
 
       const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
-      grad.addColorStop(0, isUp ? "rgba(0,255,184,0.10)" : "rgba(255,82,82,0.10)");
+      grad.addColorStop(0, isUp ? "rgba(16,185,129,0.10)" : "rgba(255,82,82,0.10)");
       grad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = grad;
       ctx.fill();
@@ -298,7 +298,7 @@ export default function LivePriceChart({ symbol, category, openPrice, entryPrice
       ctx.fill();
       ctx.beginPath();
       ctx.arc(dotX, dotY, 10 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = isUp ? "rgba(0,255,184,0.12)" : "rgba(255,82,82,0.12)";
+      ctx.fillStyle = isUp ? "rgba(16,185,129,0.12)" : "rgba(255,82,82,0.12)";
       ctx.fill();
 
       // ---- Y-AXIS LABELS ----
@@ -322,7 +322,7 @@ export default function LivePriceChart({ symbol, category, openPrice, entryPrice
       const labelPrice = simulatedPriceRef.current;
       const priceLabel = formatBRL(labelPrice);
       const labelY = Math.max(padTop + 12, Math.min(dotY, padTop + chartH - 4));
-      ctx.fillStyle = isUp ? "rgba(0,255,184,0.15)" : "rgba(255,82,82,0.15)";
+      ctx.fillStyle = isUp ? "rgba(16,185,129,0.15)" : "rgba(255,82,82,0.15)";
       const metrics = ctx.measureText(priceLabel);
       ctx.fillRect(padLeft + chartW + 2, labelY - 9, metrics.width + 8, 16);
       ctx.fillStyle = lineColor;
@@ -346,16 +346,16 @@ export default function LivePriceChart({ symbol, category, openPrice, entryPrice
 
   if (!initialized) {
     return (
-      <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4" style={{ height: height + 48 }}>
+      <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] p-4" style={{ height: height + 48 }}>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-[#00D4AA] rounded-full" />
+          <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-[#E09520] rounded-full" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+    <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] overflow-hidden">
       <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.04]">
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">
