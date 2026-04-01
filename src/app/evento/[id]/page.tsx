@@ -138,9 +138,17 @@ export default function EventoPage() {
   const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [betsLoading, setBetsLoading] = useState(false);
 
+  // All user bets across all markets (for EM ABERTO / ENCERRADAS tabs)
+  interface AllUserBet extends UserBet {
+    market_id: string;
+    market_title?: string;
+  }
+  const [allUserBets, setAllUserBets] = useState<AllUserBet[]>([]);
+
   const fetchUserBets = useCallback(async (marketId: string, userId: string) => {
     setBetsLoading(true);
     try {
+      // Fetch bets for THIS market (POSICOES tab)
       const { data, error: err } = await supabase
         .from("prediction_bets")
         .select("*")
@@ -150,6 +158,28 @@ export default function EventoPage() {
       if (!err && data) {
         setUserBets(data.map((b: Record<string, unknown>) => ({
           id: b.id as string,
+          outcome_key: b.outcome_key as string,
+          outcome_label: b.outcome_label as string,
+          amount: Number(b.amount),
+          payout_at_entry: Number(b.payout_at_entry),
+          status: (b.status as string) || "pending",
+          created_at: b.created_at as string,
+          entry_price: b.entry_price ? Number(b.entry_price) : undefined,
+        })));
+      }
+
+      // Fetch ALL user bets (EM ABERTO / ENCERRADAS tabs)
+      const { data: allData } = await supabase
+        .from("prediction_bets")
+        .select("*, prediction_markets(title)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (allData) {
+        setAllUserBets(allData.map((b: Record<string, unknown>) => ({
+          id: b.id as string,
+          market_id: b.market_id as string,
+          market_title: (b.prediction_markets as Record<string, string> | null)?.title || "",
           outcome_key: b.outcome_key as string,
           outcome_label: b.outcome_label as string,
           amount: Number(b.amount),
@@ -451,7 +481,7 @@ export default function EventoPage() {
                           style={flashKeys[o.key] ? { transition: "all 0.15s ease-out" } : undefined}
                         >
                           <span className="block">Sim</span>
-                          <span className="block text-[10px] font-bold opacity-80">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"}</span>
+                          <span className="block text-[10px] font-bold opacity-80">{(o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95)).toFixed(2) + "x"}</span>
                         </button>
                         <button
                           disabled={!isOpen}
@@ -503,7 +533,7 @@ export default function EventoPage() {
                       className={`py-3 rounded-xl text-sm font-black transition-all ${selectedOutcome === o.key ? "text-white" : "text-white/70 hover:opacity-80"}`}
                       style={{ backgroundColor: selectedOutcome === o.key ? o.color : o.color + "30" }}
                     >
-                      {o.label} ({o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "—"})
+                      {o.label} ({(o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95)).toFixed(2) + "x"})
                     </button>
                   ))}
                 </div>
@@ -601,11 +631,12 @@ export default function EventoPage() {
                     <p className="text-xs text-[#5A6478] mt-3">Carregando posicoes...</p>
                   </div>
                 ) : (() => {
+                  // POSICOES = bets on THIS market. EM ABERTO / ENCERRADAS = ALL user bets across all markets
                   const filteredBets = tab === "posicoes"
                     ? userBets
                     : tab === "aberto"
-                    ? userBets.filter((b) => b.status === "pending")
-                    : userBets.filter((b) => b.status === "won" || b.status === "lost" || b.status === "settled");
+                    ? allUserBets.filter((b) => b.status === "pending")
+                    : allUserBets.filter((b) => b.status === "won" || b.status === "lost" || b.status === "settled");
 
                   if (filteredBets.length === 0) {
                     return (
@@ -664,6 +695,10 @@ export default function EventoPage() {
                                 </div>
                                 <div>
                                   <span className="text-sm font-bold text-white">{bet.outcome_label}</span>
+                                  {/* Show market title for bets from other markets */}
+                                  {"market_title" in bet && (bet as AllUserBet).market_title && (bet as AllUserBet).market_id !== market.id && (
+                                    <span className="block text-[10px] text-[#00D4AA] truncate max-w-[140px]">{(bet as AllUserBet).market_title}</span>
+                                  )}
                                   <span className="block text-[10px] text-[#5A6478]">
                                     {new Date(bet.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                   </span>

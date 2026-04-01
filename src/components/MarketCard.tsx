@@ -135,7 +135,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
             return (
               <div key={o.key} className="flex items-center gap-2 text-xs">
                 <span className="text-[#8B95A8] truncate flex-1 min-w-0" title={o.label}>{o.label}</span>
-                <span className="text-[#8B95A8] font-mono shrink-0">{o.payout_per_unit > 0 ? o.payout_per_unit.toFixed(2) + "x" : "\u2014"}</span>
+                <span className="text-[#8B95A8] font-mono shrink-0">{(o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95)).toFixed(2) + "x"}</span>
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[42px] text-center shrink-0 ${isGreen ? "bg-[#00D4AA]/15 text-[#00D4AA]" : "bg-[#FF6B5A]/15 text-[#FF6B5A]"}`}>{pct}%</span>
               </div>
             );
