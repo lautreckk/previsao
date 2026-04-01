@@ -169,6 +169,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  // Auto-refresh balance every 30 seconds
+  useEffect(() => {
+    if (!user) return;
+    const iv = setInterval(() => {
+      supabase.from("users").select("balance").eq("id", user.id).single().then(({ data }) => {
+        if (data && Number(data.balance) !== user.balance) {
+          setUser((prev) => prev ? { ...prev, balance: Number(data.balance) } : prev);
+        }
+      });
+    }, 30000);
+    return () => clearInterval(iv);
+  }, [user?.id, user?.balance]);
+
   const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string): Promise<boolean> => {
     const normalizedEmail = email.trim().toLowerCase();
 
