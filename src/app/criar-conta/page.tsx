@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/lib/UserContext";
 import { trackLead, trackPageView } from "@/lib/pixel";
 
-export default function CriarContaPage() {
+function CriarContaInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { register } = useUser();
@@ -115,5 +115,13 @@ export default function CriarContaPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CriarContaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-surface-dim flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" /></div>}>
+      <CriarContaInner />
+    </Suspense>
   );
 }
