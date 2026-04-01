@@ -8,8 +8,45 @@ export interface User {
   name: string;
   email: string;
   cpf: string;
+  phone: string;
+  avatar_url: string;
   balance: number;
   createdAt: string;
+  is_public: boolean;
+  is_bot: boolean;
+  bio: string;
+  level: number;
+  total_predictions: number;
+  total_wins: number;
+  total_losses: number;
+  total_wagered: number;
+  total_returns: number;
+  win_streak: number;
+  best_streak: number;
+  rank_position: number;
+}
+
+// Level system
+export const LEVELS = [
+  { level: 1, name: "Novato", min: 0 },
+  { level: 2, name: "Aprendiz", min: 10 },
+  { level: 3, name: "Regular", min: 30 },
+  { level: 4, name: "Ativo", min: 50 },
+  { level: 5, name: "Expert", min: 100 },
+  { level: 6, name: "Mestre", min: 200 },
+  { level: 7, name: "Lenda", min: 350 },
+  { level: 8, name: "Elite", min: 500 },
+] as const;
+
+export function calcLevel(totalPredictions: number): number {
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (totalPredictions >= LEVELS[i].min) return LEVELS[i].level;
+  }
+  return 1;
+}
+
+export function getLevelName(level: number): string {
+  return LEVELS.find((l) => l.level === level)?.name || "Novato";
 }
 
 export interface Bet {
@@ -34,6 +71,10 @@ interface UserContextType {
   addBalance: (amount: number) => void;
   placeBet: (bet: Omit<Bet, "id" | "status" | "createdAt">) => boolean;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: { name?: string; email?: string; phone?: string; cpf?: string; bio?: string; avatar_url?: string }) => Promise<boolean>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>;
+  uploadAvatar: (file: File) => Promise<string | null>;
+  togglePublicProfile: () => Promise<boolean>;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
@@ -50,9 +91,8 @@ export async function getAllRegisteredUsersAsync(): Promise<(User & { password: 
   const { data } = await supabase.from("users").select("*").order("created_at", { ascending: false });
   if (!data) return [];
   return data.map((u: Record<string, unknown>) => ({
-    id: u.id as string, name: u.name as string, email: u.email as string,
-    cpf: (u.cpf || "") as string, balance: Number(u.balance) || 0,
-    password: (u.password || "") as string, createdAt: String(u.created_at || ""),
+    ...mapDbUser(u),
+    password: (u.password || "") as string,
   }));
 }
 
@@ -102,6 +142,38 @@ export async function adminDeleteUser(userId: string): Promise<boolean> {
   return !error;
 }
 
+// Map Supabase row to User object
+function mapDbUser(data: Record<string, unknown>): User {
+  return {
+    id: data.id as string,
+    name: data.name as string,
+    email: data.email as string,
+    cpf: (data.cpf || "") as string,
+    phone: (data.phone || "") as string,
+    avatar_url: (data.avatar_url || "") as string,
+    balance: Number(data.balance) || 0,
+    createdAt: String(data.created_at || ""),
+    is_public: !!data.is_public,
+    is_bot: !!data.is_bot,
+    bio: (data.bio || "") as string,
+    level: Number(data.level) || 1,
+    total_predictions: Number(data.total_predictions) || 0,
+    total_wins: Number(data.total_wins) || 0,
+    total_losses: Number(data.total_losses) || 0,
+    total_wagered: Number(data.total_wagered) || 0,
+    total_returns: Number(data.total_returns) || 0,
+    win_streak: Number(data.win_streak) || 0,
+    best_streak: Number(data.best_streak) || 0,
+    rank_position: Number(data.rank_position) || 0,
+  };
+}
+
+const NEW_USER_DEFAULTS: Partial<User> = {
+  phone: "", avatar_url: "", is_public: false, is_bot: false, bio: "",
+  level: 1, total_predictions: 0, total_wins: 0, total_losses: 0,
+  total_wagered: 0, total_returns: 0, win_streak: 0, best_streak: 0, rank_position: 0,
+};
+
 // ---- PROVIDER ----
 
 export function UserProvider({ children }: { children: ReactNode }) {
@@ -129,11 +201,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }
 
         if (data) {
-          setUser({
-            id: data.id, name: data.name, email: data.email,
-            cpf: data.cpf || "", balance: Number(data.balance) || 0,
-            createdAt: data.created_at,
-          });
+          setUser(mapDbUser(data));
           // Load user bets
           const { data: betData } = await supabase
             .from("bets")
@@ -172,7 +240,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (data) {
       setUser((prev) => {
         if (!prev || prev.id !== uid) return prev;
-        return { id: data.id, name: data.name, email: data.email, cpf: data.cpf || "", balance: Number(data.balance) || 0, createdAt: data.created_at };
+        return mapDbUser(data);
       });
     }
   }, []);
@@ -211,7 +279,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     });
     if (error) return false;
 
-    setUser({ id: newId, name, email: normalizedEmail, cpf, balance: 0, createdAt: new Date().toISOString() });
+    setUser({ ...NEW_USER_DEFAULTS, id: newId, name, email: normalizedEmail, cpf, phone: phone || "", avatar_url: "", balance: 0, createdAt: new Date().toISOString() } as User);
     localStorage.setItem("previsao_session", normalizedEmail);
     await _refreshUserCache();
     return true;
@@ -226,7 +294,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (found) {
       // User exists - check password
       if (found.password !== password) return false;
-      setUser({ id: found.id, name: found.name, email: found.email, cpf: found.cpf || "", balance: Number(found.balance) || 0, createdAt: found.created_at });
+      setUser(mapDbUser(found));
       localStorage.setItem("previsao_session", normalizedEmail);
       return true;
     }
@@ -238,11 +306,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
     });
     if (error) return false;
 
-    setUser({ id: newId, name: normalizedEmail.split("@")[0], email: normalizedEmail, cpf: "", balance: 0, createdAt: new Date().toISOString() });
+    setUser({ ...NEW_USER_DEFAULTS, id: newId, name: normalizedEmail.split("@")[0], email: normalizedEmail, cpf: "", phone: "", avatar_url: "", balance: 0, createdAt: new Date().toISOString() } as User);
     localStorage.setItem("previsao_session", normalizedEmail);
     await _refreshUserCache();
     return true;
   }, []);
+
+  const togglePublicProfile = useCallback(async (): Promise<boolean> => {
+    if (!user) return false;
+    const newVal = !user.is_public;
+    const { error } = await supabase.from("users").update({ is_public: newVal, updated_at: new Date().toISOString() }).eq("id", user.id);
+    if (error) return false;
+    setUser((prev) => prev ? { ...prev, is_public: newVal } : prev);
+    return true;
+  }, [user]);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -284,8 +361,59 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return true;
   }, [user, addBalance]);
 
+  const updateProfile = useCallback(async (data: { name?: string; email?: string; phone?: string; cpf?: string; bio?: string; avatar_url?: string }): Promise<boolean> => {
+    if (!user) return false;
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.email !== undefined) updates.email = data.email.toLowerCase();
+    if (data.phone !== undefined) updates.phone = data.phone;
+    if (data.cpf !== undefined) updates.cpf = data.cpf;
+    if (data.bio !== undefined) updates.bio = data.bio;
+    if (data.avatar_url !== undefined) updates.avatar_url = data.avatar_url;
+    const { error } = await supabase.from("users").update(updates).eq("id", user.id);
+    if (error) return false;
+    setUser((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.email !== undefined && { email: data.email.toLowerCase() }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.cpf !== undefined && { cpf: data.cpf }),
+        ...(data.bio !== undefined && { bio: data.bio }),
+        ...(data.avatar_url !== undefined && { avatar_url: data.avatar_url }),
+      };
+    });
+    if (data.email) localStorage.setItem("previsao_session", data.email.toLowerCase());
+    return true;
+  }, [user]);
+
+  const changePassword = useCallback(async (oldPassword: string, newPassword: string): Promise<boolean> => {
+    if (!user) return false;
+    const { data } = await supabase.from("users").select("password").eq("id", user.id).single();
+    if (!data || data.password !== oldPassword) return false;
+    const { error } = await supabase.from("users").update({ password: newPassword, updated_at: new Date().toISOString() }).eq("id", user.id);
+    return !error;
+  }, [user]);
+
+  const uploadAvatar = useCallback(async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${user.id}/avatar.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) {
+      await supabase.storage.createBucket("avatars", { public: true });
+      const { error: retryErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (retryErr) return null;
+    }
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = urlData.publicUrl + "?t=" + Date.now();
+    await updateProfile({ avatar_url: url });
+    return url;
+  }, [user, updateProfile]);
+
   return (
-    <UserContext.Provider value={{ user, bets, login, register, logout, addBalance, placeBet, refreshUser }}>
+    <UserContext.Provider value={{ user, bets, login, register, logout, addBalance, placeBet, refreshUser, updateProfile, changePassword, uploadAvatar, togglePublicProfile }}>
       {children}
     </UserContext.Provider>
   );
