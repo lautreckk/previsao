@@ -200,10 +200,9 @@ def main():
 
     fc = 0
     total = db_count  # Resume from DB count (don't reset on restart!)
-    last_broadcast_count = total
     last_db_count = total
     counted = set()
-    t_log = t_frame = t_round_check = t_db_persist = time.time()
+    t_log = t_frame = t_round_check = time.time()
     line_y = None
     roi_x_start_px = None
     roi_x_end_px = None
@@ -269,11 +268,9 @@ def main():
                 print(f"[Worker] RESET: round {known_round}->{new_round} phase {known_phase}->{new_phase}")
                 total = 0
                 counted.clear()
-                last_broadcast_count = -1
                 last_db_count = -1
                 tracker = DeepSort(max_age=30, n_init=3, nn_budget=100, max_iou_distance=0.7)
                 persist_count_to_db(args.supabase_url, args.supabase_key, args.market_id, 0)
-                broadcast_count(args.supabase_url, args.supabase_key, args.market_id, 0)
                 counting_paused = False
 
             # External reset removed — caused false resets when DB poll returns stale cached data
@@ -304,16 +301,10 @@ def main():
                 counted.add(tid)
                 total += 1
 
-        # BROADCAST instantly when count changes (frontend gets this in ~100ms)
-        if total != last_broadcast_count and args.supabase_url:
-            last_broadcast_count = total
-            Thread(target=broadcast_count, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
-
-        # PERSIST to DB every 5s (for round resolution, not for display)
-        if args.supabase_url and now - t_db_persist >= 5 and total != last_db_count:
+        # Update DB when count changes (frontend polls every 3s)
+        if total != last_db_count and args.supabase_url:
             last_db_count = total
             Thread(target=persist_count_to_db, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
-            t_db_persist = now
 
         # Upload annotated frame every 2s
         if args.supabase_url and now - t_frame >= args.frame_interval:

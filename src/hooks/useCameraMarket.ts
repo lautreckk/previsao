@@ -127,7 +127,7 @@ export function useCameraMarket(marketId: string) {
     fetchRound();
   }, [fetchMarket, fetchRound]);
 
-  // Realtime: postgres changes on camera_markets (for market metadata only, NOT count)
+  // Realtime: postgres changes on camera_markets
   useEffect(() => {
     const channel = supabase
       .channel(`camera:${marketId}`)
@@ -136,8 +136,9 @@ export function useCameraMarket(marketId: string) {
         { event: "UPDATE", schema: "public", table: "camera_markets", filter: `id=eq.${marketId}` },
         (payload) => {
           const updated = payload.new as CameraMarket;
-          // Update market metadata (phase, threshold, etc.) but NOT count
-          // Count comes exclusively from broadcast channel to avoid competing sources
+          if (updated.current_count !== undefined) {
+            setCurrentCount(updated.current_count);
+          }
           setMarket((prev) => (prev ? { ...prev, ...updated } : null));
         }
       )
@@ -213,7 +214,7 @@ export function useCameraMarket(marketId: string) {
     };
   }, [marketId, fetchRound]);
 
-  // Poll (10s) for phase management ONLY — count comes exclusively from broadcast
+  // Poll (3s) for count + phase management
   useEffect(() => {
     let ticking = false;
     const iv = setInterval(async () => {
@@ -223,7 +224,7 @@ export function useCameraMarket(marketId: string) {
         .eq("id", marketId)
         .maybeSingle();
       if (data) {
-        // Only update market metadata, NOT count (count comes from broadcast)
+        setCurrentCount(data.current_count || 0);
         setMarket((prev) => (prev ? { ...prev, ...data } : null));
 
         // Auto-tick: if phase expired or waiting, call round endpoint to advance
@@ -242,7 +243,7 @@ export function useCameraMarket(marketId: string) {
           setTimeout(() => fetchRound(), 1000);
         }
       }
-    }, 10000);
+    }, 3000);
     return () => clearInterval(iv);
   }, [marketId, fetchRound]);
 

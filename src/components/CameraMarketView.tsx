@@ -136,7 +136,7 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
 
   return (
     <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-      {/* HLS video (hidden in frame mode) */}
+      {/* HLS video (hidden when frame mode active) */}
       <video
         ref={videoRef}
         autoPlay
@@ -145,17 +145,15 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
       />
 
-      {/* Worker annotated frame — shows bounding boxes, counting line, and detections */}
-      {/* Always visible: in frame mode as primary, in HLS mode as overlay */}
-      <img
-        src={frameUrl}
-        alt="Deteccao IA"
-        className={`absolute inset-0 w-full h-full object-contain rounded-lg ${
-          mode === "frame" ? "bg-black z-[2]" : "z-[3] opacity-90"
-        }`}
-        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-        onLoad={(e) => { (e.target as HTMLImageElement).style.display = ""; }}
-      />
+      {/* Worker annotated frame with YOLO bounding boxes (fallback view) */}
+      {mode === "frame" && (
+        <img
+          src={frameUrl}
+          alt="Camera IA"
+          className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
+          onError={() => {}}
+        />
+      )}
 
       {/* Loading spinner */}
       {mode === "loading" && (
