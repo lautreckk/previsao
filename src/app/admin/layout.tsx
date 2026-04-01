@@ -13,6 +13,7 @@ const navItems: { href: string; icon: string; label: string; comingSoon?: boolea
   { href: "/admin/pix", icon: "pix", label: "PIX" },
   { href: "/admin/finance", icon: "account_balance", label: "Financeiro" },
   { href: "/admin/api-keys", icon: "vpn_key", label: "API Keys" },
+  { href: "/admin/tracking", icon: "track_changes", label: "Rastreamento" },
   { href: "/admin/affiliates", icon: "handshake", label: "Afiliados", comingSoon: true },
 ];
 
