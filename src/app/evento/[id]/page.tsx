@@ -55,12 +55,12 @@ function EventChat() {
     <div className="flex flex-col h-full relative">
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#F5A623]/10 flex items-center justify-center"><span className="material-symbols-outlined text-[#F5A623] text-sm">forum</span></div>
+          <div className="w-7 h-7 rounded-lg bg-[#80FF00]/10 flex items-center justify-center"><span className="material-symbols-outlined text-[#80FF00] text-sm">forum</span></div>
           <div>
             <span className="text-xs font-black text-white uppercase tracking-wider">CHAT AO VIVO</span>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F5A623] opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#F5A623]" /></span>
-              <span className="text-[9px] text-[#F5A623] font-bold">{onlineCount} online</span>
+              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#80FF00] opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#80FF00]" /></span>
+              <span className="text-[9px] text-[#80FF00] font-bold">{onlineCount} online</span>
             </div>
           </div>
         </div>
@@ -75,7 +75,7 @@ function EventChat() {
                 <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5" />
               ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
-                {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#F5A623] font-bold text-[11px] truncate">{msg.user}</span></div>}
+                {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span></div>}
                 <p className="text-[12px] text-gray-300 break-words leading-relaxed">{msg.text}</p>
               </div>
             </div>
@@ -84,23 +84,23 @@ function EventChat() {
       </div>
       {!isAtBottom && unread > 0 && (
         <button onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnread(0); }}
-          className="absolute bottom-[56px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-[#F5A623] text-[#1A0E00] px-2.5 py-1 rounded-full text-[10px] font-black shadow-[0_4px_12px_rgba(245,166,35,0.4)] animate-bounce">
+          className="absolute bottom-[56px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-[#80FF00] text-[#0a0a0a] px-2.5 py-1 rounded-full text-[10px] font-black shadow-[0_4px_12px_rgba(128,255,0,0.4)] animate-bounce">
           <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>keyboard_arrow_down</span>{unread} novas
         </button>
       )}
       <div className="px-3 py-2.5 border-t border-white/[0.06] shrink-0 bg-[#0a1020]">
         {user ? (
           <>
-            <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#F5A623]/40 transition-colors px-3">
+            <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#80FF00]/40 transition-colors px-3">
               <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder-[#5A6478]" />
               <button className="text-white/30 hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
-              <button onClick={send} className="text-white/30 hover:text-[#F5A623] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+              <button onClick={send} className="text-white/30 hover:text-[#80FF00] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
             </div>
-            <p className="text-[10px] text-[#3a4a5a] mt-1 text-center">Seja respeitoso. Siga as <span className="text-[#F5A623]/70">regras da comunidade</span></p>
+            <p className="text-[10px] text-[#3a4a5a] mt-1 text-center">Seja respeitoso. Siga as <span className="text-[#80FF00]/70">regras da comunidade</span></p>
           </>
         ) : (
           <div className="text-center py-1.5">
-            <p className="text-[11px] text-white/30">Faca <a href="/login" className="text-[#F5A623] font-bold">login</a> para participar do chat</p>
+            <p className="text-[11px] text-white/30">Faca <a href="/login" className="text-[#80FF00] font-bold">login</a> para participar do chat</p>
           </div>
         )}
       </div>
@@ -324,7 +324,7 @@ export default function EventoPage() {
 
   if (!market) return (
     <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white">
-      <div className="text-center"><span className="material-symbols-outlined text-5xl text-white/50">error</span><p className="mt-2 text-white/50">Mercado nao encontrado</p><button onClick={() => router.push("/")} className="mt-4 text-[#F5A623] font-bold">Voltar</button></div>
+      <div className="text-center"><span className="material-symbols-outlined text-5xl text-white/50">error</span><p className="mt-2 text-white/50">Mercado nao encontrado</p><button onClick={() => router.push("/")} className="mt-4 text-[#80FF00] font-bold">Voltar</button></div>
     </div>
   );
 
@@ -389,10 +389,10 @@ export default function EventoPage() {
           {/* Header */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14] shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/" className="text-[#F5A623] shrink-0"><span className="material-symbols-outlined">arrow_back</span></Link>
+              <Link href="/" className="text-[#80FF00] shrink-0"><span className="material-symbols-outlined">arrow_back</span></Link>
               <img src="/logo.png" alt="Winify" className="h-8 w-auto" />
             </div>
-            {user && <Link href="/perfil" className="bg-[#1A1722] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#F5A623]">R$ {user.balance.toFixed(2)}</Link>}
+            {user && <Link href="/perfil" className="bg-[#1A1722] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</Link>}
           </header>
 
           {/* Result Banner (resolved markets) */}
@@ -419,8 +419,8 @@ export default function EventoPage() {
             {market.short_description && !livePriceInfo && <p className="text-sm text-white/50 mb-3">{market.short_description}</p>}
             {!isLiveRound && (
               <div className="flex items-center gap-3 flex-wrap mb-4">
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-[#F5A623] animate-pulse" : "bg-[#FF5252]"}`} /> {market.status.toUpperCase()}
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${isOpen ? "bg-[#80FF00]/10 text-[#80FF00] border border-[#80FF00]/30" : "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-[#80FF00] animate-pulse" : "bg-[#FF5252]"}`} /> {market.status.toUpperCase()}
                 </div>
                 <span className="text-xs text-white/50 font-bold tabular-nums">{timeStr}</span>
                 <span className="text-xs text-white/30">Pool: R$ {market.pool_total.toFixed(0)}</span>
@@ -546,7 +546,7 @@ export default function EventoPage() {
                           <span className={`block font-black text-sm ${isActive ? "text-white" : "text-white/90"}`}>
                             {o.label}
                           </span>
-                          <span className={`block font-mono font-black text-lg mt-1 ${isActive ? "text-white" : odds >= 3 ? "text-[#FFD700]" : "text-white/80"}`}>
+                          <span className={`block font-mono font-black text-lg mt-1 ${isActive ? "text-white" : odds >= 3 ? "text-[#80FF00]" : "text-white/80"}`}>
                             {odds.toFixed(2)}x
                           </span>
                           {/* Percentage bar */}
@@ -576,8 +576,8 @@ export default function EventoPage() {
                   <div className="mt-4 bg-[#0D0B14] rounded-xl border border-white/[0.04] overflow-hidden">
                     <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.04]">
                       <div className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F5A623] opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F5A623]" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#80FF00] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#80FF00]" />
                       </div>
                       <span className="text-[10px] font-black text-white/50 uppercase tracking-wider">Apostas ao vivo</span>
                       <span className="text-[10px] text-white/20 ml-auto">{liveBets.length}</span>
@@ -609,7 +609,7 @@ export default function EventoPage() {
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <span className="text-[10px] text-[#F5A623] font-bold tabular-nums">R$ {bet.potential_win.toFixed(0)}</span>
+                              <span className="text-[10px] text-[#80FF00] font-bold tabular-nums">R$ {bet.potential_win.toFixed(0)}</span>
                               <span className="block text-[8px] text-white/20">potencial</span>
                             </div>
                           </div>
@@ -679,7 +679,7 @@ export default function EventoPage() {
                   </div>
                   <div className="grid grid-cols-5 gap-1.5">
                     {[1, 10, 50, 100].map((v) => (
-                      <button key={v} onClick={() => setBetAmount(String(v))} className={`py-2.5 rounded-lg text-xs font-bold transition-all ${betAmount === String(v) ? "bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/40" : "bg-[#1a2a3a] text-white/50 hover:text-white"}`}>{v}</button>
+                      <button key={v} onClick={() => setBetAmount(String(v))} className={`py-2.5 rounded-lg text-xs font-bold transition-all ${betAmount === String(v) ? "bg-[#80FF00]/20 text-[#80FF00] border border-[#80FF00]/40" : "bg-[#1a2a3a] text-white/50 hover:text-white"}`}>{v}</button>
                     ))}
                     <button onClick={() => user && setBetAmount(String(Math.floor(user.balance)))} className="py-2.5 rounded-lg text-xs font-bold bg-[#1a2a3a] text-white/50 hover:text-white">MAX</button>
                   </div>
@@ -689,7 +689,7 @@ export default function EventoPage() {
                 <div className="flex items-center justify-between py-3 border-t border-white/[0.04]">
                   <span className="text-sm text-white/50">Para ganhar</span>
                   <div className="text-right">
-                    <span className="text-xl font-black text-[#F5A623]">R$ {potentialWin.toFixed(2)}</span>
+                    <span className="text-xl font-black text-[#80FF00]">R$ {potentialWin.toFixed(2)}</span>
                     <span className="block text-[10px] text-white/30">{potentialPayout.toFixed(2)}x</span>
                   </div>
                 </div>
@@ -703,7 +703,7 @@ export default function EventoPage() {
 
                 {/* Confirm button */}
                 {!user ? (
-                  <Link href="/login" className="block w-full py-4 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black text-sm text-center uppercase tracking-wider">Faca login para apostar</Link>
+                  <Link href="/login" className="block w-full py-4 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm text-center uppercase tracking-wider">Faca login para apostar</Link>
                 ) : (
                   <div>
                     <button onClick={() => {
@@ -712,7 +712,7 @@ export default function EventoPage() {
                       if (user.balance < amt) { setError("Saldo insuficiente"); return; }
                       setShowConfirm(true);
                     }} disabled={!betAmount || parseFloat(betAmount) <= 0}
-                      className="w-full py-4 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(245,166,35,0.3)]"
+                      className="w-full py-4 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(128,255,0,0.3)]"
                     >
                       Comprar {selected.label}
                     </button>
@@ -731,7 +731,7 @@ export default function EventoPage() {
             <>
               <div className="flex border-b border-white/[0.04]">
                 {(["posicoes", "aberto", "encerradas"] as const).map((t) => (
-                  <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#F5A623] border-b-2 border-[#F5A623]" : "text-white/30"}`}>
+                  <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#80FF00] border-b-2 border-[#80FF00]" : "text-white/30"}`}>
                     {t === "posicoes" ? "Posicoes" : t === "aberto" ? "Em aberto" : "Encerradas"}
                   </button>
                 ))}
@@ -740,17 +740,17 @@ export default function EventoPage() {
                 {!user ? (
                   <div className="text-center py-8">
                     <div className="bg-[#0D0B14] rounded-xl border border-white/[0.04] p-6">
-                      <div className="w-14 h-14 rounded-2xl bg-[#F5A623]/10 flex items-center justify-center mx-auto mb-3">
-                        <span className="material-symbols-outlined text-[#F5A623] text-2xl">account_circle</span>
+                      <div className="w-14 h-14 rounded-2xl bg-[#80FF00]/10 flex items-center justify-center mx-auto mb-3">
+                        <span className="material-symbols-outlined text-[#80FF00] text-2xl">account_circle</span>
                       </div>
                       <p className="text-sm text-white font-bold mb-1">Faca login para comecar</p>
                       <p className="text-xs text-white/30 mb-4">Veja suas posicoes, historico e gerencie suas previsoes.</p>
-                      <Link href="/login" className="inline-block px-6 py-2.5 rounded-lg bg-[#F5A623] text-[#1A0E00] text-sm font-black uppercase tracking-wider hover:bg-[#F5A623]/90 active:scale-95 transition-all">Entrar</Link>
+                      <Link href="/login" className="inline-block px-6 py-2.5 rounded-lg bg-[#80FF00] text-[#0a0a0a] text-sm font-black uppercase tracking-wider hover:bg-[#80FF00]/90 active:scale-95 transition-all">Entrar</Link>
                     </div>
                   </div>
                 ) : betsLoading ? (
                   <div className="text-center py-8">
-                    <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin mx-auto" />
+                    <div className="w-8 h-8 border-2 border-[#80FF00]/30 border-t-[#80FF00] rounded-full animate-spin mx-auto" />
                     <p className="text-xs text-white/30 mt-3">Carregando posicoes...</p>
                   </div>
                 ) : (() => {
@@ -793,14 +793,14 @@ export default function EventoPage() {
                         </div>
                         <div className="text-right">
                           <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Potencial</span>
-                          <p className="text-sm font-black text-[#F5A623] font-mono">R$ {totalPotential.toFixed(2)}</p>
+                          <p className="text-sm font-black text-[#80FF00] font-mono">R$ {totalPotential.toFixed(2)}</p>
                         </div>
                       </div>
 
                       {/* Bet cards */}
                       {filteredBets.map((bet) => {
                         const outcomeObj = market.outcomes.find((o) => o.key === bet.outcome_key);
-                        const outcomeColor = outcomeObj?.color || "#F5A623";
+                        const outcomeColor = outcomeObj?.color || "#80FF00";
                         const isWon = bet.status === "won";
                         const isLost = bet.status === "lost";
                         const isPending = bet.status === "pending";
@@ -820,7 +820,7 @@ export default function EventoPage() {
                                   <span className="text-sm font-bold text-white">{bet.outcome_label}</span>
                                   {/* Show market title for bets from other markets */}
                                   {"market_title" in bet && (bet as AllUserBet).market_title && (bet as AllUserBet).market_id !== market.id && (
-                                    <span className="block text-[10px] text-[#F5A623] truncate max-w-[140px]">{(bet as AllUserBet).market_title}</span>
+                                    <span className="block text-[10px] text-[#80FF00] truncate max-w-[140px]">{(bet as AllUserBet).market_title}</span>
                                   )}
                                   <span className="block text-[10px] text-white/30">
                                     {new Date(bet.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
@@ -828,9 +828,9 @@ export default function EventoPage() {
                                 </div>
                               </div>
                               <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                isWon ? "bg-[#F5A623]/10 text-[#F5A623]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#FFD700]/10 text-[#FFD700]"
+                                isWon ? "bg-[#80FF00]/10 text-[#80FF00]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#80FF00]/10 text-[#80FF00]"
                               }`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#F5A623]" : isLost ? "bg-[#FF5252]" : "bg-[#FFD700] animate-pulse"}`} />
+                                <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#80FF00]" : isLost ? "bg-[#FF5252]" : "bg-[#80FF00] animate-pulse"}`} />
                                 {isWon ? "Ganhou" : isLost ? "Perdeu" : "Em aberto"}
                               </div>
                             </div>
@@ -847,7 +847,7 @@ export default function EventoPage() {
                               </div>
                               <div className="flex justify-between col-span-2">
                                 <span className="text-white/30">Potencial</span>
-                                <span className={`font-bold font-mono ${isPending ? "text-[#F5A623]" : isWon ? "text-[#F5A623]" : "text-[#FF5252]"}`}>
+                                <span className={`font-bold font-mono ${isPending ? "text-[#80FF00]" : isWon ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
                                   {isLost ? "- R$ " + bet.amount.toFixed(2) : "R$ " + potentialReturn.toFixed(2)}
                                 </span>
                               </div>
@@ -885,17 +885,17 @@ export default function EventoPage() {
               <div className="flex justify-between"><span className="text-white/30">Resultado</span><span className="font-bold" style={{ color: selected.color }}>{selected.label}</span></div>
               <div className="flex justify-between"><span className="text-white/30">Valor</span><span className="font-bold">R$ {parseFloat(betAmount).toFixed(2)}</span></div>
               <div className="flex justify-between"><span className="text-white/30">Payout est.</span><span className="font-bold">{potentialPayout.toFixed(2)}x</span></div>
-              <div className="flex justify-between border-t border-white/[0.04] pt-2"><span className="text-white/30">Retorno est.</span><span className="font-black text-[#F5A623]">R$ {potentialWin.toFixed(2)}</span></div>
+              <div className="flex justify-between border-t border-white/[0.04] pt-2"><span className="text-white/30">Retorno est.</span><span className="font-black text-[#80FF00]">R$ {potentialWin.toFixed(2)}</span></div>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 rounded-xl bg-[#1a2a3a] text-white/50 font-bold">Cancelar</button>
-              <button onClick={handleBet} disabled={placing} className="flex-1 py-3 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black uppercase disabled:opacity-50">{placing ? "Enviando..." : "Confirmar"}</button>
+              <button onClick={handleBet} disabled={placing} className="flex-1 py-3 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black uppercase disabled:opacity-50">{placing ? "Enviando..." : "Confirmar"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {betPlaced && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-[#F5A623] text-[#1A0E00] px-6 py-3 rounded-xl font-black text-sm shadow-[0_4px_20px_rgba(245,166,35,0.4)]">Previsao realizada!</div>}
+      {betPlaced && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-[#80FF00] text-[#0a0a0a] px-6 py-3 rounded-xl font-black text-sm shadow-[0_4px_20px_rgba(128,255,0,0.4)]">Previsao realizada!</div>}
 
       {/* Live bet toast */}
       {betToast && (
@@ -916,7 +916,7 @@ export default function EventoPage() {
           <span className="text-[11px] text-white/80">
             <span className="font-bold text-white">{betToast.user_name}</span>
             {" apostou "}
-            <span className="font-bold text-[#F5A623]">R$ {betToast.amount}</span>
+            <span className="font-bold text-[#80FF00]">R$ {betToast.amount}</span>
             {" em "}
             <span className="font-bold" style={{ color: betToast.outcome_color }}>{betToast.outcome_label}</span>
           </span>
@@ -938,7 +938,7 @@ export default function EventoPage() {
       {/* Mobile chat FAB */}
       <button
         onClick={() => setMobileChatOpen(true)}
-        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-[#F5A623] text-[#1A0E00] flex items-center justify-center shadow-[0_4px_20px_rgba(245,166,35,0.4)] hover:scale-105 active:scale-95 transition-all"
+        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-[#80FF00] text-[#0a0a0a] flex items-center justify-center shadow-[0_4px_20px_rgba(128,255,0,0.4)] hover:scale-105 active:scale-95 transition-all"
       >
         <span className="material-symbols-outlined text-lg">forum</span>
       </button>

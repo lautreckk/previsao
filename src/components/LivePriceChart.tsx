@@ -20,7 +20,7 @@ const DOWN_COLOR = "#FF5252";
 const GRID_COLOR = "rgba(255,255,255,0.04)";
 const AXIS_COLOR = "rgba(255,255,255,0.2)";
 const BG_COLOR = "#111827";
-const ENTRY_COLOR = "#FFD700";
+const ENTRY_COLOR = "#80FF00";
 const MAX_POINTS = 300;
 
 const formatBRL = (v: number) =>
@@ -348,7 +348,7 @@ export default function LivePriceChart({ symbol, category, openPrice, entryPrice
     return (
       <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] p-4" style={{ height: height + 48 }}>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-[#E09520] rounded-full" />
+          <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-[#80FF00] rounded-full" />
         </div>
       </div>
     );

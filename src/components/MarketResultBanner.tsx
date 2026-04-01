@@ -61,12 +61,12 @@ export function MarketResultBanner({
     if (!isResolved || !userWon) return;
 
     const confettiColors = [
-      "#FFD700",
-      "#F5A623",
+      "#80FF00",
+      "#80FF00",
       "#5B9DFF",
       "#E040FB",
       "#FF6B5A",
-      "#FFB800",
+      "#A0FF40",
     ];
     const generated = Array.from({ length: 24 }, (_, i) => ({
       id: i,
@@ -134,7 +134,7 @@ export function MarketResultBanner({
               Resultado:{" "}
               <span
                 className="font-bold"
-                style={{ color: winningOutcome.color || "#F5A623" }}
+                style={{ color: winningOutcome.color || "#80FF00" }}
               >
                 {winningOutcome.label}
               </span>{" "}

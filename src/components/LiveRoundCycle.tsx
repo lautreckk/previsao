@@ -73,7 +73,7 @@ function HistoryDots({ history }: { history: HistoryEntry[] }) {
           <div
             key={i}
             className={`w-2.5 h-2.5 rounded-full transition-all ${
-              isUp ? "bg-[#E09520]" : "bg-[#FF5252]"
+              isUp ? "bg-[#80FF00]" : "bg-[#FF5252]"
             }`}
             title={isUp ? "Subiu" : "Desceu"}
           />
@@ -104,7 +104,7 @@ function PhaseBadge({ phase, timeLeft }: { phase: RoundPhase; timeLeft: string }
   if (phase === "observation") {
     return (
       <div className="flex items-center gap-3">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#FFB800]/10 text-[#FFB800] border border-[#FFB800]/30">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#A0FF40]/10 text-[#A0FF40] border border-[#A0FF40]/30">
           <span className="material-symbols-outlined text-xs">hourglass_top</span>
           OBSERVACAO
         </div>
@@ -115,7 +115,7 @@ function PhaseBadge({ phase, timeLeft }: { phase: RoundPhase; timeLeft: string }
 
   if (phase === "result") {
     return (
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/30">
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#80FF00]/10 text-[#80FF00] border border-[#80FF00]/30">
         <span className="material-symbols-outlined text-xs">emoji_events</span>
         RESULTADO
       </div>
@@ -125,7 +125,7 @@ function PhaseBadge({ phase, timeLeft }: { phase: RoundPhase; timeLeft: string }
   // next_round
   return (
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/5 text-white/60 border border-white/10">
-      <div className="animate-spin w-3 h-3 border-2 border-white/20 border-t-[#F5A623] rounded-full" />
+      <div className="animate-spin w-3 h-3 border-2 border-white/20 border-t-[#80FF00] rounded-full" />
       PROXIMA RODADA
     </div>
   );
@@ -190,7 +190,7 @@ function NextRoundProgress() {
       <p className="text-sm font-bold text-white/60 mb-3">Proxima previsao...</p>
       <div className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-[#E09520] to-[#F5A623] rounded-full transition-all duration-100"
+          className="h-full bg-gradient-to-r from-[#80FF00] to-[#80FF00] rounded-full transition-all duration-100"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -231,7 +231,7 @@ function OddsButtons({
         const isSelected = selectedOutcome === o.key;
         const isUp = o.key === "up" || o.key === "sobe";
 
-        const baseColor = isUp ? "#E09520" : "#FF5252";
+        const baseColor = isUp ? "#80FF00" : "#FF5252";
         const flash = flashKeys[o.key];
 
         return (
@@ -243,7 +243,7 @@ function OddsButtons({
               isSelected
                 ? "border-white/30 ring-1 ring-white/20"
                 : "border-white/[0.06] hover:border-white/10"
-            } ${flash === "up" ? "ring-2 ring-[#E09520]/50" : ""} ${
+            } ${flash === "up" ? "ring-2 ring-[#80FF00]/50" : ""} ${
               flash === "down" ? "ring-2 ring-[#FF5252]/50" : ""
             }`}
             style={{ backgroundColor: baseColor + "08" }}
@@ -423,7 +423,7 @@ export default function LiveRoundCycle({
 
       setResultData({
         winnerLabel: winOutcome?.label || winKey || "?",
-        winnerColor: winOutcome?.color || "#F5A623",
+        winnerColor: winOutcome?.color || "#80FF00",
         payout: round.payout_multiplier || 0,
         openPrice: round.open_price || 0,
         closePrice: round.close_price || 0,
@@ -518,11 +518,11 @@ export default function LiveRoundCycle({
 
       {/* ─── Observation Notice ─── */}
       {phase === "observation" && (
-        <div className="mx-5 rounded-xl border border-[#FFB800]/20 bg-[#FFB800]/5 px-4 py-2.5 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#FFB800] text-sm">
+        <div className="mx-5 rounded-xl border border-[#A0FF40]/20 bg-[#A0FF40]/5 px-4 py-2.5 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[#A0FF40] text-sm">
             lock
           </span>
-          <span className="text-xs text-[#FFB800] font-semibold">
+          <span className="text-xs text-[#A0FF40] font-semibold">
             Previsoes encerradas &mdash; aguarde o resultado
           </span>
         </div>

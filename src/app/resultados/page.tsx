@@ -59,10 +59,10 @@ function EvidenceBadge({ evidence, marketType }: { evidence: Record<string, unkn
   if (marketType === "weather_threshold" && src) {
     return (
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#E09520]/5 border border-[#E09520]/20">
-          <span className="material-symbols-outlined text-base text-[#E09520]">thermostat</span>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#80FF00]/5 border border-[#80FF00]/20">
+          <span className="material-symbols-outlined text-base text-[#80FF00]">thermostat</span>
           <div>
-            <span className="text-xs font-bold text-[#E09520]">{String(src.value)}°C</span>
+            <span className="text-xs font-bold text-[#80FF00]">{String(src.value)}°C</span>
             <span className="text-[10px] text-white/40 ml-1.5">{String(src.operator)} {String(src.threshold)}°C</span>
           </div>
         </div>
@@ -138,7 +138,7 @@ export default function ResultadosPage() {
         <div className="text-center">
           <span className="material-symbols-outlined text-5xl text-white/20">verified</span>
           <p className="mt-2 text-white/40 mb-4">Faca login para ver os resultados</p>
-          <Link href="/login" className="px-6 py-3 rounded-xl kinetic-gradient text-[#1A0E00] font-black text-sm uppercase">Entrar</Link>
+          <Link href="/login" className="px-6 py-3 rounded-xl kinetic-gradient text-[#0a0a0a] font-black text-sm uppercase">Entrar</Link>
         </div>
       </div>
     );
@@ -153,8 +153,8 @@ export default function ResultadosPage() {
       <div className="max-w-4xl mx-auto px-4 pt-6">
         {/* Title */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-[#E09520]/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#E09520] text-xl">fact_check</span>
+          <div className="w-10 h-10 rounded-xl bg-[#80FF00]/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[#80FF00] text-xl">fact_check</span>
           </div>
           <div>
             <h1 className="text-xl font-black uppercase tracking-wide">Resultados</h1>
@@ -173,7 +173,7 @@ export default function ResultadosPage() {
                 onClick={() => { setFilter(cat); setPage(0); }}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   isActive
-                    ? "bg-[#E09520]/15 text-[#E09520] border border-[#E09520]/30"
+                    ? "bg-[#80FF00]/15 text-[#80FF00] border border-[#80FF00]/30"
                     : "bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/[0.08]"
                 }`}
               >
@@ -227,9 +227,9 @@ export default function ResultadosPage() {
                     </div>
                     {/* Winner badge */}
                     {winOutcome && (
-                      <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E09520]/10 border border-[#E09520]/30">
-                        <span className="material-symbols-outlined text-sm text-[#E09520]">emoji_events</span>
-                        <span className="text-xs font-black text-[#E09520]">{winOutcome.label}</span>
+                      <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#80FF00]/10 border border-[#80FF00]/30">
+                        <span className="material-symbols-outlined text-sm text-[#80FF00]">emoji_events</span>
+                        <span className="text-xs font-black text-[#80FF00]">{winOutcome.label}</span>
                       </div>
                     )}
                   </div>
@@ -245,7 +245,7 @@ export default function ResultadosPage() {
                           <div
                             key={o.key}
                             className={`flex items-center justify-center text-[10px] font-bold transition-all ${
-                              isWinner ? "bg-[#E09520]/20 text-[#E09520]" : "bg-white/[0.02] text-white/30"
+                              isWinner ? "bg-[#80FF00]/20 text-[#80FF00]" : "bg-white/[0.02] text-white/30"
                             }`}
                             style={{ width: `${Math.max(pct, 15)}%` }}
                           >

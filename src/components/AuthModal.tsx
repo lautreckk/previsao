@@ -77,7 +77,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
     onClose(); router.push("/");
   };
 
-  const inputClass = "w-full bg-[#0A0910] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-[#F5A623]/40 border border-[#1e2a3a] placeholder-[#4a5568]";
+  const inputClass = "w-full bg-[#0A0910] rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-[#1e2a3a] placeholder-[#4a5568]";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={onClose}>
@@ -98,13 +98,13 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
         <div className="flex border-b border-[#1e2a3a]">
           <button
             onClick={() => switchTab("login")}
-            className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all ${tab === "login" ? "text-[#F5A623] border-b-2 border-[#F5A623] bg-[#F5A623]/5" : "text-[#4a5568] hover:text-white"}`}
+            className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all ${tab === "login" ? "text-[#80FF00] border-b-2 border-[#80FF00] bg-[#80FF00]/5" : "text-[#4a5568] hover:text-white"}`}
           >
             Entrar
           </button>
           <button
             onClick={() => switchTab("register")}
-            className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all ${tab === "register" ? "text-[#F5A623] border-b-2 border-[#F5A623] bg-[#F5A623]/5" : "text-[#4a5568] hover:text-white"}`}
+            className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all ${tab === "register" ? "text-[#80FF00] border-b-2 border-[#80FF00] bg-[#80FF00]/5" : "text-[#4a5568] hover:text-white"}`}
           >
             Cadastre-se
           </button>
@@ -127,11 +127,11 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" className={inputClass} />
               </div>
               {error && <p className="text-[#FF5252] text-xs text-center font-bold">{error}</p>}
-              <button type="submit" disabled={loading} className="w-full py-3.5 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black text-sm uppercase tracking-wider hover:bg-[#F5A623]/90 active:scale-[0.98] transition-all disabled:opacity-50">
+              <button type="submit" disabled={loading} className="w-full py-3.5 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider hover:bg-[#80FF00]/90 active:scale-[0.98] transition-all disabled:opacity-50">
                 {loading ? "Entrando..." : "Entrar"}
               </button>
               <p className="text-center text-xs text-[#4a5568]">
-                Nao tem conta? <button type="button" onClick={() => switchTab("register")} className="text-[#F5A623] font-bold">Cadastre-se</button>
+                Nao tem conta? <button type="button" onClick={() => switchTab("register")} className="text-[#80FF00] font-bold">Cadastre-se</button>
               </p>
             </form>
           )}
@@ -160,11 +160,11 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
                 <input type="text" value={regCpf} onChange={(e) => setRegCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" maxLength={14} className={inputClass} />
               </div>
               {error && <p className="text-[#FF5252] text-xs text-center font-bold">{error}</p>}
-              <button onClick={handleStep1} className="w-full py-3.5 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black text-sm uppercase tracking-wider hover:bg-[#F5A623]/90 active:scale-[0.98] transition-all">
+              <button onClick={handleStep1} className="w-full py-3.5 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider hover:bg-[#80FF00]/90 active:scale-[0.98] transition-all">
                 Continuar
               </button>
               <p className="text-center text-xs text-[#4a5568]">
-                Ja tem conta? <button onClick={() => switchTab("login")} className="text-[#F5A623] font-bold">Entrar</button>
+                Ja tem conta? <button onClick={() => switchTab("login")} className="text-[#80FF00] font-bold">Entrar</button>
               </p>
             </div>
           )}
@@ -173,8 +173,8 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
           {tab === "register" && step === 2 && (
             <div className="flex flex-col gap-4">
               <div className="text-center mb-2">
-                <div className="w-14 h-14 rounded-full bg-[#F5A623]/10 flex items-center justify-center mx-auto mb-3">
-                  <span className="material-symbols-outlined text-[#F5A623] text-2xl">lock</span>
+                <div className="w-14 h-14 rounded-full bg-[#80FF00]/10 flex items-center justify-center mx-auto mb-3">
+                  <span className="material-symbols-outlined text-[#80FF00] text-2xl">lock</span>
                 </div>
                 <h2 className="text-lg font-black font-headline uppercase tracking-tight">Criar senha</h2>
                 <p className="text-xs text-[#4a5568] mt-1">Etapa 2 de 2</p>
@@ -192,7 +192,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
                 <button onClick={() => { setStep(1); setError(""); }} className="flex-1 py-3.5 rounded-xl border border-[#1e2a3a] text-white font-bold text-sm uppercase tracking-wider hover:bg-white/5 active:scale-[0.98] transition-all">
                   Voltar
                 </button>
-                <button onClick={handleRegister} disabled={loading} className="flex-[2] py-3.5 rounded-xl bg-[#F5A623] text-[#1A0E00] font-black text-sm uppercase tracking-wider hover:bg-[#F5A623]/90 active:scale-[0.98] transition-all disabled:opacity-50">
+                <button onClick={handleRegister} disabled={loading} className="flex-[2] py-3.5 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider hover:bg-[#80FF00]/90 active:scale-[0.98] transition-all disabled:opacity-50">
                   {loading ? "Criando..." : "Criar Conta"}
                 </button>
               </div>

@@ -69,8 +69,8 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
     >
       <div className={`relative rounded-2xl border overflow-hidden h-full flex flex-col transition-all duration-200 ${
         isClosed
-          ? "bg-[#12101A]/60 border-white/[0.04] opacity-50"
-          : "bg-gradient-to-br from-[#161320] to-[#12101A] border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:border-[#F5A623]/20 hover:shadow-xl hover:scale-[1.02]"
+          ? "bg-[hsl(0,0%,11%)]/60 border-[hsl(0,0%,18%)]/40 opacity-50"
+          : "bg-[hsl(0,0%,11%)] border-[hsl(0,0%,18%)] shadow-[0_2px_12px_rgba(0,0,0,0.3)] hover:border-[#80FF00]/30 hover:shadow-xl hover:scale-[1.02]"
       }`}>
 
         {/* Subtle category gradient at top */}
@@ -94,7 +94,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
           </span>
           {/* Live pulse or timer */}
           {isLive && remaining > 0 && remaining < 600000 && (
-            <span className="text-[10px] font-mono font-bold text-[#FFB800] animate-pulse">{timeStr}</span>
+            <span className="text-[10px] font-mono font-bold text-[#A0FF40] animate-pulse">{timeStr}</span>
           )}
         </div>
 
@@ -139,7 +139,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
               </div>
             );
           })()}
-          <h4 className="text-[13px] font-bold leading-snug text-white line-clamp-2 group-hover:text-[#F5A623] transition-colors">
+          <h4 className="text-[13px] font-bold leading-snug text-white line-clamp-2 group-hover:text-[#80FF00] transition-colors">
             {market.title}
           </h4>
         </div>
@@ -159,7 +159,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
                 {/* Label */}
                 <span className="text-[11px] text-white/80 truncate flex-1 min-w-0 font-medium">{o.label}</span>
                 {/* Odds — golden for high odds (3x+) */}
-                <span className={`text-[11px] font-mono shrink-0 tabular-nums font-bold ${odds >= 3 ? "text-[#FFD700]" : "text-white/50"}`}>
+                <span className={`text-[11px] font-mono shrink-0 tabular-nums font-bold ${odds >= 3 ? "text-[#80FF00]" : "text-white/50"}`}>
                   {odds.toFixed(2)}x
                 </span>
                 {/* Percentage badge with glow */}
@@ -209,7 +209,7 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
             <div className="flex items-center gap-1">
               <Icon name="schedule" size={11} className="text-white/25" />
               <span className={`text-[10px] font-bold font-mono tabular-nums ${
-                remaining > 0 && remaining < 600000 ? "text-[#FFB800]" : remaining > 0 ? "text-white/30" : "text-white/15"
+                remaining > 0 && remaining < 600000 ? "text-[#A0FF40]" : remaining > 0 ? "text-white/30" : "text-white/15"
               }`}>
                 {timeStr}
               </span>

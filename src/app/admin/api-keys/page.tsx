@@ -150,13 +150,13 @@ export default function ApiKeysPage() {
     { label: "Total Clientes", value: stats.total, icon: "group", color: "#5B9DFF" },
     { label: "Keys Ativas", value: stats.active, icon: "check_circle", color: "#10b981" },
     { label: "Keys Inativas", value: stats.inactive, icon: "cancel", color: "#ef4444" },
-    { label: "Total Requests", value: stats.total_requests.toLocaleString("pt-BR"), icon: "trending_up", color: "#F5A623" },
+    { label: "Total Requests", value: stats.total_requests.toLocaleString("pt-BR"), icon: "trending_up", color: "#80FF00" },
   ];
 
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-[#F5A623] rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-[#80FF00] rounded-full" />
       </div>
     );
   }
@@ -171,7 +171,7 @@ export default function ApiKeysPage() {
         </div>
         <button
           onClick={() => { setShowCreate(true); setNewKeyRevealed(null); }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#F5A623] text-black font-semibold text-sm rounded-xl hover:bg-[#F5A623]/80 active:scale-[0.98] transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#80FF00] text-black font-semibold text-sm rounded-xl hover:bg-[#80FF00]/80 active:scale-[0.98] transition-all"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           Nova API Key
@@ -198,7 +198,7 @@ export default function ApiKeysPage() {
       {/* Table */}
       <div className="rounded-2xl border border-white/[0.06] bg-[#12101A] overflow-hidden">
         <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
-          <span className="material-symbols-outlined text-[#F5A623]">vpn_key</span>
+          <span className="material-symbols-outlined text-[#80FF00]">vpn_key</span>
           <h2 className="text-white font-semibold">Chaves de API ({keys.length})</h2>
         </div>
 
@@ -318,13 +318,13 @@ export default function ApiKeysPage() {
         </div>
         <div className="px-6 py-4 space-y-3 text-sm">
           <div className="flex items-start gap-3">
-            <code className="bg-white/[0.04] px-2 py-1 rounded-lg text-xs text-[#F5A623] font-mono shrink-0">curl</code>
+            <code className="bg-white/[0.04] px-2 py-1 rounded-lg text-xs text-[#80FF00] font-mono shrink-0">curl</code>
             <code className="text-white/60 text-xs break-all">
               curl &quot;https://seu-app.vercel.app/api/v1/prices/crypto?symbols=BTC,ETH&currency=BRL&quot; -H &quot;x-api-key: wfp_xxx&quot;
             </code>
           </div>
           <div className="flex items-start gap-3">
-            <code className="bg-white/[0.04] px-2 py-1 rounded-lg text-xs text-[#FFB800] font-mono shrink-0">fetch</code>
+            <code className="bg-white/[0.04] px-2 py-1 rounded-lg text-xs text-[#A0FF40] font-mono shrink-0">fetch</code>
             <code className="text-white/60 text-xs break-all">
               {`fetch("/api/v1/weather?city=sao-paulo", { headers: { "x-api-key": "wfp_xxx" } })`}
             </code>
@@ -342,7 +342,7 @@ export default function ApiKeysPage() {
           >
             <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#F5A623]">add_circle</span>
+                <span className="material-symbols-outlined text-[#80FF00]">add_circle</span>
                 <h3 className="text-white font-semibold">Nova API Key</h3>
               </div>
               <button onClick={() => { setShowCreate(false); setNewKeyRevealed(null); }} className="text-white/30 hover:text-white/60">
@@ -359,12 +359,12 @@ export default function ApiKeysPage() {
                   <p className="text-white/40 text-xs">Copie agora — ela nao sera exibida novamente completa.</p>
                 </div>
                 <div className="relative">
-                  <code className="block w-full bg-white/[0.04] rounded-xl px-4 py-3.5 text-[#F5A623] text-sm font-mono border border-white/[0.06] break-all select-all">
+                  <code className="block w-full bg-white/[0.04] rounded-xl px-4 py-3.5 text-[#80FF00] text-sm font-mono border border-white/[0.06] break-all select-all">
                     {newKeyRevealed}
                   </code>
                   <button
                     onClick={() => copyToClipboard(newKeyRevealed)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-[#F5A623] text-black text-xs font-semibold rounded-lg hover:bg-[#F5A623]/80 active:scale-95 transition-all"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-[#80FF00] text-black text-xs font-semibold rounded-lg hover:bg-[#80FF00]/80 active:scale-95 transition-all"
                   >
                     <span className="material-symbols-outlined text-[14px]">{copied ? "check" : "content_copy"}</span>
                     {copied ? "Copiado!" : "Copiar"}
@@ -420,7 +420,7 @@ export default function ApiKeysPage() {
                         onClick={() => permToggle(perm)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                           formPerms.includes(perm)
-                            ? "bg-[#F5A623]/10 text-[#F5A623] border-[#F5A623]/20"
+                            ? "bg-[#80FF00]/10 text-[#80FF00] border-[#80FF00]/20"
                             : "bg-white/[0.02] text-white/30 border-white/[0.06] hover:border-white/[0.12]"
                         }`}
                       >
@@ -441,7 +441,7 @@ export default function ApiKeysPage() {
                   <button
                     onClick={handleCreate}
                     disabled={!formName.trim() || creating}
-                    className="flex-1 py-3 bg-[#F5A623] text-black font-semibold rounded-xl text-sm hover:bg-[#F5A623]/80 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-[#80FF00] text-black font-semibold rounded-xl text-sm hover:bg-[#80FF00]/80 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {creating ? (
                       <span className="animate-spin material-symbols-outlined text-[16px]">progress_activity</span>

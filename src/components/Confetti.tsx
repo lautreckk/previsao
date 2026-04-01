@@ -17,7 +17,7 @@ export default function Confetti({ active }: { active: boolean }) {
 
   useEffect(() => {
     if (!active) return;
-    const colors = ["#FFD700", "#00FFB8", "#FF5252", "#5B9DFF", "#E040FB", "#F5A623"];
+    const colors = ["#80FF00", "#00FFB8", "#FF5252", "#5B9DFF", "#E040FB", "#80FF00"];
     const newParticles: Particle[] = Array.from({ length: 40 }, (_, i) => ({
       id: i,
       x: 50 + (Math.random() - 0.5) * 30,

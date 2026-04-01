@@ -28,7 +28,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-surface-dim text-on-surface flex flex-col overflow-x-hidden w-full max-w-[100vw]">
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex items-center px-4 h-16 overflow-hidden">
-        <button onClick={() => router.back()} className="text-[#F5A623] mr-4"><span className="material-symbols-outlined">arrow_back</span></button>
+        <button onClick={() => router.back()} className="text-[#80FF00] mr-4"><span className="material-symbols-outlined">arrow_back</span></button>
         <h1 className="text-base font-bold font-headline uppercase tracking-tight">Entrar</h1>
       </div>
 
@@ -42,16 +42,16 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
             <div>
               <label className="text-xs text-on-surface-variant mb-1 block uppercase tracking-wider font-bold">E-mail</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-white text-sm outline-none focus:ring-2 focus:ring-[#F5A623]/40 border border-white/5" />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-white text-sm outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-white/5" />
             </div>
             <div>
               <label className="text-xs text-on-surface-variant mb-1 block uppercase tracking-wider font-bold">Senha</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" className="w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-white text-sm outline-none focus:ring-2 focus:ring-[#F5A623]/40 border border-white/5" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" className="w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-white text-sm outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-white/5" />
             </div>
             {error && <p className="text-error text-sm text-center font-bold">{error}</p>}
-            <button type="submit" disabled={loading} className="w-full py-4 rounded-2xl kinetic-gradient text-[#1A0E00] font-black font-headline text-base mt-2 uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60">{loading ? "Entrando..." : "Entrar"}</button>
+            <button type="submit" disabled={loading} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base mt-2 uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60">{loading ? "Entrando..." : "Entrar"}</button>
           </form>
-          <p className="text-center text-sm text-on-surface-variant mt-4">Nao tem conta? <Link href="/criar-conta" className="text-[#F5A623] font-bold">Criar conta</Link></p>
+          <p className="text-center text-sm text-on-surface-variant mt-4">Nao tem conta? <Link href="/criar-conta" className="text-[#80FF00] font-bold">Criar conta</Link></p>
         </div>
       </div>
     </div>

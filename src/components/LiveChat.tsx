@@ -44,17 +44,17 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-[#0D0B14] sm:rounded-t-2xl shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#E09520]/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#E09520] text-base">forum</span>
+          <div className="w-8 h-8 rounded-lg bg-[#80FF00]/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[#80FF00] text-base">forum</span>
           </div>
           <div>
             <h3 className="font-black text-sm uppercase tracking-wider leading-none text-white">Chat ao Vivo</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E09520] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E09520]" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#80FF00] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#80FF00]" />
               </span>
-              <span className="text-[10px] text-[#E09520] font-bold">{onlineCount} online</span>
+              <span className="text-[10px] text-[#80FF00] font-bold">{onlineCount} online</span>
             </div>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
               <div className="min-w-0 flex-1">
                 {!isGrouped && (
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[#E09520] font-bold text-xs truncate">{msg.user}</span>
+                    <span className="text-[#80FF00] font-bold text-xs truncate">{msg.user}</span>
                     {badge && (
                       <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#1A1722] border border-white/[0.06] ${badge.color}`}>
                         <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>{badge.icon}</span>
@@ -107,7 +107,7 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
       {!isAtBottom && unread > 0 && (
         <button
           onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnread(0); }}
-          className="absolute bottom-[68px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#E09520] text-[#1A0E00] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(224,149,32,0.4)] animate-bounce"
+          className="absolute bottom-[68px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-[#80FF00] text-[#0a0a0a] px-3 py-1.5 rounded-full text-xs font-black shadow-[0_4px_12px_rgba(128,255,0,0.4)] animate-bounce"
         >
           <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
           {unread} {unread === 1 ? "nova" : "novas"}
@@ -118,7 +118,7 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
       <div className="px-3 py-3 border-t border-white/[0.06] shrink-0 bg-[#0a1020] sm:rounded-b-2xl">
         {user ? (
           <>
-            <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#E09520]/40 transition-colors px-3">
+            <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#80FF00]/40 transition-colors px-3">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -129,18 +129,18 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
               <button className="text-white/30 hover:text-white transition-colors p-1">
                 <span className="material-symbols-outlined text-lg">mood</span>
               </button>
-              <button onClick={send} className="text-white/30 hover:text-[#E09520] transition-colors p-1">
+              <button onClick={send} className="text-white/30 hover:text-[#80FF00] transition-colors p-1">
                 <span className="material-symbols-outlined text-lg">send</span>
               </button>
             </div>
             <p className="text-[10px] text-[#3a4a5a] mt-1.5 text-center">
-              Seja respeitoso. Siga as <span className="text-[#E09520]/70 hover:text-[#E09520] cursor-pointer">regras da comunidade</span>
+              Seja respeitoso. Siga as <span className="text-[#80FF00]/70 hover:text-[#80FF00] cursor-pointer">regras da comunidade</span>
             </p>
           </>
         ) : (
           <div className="text-center py-2">
             <p className="text-xs text-white/30 mb-2">Faca login para participar do chat</p>
-            <a href="/login" className="inline-block px-4 py-2 rounded-lg bg-[#E09520]/10 text-[#E09520] text-xs font-bold border border-[#E09520]/30 hover:bg-[#E09520]/20 transition-colors">
+            <a href="/login" className="inline-block px-4 py-2 rounded-lg bg-[#80FF00]/10 text-[#80FF00] text-xs font-bold border border-[#80FF00]/30 hover:bg-[#80FF00]/20 transition-colors">
               Entrar
             </a>
           </div>

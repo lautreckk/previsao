@@ -47,7 +47,7 @@ export default function PerfilPage() {
         <div className="text-center">
           <span className="material-symbols-outlined text-5xl text-on-surface-variant">person</span>
           <p className="mt-2 text-on-surface-variant mb-4">Faca login para ver seu perfil</p>
-          <Link href="/login" className="px-6 py-3 rounded-2xl kinetic-gradient text-[#1A0E00] font-black font-headline text-sm uppercase">Entrar</Link>
+          <Link href="/login" className="px-6 py-3 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-sm uppercase">Entrar</Link>
         </div>
       </div>
     );
@@ -63,27 +63,27 @@ export default function PerfilPage() {
     <div className="min-h-screen bg-surface-dim text-on-surface pb-32 overflow-x-hidden w-full max-w-[100vw]">
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex justify-between items-center px-4 h-16 overflow-hidden">
         <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="lg:hidden text-[#F5A623] p-1"><span className="material-symbols-outlined">arrow_back</span></button>
+          <button onClick={() => router.back()} className="lg:hidden text-[#80FF00] p-1"><span className="material-symbols-outlined">arrow_back</span></button>
           <Link href="/" className="flex items-center gap-2"><img src="/logo.png" alt="Winify" className="h-16 w-auto" /></Link>
         </div>
         <div className="bg-surface-container-highest px-4 py-1.5 rounded-full border border-white/5 flex items-center gap-2">
-          <span className="text-[#F5A623] font-bold font-headline tracking-tight text-sm">R$ {user.balance.toFixed(2)}</span>
-          <span className="material-symbols-outlined text-[#F5A623] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
+          <span className="text-[#80FF00] font-bold font-headline tracking-tight text-sm">R$ {user.balance.toFixed(2)}</span>
+          <span className="material-symbols-outlined text-[#80FF00] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
         </div>
       </header>
 
       <main className="pt-20 pb-8 px-4 max-w-lg mx-auto">
         {/* Profile Header */}
         <section className="relative bg-gradient-to-br from-surface-container via-surface-container to-surface-container-high rounded-3xl p-6 border border-white/5 mb-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-[#F5A623]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#80FF00]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
           <div className="flex items-center gap-5">
             <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-tr from-[#F5A623] via-[#FFB800] to-[#F5A623]">
+              <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-tr from-[#80FF00] via-[#A0FF40] to-[#80FF00]">
                 {user.avatar_url ? (
                   <img src={user.avatar_url} alt={user.name} className="w-full h-full rounded-full object-cover border-[3px] border-surface-dim" />
                 ) : (
                   <div className="w-full h-full rounded-full bg-surface-dim flex items-center justify-center border-[3px] border-surface-dim">
-                    <span className="text-3xl font-black text-[#F5A623] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+                    <span className="text-3xl font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
                   </div>
                 )}
               </div>
@@ -92,7 +92,7 @@ export default function PerfilPage() {
               <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface truncate">{user.name}</h1>
               <p className="text-on-surface-variant text-xs font-medium truncate">{user.email}</p>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] font-bold bg-[#F5A623]/15 text-[#F5A623] px-2 py-0.5 rounded-full">Lv.{user.level} {getLevelName(user.level)}</span>
+                <span className="text-[10px] font-bold bg-[#80FF00]/15 text-[#80FF00] px-2 py-0.5 rounded-full">Lv.{user.level} {getLevelName(user.level)}</span>
                 <span className="text-on-surface-variant/40 text-[10px]">
                   Desde {new Date(user.createdAt).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
                 </span>
@@ -105,7 +105,7 @@ export default function PerfilPage() {
         <nav className="flex bg-surface-container rounded-2xl p-1 mb-6 border border-white/5">
           {tabs.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-headline font-bold transition-all ${tab === t.key ? "bg-[#F5A623]/15 text-[#F5A623] shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}>
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-headline font-bold transition-all ${tab === t.key ? "bg-[#80FF00]/15 text-[#80FF00] shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}>
               <span className="material-symbols-outlined text-base" style={tab === t.key ? { fontVariationSettings: "'FILL' 1" } : undefined}>{t.icon}</span>
               {t.label}
             </button>
@@ -127,7 +127,7 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Vitorias" value={user.total_wins || stats.won} icon="emoji_events" color="text-[#F5A623]" bg="bg-[#F5A623]/10" />
+        <StatCard label="Vitorias" value={user.total_wins || stats.won} icon="emoji_events" color="text-[#80FF00]" bg="bg-[#80FF00]/10" />
         <StatCard label="Derrotas" value={user.total_losses || stats.lost} icon="close" color="text-red-400" bg="bg-red-400/10" />
         <StatCard label="Pendentes" value={stats.pending} icon="schedule" color="text-[#5B9DFF]" bg="bg-[#5B9DFF]/10" />
       </div>
@@ -135,9 +135,9 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
           <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1">Taxa de Acerto</p>
-          <span className="text-2xl font-headline font-black text-[#F5A623] italic">{stats.winRate.toFixed(0)}%</span>
+          <span className="text-2xl font-headline font-black text-[#80FF00] italic">{stats.winRate.toFixed(0)}%</span>
           <div className="mt-2 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#F5A623] to-[#FFB800] rounded-full transition-all" style={{ width: `${Math.min(stats.winRate, 100)}%` }} />
+            <div className="h-full bg-gradient-to-r from-[#80FF00] to-[#A0FF40] rounded-full transition-all" style={{ width: `${Math.min(stats.winRate, 100)}%` }} />
           </div>
         </div>
         <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
@@ -153,16 +153,16 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
       {(user.win_streak > 0 || user.best_streak > 0) && (
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-surface-container rounded-2xl p-4 border border-white/5 flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#F5A623] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+            <span className="material-symbols-outlined text-[#80FF00] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
             <div>
-              <span className="text-lg font-headline font-black text-[#F5A623] italic">{user.win_streak}</span>
+              <span className="text-lg font-headline font-black text-[#80FF00] italic">{user.win_streak}</span>
               <p className="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">Sequencia Atual</p>
             </div>
           </div>
           <div className="bg-surface-container rounded-2xl p-4 border border-white/5 flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#FFB800] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>military_tech</span>
+            <span className="material-symbols-outlined text-[#A0FF40] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>military_tech</span>
             <div>
-              <span className="text-lg font-headline font-black text-[#FFB800] italic">{user.best_streak}</span>
+              <span className="text-lg font-headline font-black text-[#A0FF40] italic">{user.best_streak}</span>
               <p className="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">Melhor Sequencia</p>
             </div>
           </div>
@@ -170,16 +170,16 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
       )}
 
       {/* Balance Card */}
-      <div className="bg-surface-container rounded-2xl p-6 border-l-4 border-[#F5A623] shadow-xl">
+      <div className="bg-surface-container rounded-2xl p-6 border-l-4 border-[#80FF00] shadow-xl">
         <div className="flex justify-between items-start mb-4">
           <div>
             <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-[0.2em]">Saldo Disponivel</p>
             <h2 className="text-4xl font-headline font-black text-on-surface mt-1 italic">R$ {user.balance.toFixed(2)}</h2>
           </div>
-          <span className="material-symbols-outlined text-[#F5A623] text-3xl">payments</span>
+          <span className="material-symbols-outlined text-[#80FF00] text-3xl">payments</span>
         </div>
         <div className="flex gap-3">
-          <Link href="/deposito" className="flex-1 bg-gradient-to-r from-[#F5A623] to-[#C4841A] text-[#1A0E00] font-headline font-extrabold py-3 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all text-center text-sm">DEPOSITAR</Link>
+          <Link href="/deposito" className="flex-1 bg-gradient-to-r from-[#80FF00] to-[#4A9900] text-[#0a0a0a] font-headline font-extrabold py-3 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all text-center text-sm">DEPOSITAR</Link>
           <button className="flex-1 bg-surface-container-highest text-on-surface font-headline font-extrabold py-3 rounded-2xl hover:bg-surface-bright active:scale-95 transition-all text-sm">SACAR</button>
         </div>
       </div>
@@ -187,7 +187,7 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
       {/* Financial Summary */}
       <div className="bg-surface-container rounded-2xl p-5 border border-white/5">
         <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#F5A623] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
+          <span className="material-symbols-outlined text-[#80FF00] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
           Resumo Financeiro
         </h3>
         <div className="space-y-3">
@@ -213,13 +213,13 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
       <div className="space-y-3">
         <div className="flex justify-between items-center px-1">
           <h3 className="font-headline font-bold text-sm tracking-tight">Ultimas Atividades</h3>
-          <Link href="/saldos" className="text-[#FFB800] text-[10px] font-black uppercase tracking-widest">Ver Tudo</Link>
+          <Link href="/saldos" className="text-[#A0FF40] text-[10px] font-black uppercase tracking-widest">Ver Tudo</Link>
         </div>
         {bets.length === 0 ? (
           <div className="bg-surface-container rounded-2xl p-6 text-center border border-white/5">
             <span className="material-symbols-outlined text-3xl text-on-surface-variant mb-2 block">receipt_long</span>
             <p className="text-sm text-on-surface-variant">Nenhuma atividade recente</p>
-            <Link href="/" className="text-[#F5A623] text-sm font-bold mt-2 inline-block">Explorar mercados</Link>
+            <Link href="/" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Explorar mercados</Link>
           </div>
         ) : (
           bets.slice(0, 5).map((bet) => <BetRow key={bet.id} bet={bet} />)
@@ -293,8 +293,8 @@ function ContaTab({
       <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#F5A623]/10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#F5A623]">{user.is_public ? "visibility" : "visibility_off"}</span>
+            <div className="w-10 h-10 rounded-xl bg-[#80FF00]/10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[#80FF00]">{user.is_public ? "visibility" : "visibility_off"}</span>
             </div>
             <div>
               <h3 className="font-headline font-bold text-sm">Perfil Publico</h3>
@@ -306,7 +306,7 @@ function ContaTab({
           <button
             onClick={async () => { setTogglingPublic(true); await togglePublicProfile(); setTogglingPublic(false); }}
             disabled={togglingPublic}
-            className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${user.is_public ? "bg-[#F5A623]" : "bg-white/10"}`}
+            className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${user.is_public ? "bg-[#80FF00]" : "bg-white/10"}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${user.is_public ? "translate-x-6" : "translate-x-0.5"}`} />
           </button>
@@ -314,7 +314,7 @@ function ContaTab({
         {user.is_public && (
           <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
             <span className="text-[10px] text-on-surface-variant">Nivel {user.level}</span>
-            <span className="text-[10px] text-[#F5A623] font-bold">{getLevelName(user.level)}</span>
+            <span className="text-[10px] text-[#80FF00] font-bold">{getLevelName(user.level)}</span>
             <span className="text-[10px] text-on-surface-variant ml-auto">{user.total_predictions} previsoes</span>
             <span className="text-[10px] text-on-surface-variant">•</span>
             <span className="text-[10px] text-on-surface-variant">{user.total_predictions > 0 ? Math.round((user.total_wins / user.total_predictions) * 100) : 0}% acerto</span>
@@ -325,23 +325,23 @@ function ContaTab({
       {/* Avatar */}
       <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
         <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#F5A623] text-lg">photo_camera</span>
+          <span className="material-symbols-outlined text-[#80FF00] text-lg">photo_camera</span>
           Foto do Perfil
         </h3>
         <div className="flex items-center gap-5">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full p-[2px] bg-gradient-to-tr from-[#F5A623] via-[#FFB800] to-[#F5A623]">
+            <div className="w-24 h-24 rounded-full p-[2px] bg-gradient-to-tr from-[#80FF00] via-[#A0FF40] to-[#80FF00]">
               {user.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className="w-full h-full rounded-full object-cover border-[3px] border-surface-dim" />
               ) : (
                 <div className="w-full h-full rounded-full bg-surface-dim flex items-center justify-center border-[3px] border-surface-dim">
-                  <span className="text-4xl font-black text-[#F5A623] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+                  <span className="text-4xl font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
                 </div>
               )}
             </div>
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#F5A623] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform">
-              <span className="material-symbols-outlined text-sm text-[#1A0E00]">{uploading ? "hourglass_top" : "edit"}</span>
+              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#80FF00] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-sm text-[#0a0a0a]">{uploading ? "hourglass_top" : "edit"}</span>
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
@@ -355,7 +355,7 @@ function ContaTab({
       {/* Personal Info */}
       <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
         <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#F5A623] text-lg">badge</span>
+          <span className="material-symbols-outlined text-[#80FF00] text-lg">badge</span>
           Informacoes Pessoais
         </h3>
         <div className="space-y-4">
@@ -366,11 +366,11 @@ function ContaTab({
           <div>
             <label className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1 block">Bio</label>
             <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Conte um pouco sobre voce..." rows={2}
-              className="w-full bg-surface-container-highest border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-[#F5A623]/40 focus:ring-1 focus:ring-[#F5A623]/20 transition-all resize-none" />
+              className="w-full bg-surface-container-highest border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-[#80FF00]/40 focus:ring-1 focus:ring-[#80FF00]/20 transition-all resize-none" />
           </div>
         </div>
         <button onClick={handleSave} disabled={!hasChanges || saving}
-          className={`mt-5 w-full py-3 rounded-2xl font-headline font-extrabold text-sm transition-all ${hasChanges ? "bg-gradient-to-r from-[#F5A623] to-[#C4841A] text-[#1A0E00] hover:scale-[1.02] active:scale-95" : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"}`}>
+          className={`mt-5 w-full py-3 rounded-2xl font-headline font-extrabold text-sm transition-all ${hasChanges ? "bg-gradient-to-r from-[#80FF00] to-[#4A9900] text-[#0a0a0a] hover:scale-[1.02] active:scale-95" : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"}`}>
           {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar Alteracoes"}
         </button>
       </div>
@@ -378,7 +378,7 @@ function ContaTab({
       {/* Change Password */}
       <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
         <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#F5A623] text-lg">lock</span>
+          <span className="material-symbols-outlined text-[#80FF00] text-lg">lock</span>
           Alterar Senha
         </h3>
         <div className="space-y-4">
@@ -421,7 +421,7 @@ function HistoricoTab({ bets, stats }: { bets: Array<{ id: string; marketTitle: 
       <div className="grid grid-cols-4 gap-2">
         {filters.map((f) => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`py-2.5 rounded-xl text-center transition-all ${filter === f.key ? "bg-[#F5A623]/15 border border-[#F5A623]/30 text-[#F5A623]" : "bg-surface-container border border-white/5 text-on-surface-variant hover:text-on-surface"}`}>
+            className={`py-2.5 rounded-xl text-center transition-all ${filter === f.key ? "bg-[#80FF00]/15 border border-[#80FF00]/30 text-[#80FF00]" : "bg-surface-container border border-white/5 text-on-surface-variant hover:text-on-surface"}`}>
             <span className="text-lg font-headline font-black block leading-none">{f.count}</span>
             <span className="text-[9px] uppercase font-bold tracking-wider">{f.label}</span>
           </button>
@@ -431,22 +431,22 @@ function HistoricoTab({ bets, stats }: { bets: Array<{ id: string; marketTitle: 
       {/* Win/Loss Report */}
       <div className="bg-surface-container rounded-2xl p-5 border border-white/5">
         <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#F5A623] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span>
+          <span className="material-symbols-outlined text-[#80FF00] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span>
           Relatorio de Performance
         </h3>
         <div className="flex items-center gap-4 mb-4">
           <div className="flex-1">
             <div className="flex h-3 rounded-full overflow-hidden bg-surface-container-highest">
-              {stats.won > 0 && <div className="bg-[#F5A623] transition-all" style={{ width: `${(stats.won / Math.max(stats.won + stats.lost, 1)) * 100}%` }} />}
+              {stats.won > 0 && <div className="bg-[#80FF00] transition-all" style={{ width: `${(stats.won / Math.max(stats.won + stats.lost, 1)) * 100}%` }} />}
               {stats.lost > 0 && <div className="bg-red-500 transition-all" style={{ width: `${(stats.lost / Math.max(stats.won + stats.lost, 1)) * 100}%` }} />}
             </div>
             <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-[#F5A623] font-bold">{stats.won}W</span>
+              <span className="text-[10px] text-[#80FF00] font-bold">{stats.won}W</span>
               <span className="text-[10px] text-red-400 font-bold">{stats.lost}L</span>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-2xl font-headline font-black text-[#F5A623] italic">{stats.winRate.toFixed(0)}%</span>
+            <span className="text-2xl font-headline font-black text-[#80FF00] italic">{stats.winRate.toFixed(0)}%</span>
             <p className="text-[9px] text-on-surface-variant uppercase font-bold tracking-wider">Win Rate</p>
           </div>
         </div>
@@ -494,7 +494,7 @@ function StatCard({ label, value, icon, color, bg }: { label: string; value: num
 
 function BetRow({ bet, expanded }: { bet: { id: string; marketTitle: string; optionName: string; odds: number; amount: number; potentialWin?: number; status: string; createdAt: string }; expanded?: boolean }) {
   const cfg = {
-    won: { color: "text-[#F5A623]", border: "border-[#F5A623]", bg: "bg-[#F5A623]/10", icon: "check_circle", label: "Ganho" },
+    won: { color: "text-[#80FF00]", border: "border-[#80FF00]", bg: "bg-[#80FF00]/10", icon: "check_circle", label: "Ganho" },
     lost: { color: "text-red-400", border: "border-red-400", bg: "bg-red-400/10", icon: "cancel", label: "Perdido" },
     pending: { color: "text-[#5B9DFF]", border: "border-[#5B9DFF]", bg: "bg-[#5B9DFF]/10", icon: "schedule", label: "Pendente" },
   }[bet.status as "won" | "lost" | "pending"] || { color: "text-[#5B9DFF]", border: "border-[#5B9DFF]", bg: "bg-[#5B9DFF]/10", icon: "schedule", label: "Pendente" };
@@ -535,7 +535,7 @@ function FormField({ label, value, onChange, icon, type = "text", placeholder }:
       <div className="relative">
         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">{icon}</span>
         <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full bg-surface-container-highest border border-white/5 rounded-xl pl-10 pr-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-[#F5A623]/40 focus:ring-1 focus:ring-[#F5A623]/20 transition-all" />
+          className="w-full bg-surface-container-highest border border-white/5 rounded-xl pl-10 pr-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-[#80FF00]/40 focus:ring-1 focus:ring-[#80FF00]/20 transition-all" />
       </div>
     </div>
   );

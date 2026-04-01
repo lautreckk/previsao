@@ -49,16 +49,16 @@ export default function CriarContaPage() {
     router.push("/");
   };
 
-  const inputClass = "w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-white text-sm outline-none focus:ring-2 focus:ring-[#F5A623]/40 border border-white/5";
+  const inputClass = "w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-white text-sm outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-white/5";
 
   return (
     <div className="min-h-screen bg-surface-dim text-on-surface flex flex-col overflow-x-hidden w-full max-w-[100vw]">
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex items-center px-4 h-16 overflow-hidden">
-        <button onClick={() => (step === 2 ? setStep(1) : router.back())} className="text-[#F5A623] mr-4"><span className="material-symbols-outlined">arrow_back</span></button>
+        <button onClick={() => (step === 2 ? setStep(1) : router.back())} className="text-[#80FF00] mr-4"><span className="material-symbols-outlined">arrow_back</span></button>
         <h1 className="text-base font-bold font-headline uppercase tracking-tight flex-1">Criar Conta</h1>
         <div className="flex gap-1">
-          <div className={`w-8 h-1 rounded-full ${step >= 1 ? "bg-[#F5A623]" : "bg-surface-container-highest"}`} />
-          <div className={`w-8 h-1 rounded-full ${step >= 2 ? "bg-[#F5A623]" : "bg-surface-container-highest"}`} />
+          <div className={`w-8 h-1 rounded-full ${step >= 1 ? "bg-[#80FF00]" : "bg-surface-container-highest"}`} />
+          <div className={`w-8 h-1 rounded-full ${step >= 2 ? "bg-[#80FF00]" : "bg-surface-container-highest"}`} />
         </div>
       </div>
 
@@ -78,15 +78,15 @@ export default function CriarContaPage() {
                 <div><label className="text-xs text-on-surface-variant mb-1 block uppercase tracking-wider font-bold">CPF</label><input type="text" value={cpf} onChange={(e) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" maxLength={14} className={inputClass} /></div>
               </div>
               {error && <p className="text-error text-sm mt-3 text-center font-bold">{error}</p>}
-              <button onClick={handleStep1} className="w-full py-4 rounded-2xl kinetic-gradient text-[#1A0E00] font-black font-headline text-base mt-4 uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all">Continuar</button>
-              <p className="text-center text-sm text-on-surface-variant mt-4">Ja tem conta? <Link href="/login" className="text-[#F5A623] font-bold">Entrar</Link></p>
+              <button onClick={handleStep1} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base mt-4 uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all">Continuar</button>
+              <p className="text-center text-sm text-on-surface-variant mt-4">Ja tem conta? <Link href="/login" className="text-[#80FF00] font-bold">Entrar</Link></p>
             </div>
           )}
 
           {step === 2 && (
             <div className="animate-fade-in-up">
               <div className="text-center mb-6">
-                <div className="w-16 h-16 rounded-full kinetic-gradient flex items-center justify-center mx-auto mb-4 glow-green"><span className="material-symbols-outlined text-[#1A0E00] text-3xl">lock</span></div>
+                <div className="w-16 h-16 rounded-full kinetic-gradient flex items-center justify-center mx-auto mb-4 glow-green"><span className="material-symbols-outlined text-[#0a0a0a] text-3xl">lock</span></div>
                 <h2 className="text-xl font-black font-headline uppercase tracking-tight">Criar senha</h2>
                 <p className="text-sm text-on-surface-variant mt-1">Etapa 2 de 2</p>
               </div>
@@ -95,7 +95,7 @@ export default function CriarContaPage() {
                 <div><label className="text-xs text-on-surface-variant mb-1 block uppercase tracking-wider font-bold">Confirmar senha</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repita a senha" className={inputClass} /></div>
               </div>
               {error && <p className="text-error text-sm mt-3 text-center font-bold">{error}</p>}
-              <button onClick={handleRegister} className="w-full py-4 rounded-2xl kinetic-gradient text-[#1A0E00] font-black font-headline text-base mt-4 uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all">Criar Conta</button>
+              <button onClick={handleRegister} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base mt-4 uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all">Criar Conta</button>
             </div>
           )}
         </div>

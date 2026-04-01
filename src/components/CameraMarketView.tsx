@@ -171,7 +171,7 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
       {mode === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
           <div className="text-center">
-            <div className="w-8 h-8 border-2 border-[#F5A623] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p className="text-[10px] text-white/50">Conectando camera...</p>
           </div>
         </div>
@@ -184,16 +184,16 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
       </div>
 
       {/* Mode indicator */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#F5A623]/20">
-        <span className="text-[10px] font-bold text-[#F5A623] uppercase tracking-widest">
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#80FF00]/20">
+        <span className="text-[10px] font-bold text-[#80FF00] uppercase tracking-widest">
           {mode === "hls" ? "STREAM AO VIVO" : mode === "frame" ? "IA YOLO" : "..."}
         </span>
       </div>
 
       {/* Count overlay */}
-      <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#F5A623]/30">
+      <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#80FF00]/30">
         <p className="text-[8px] uppercase tracking-widest text-white/50 font-bold">Contagem Atual</p>
-        <p className="text-3xl font-black text-[#F5A623] tabular-nums leading-none">{count}</p>
+        <p className="text-3xl font-black text-[#80FF00] tabular-nums leading-none">{count}</p>
       </div>
     </div>
   );
@@ -216,7 +216,7 @@ const FAKE_MSGS = [
 ];
 
 const CAM_AVATAR_COLORS = [
-  "from-[#FF6B6B] to-[#EE5A24]", "from-[#F5A623] to-[#C4841A]",
+  "from-[#FF6B6B] to-[#EE5A24]", "from-[#80FF00] to-[#4A9900]",
   "from-[#6C5CE7] to-[#A29BFE]", "from-[#FDCB6E] to-[#F39C12]",
   "from-[#00CEFF] to-[#0984E3]", "from-[#FD79A8] to-[#E84393]",
   "from-[#55E6C1] to-[#58B19F]", "from-[#FF9FF3] to-[#F368E0]",
@@ -301,14 +301,14 @@ function InlineChat() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#F5A623]/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#F5A623] text-sm">forum</span>
+          <div className="w-7 h-7 rounded-lg bg-[#80FF00]/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[#80FF00] text-sm">forum</span>
           </div>
           <div>
             <span className="text-xs font-black text-white uppercase tracking-wider">CHAT AO VIVO</span>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F5A623] opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#F5A623]" /></span>
-              <span className="text-[9px] text-[#F5A623] font-bold">{onlineCount} online</span>
+              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#80FF00] opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#80FF00]" /></span>
+              <span className="text-[9px] text-[#80FF00] font-bold">{onlineCount} online</span>
             </div>
           </div>
         </div>
@@ -334,7 +334,7 @@ function InlineChat() {
               <div className="min-w-0 flex-1">
                 {!isGrouped && (
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[#F5A623] font-bold text-[11px] truncate">{msg.user}</span>
+                    <span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span>
                     <span className="text-[9px] text-[#3a4a5a] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">{timeStr}</span>
                   </div>
                 )}
@@ -349,7 +349,7 @@ function InlineChat() {
       {!isAtBottom && unreadCount > 0 && (
         <button
           onClick={() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" }); setIsAtBottom(true); setUnreadCount(0); }}
-          className="absolute bottom-[60px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-[#F5A623] text-[#1A0E00] px-2.5 py-1 rounded-full text-[10px] font-black shadow-[0_4px_12px_rgba(245,166,35,0.4)] animate-bounce"
+          className="absolute bottom-[60px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-[#80FF00] text-[#0a0a0a] px-2.5 py-1 rounded-full text-[10px] font-black shadow-[0_4px_12px_rgba(128,255,0,0.4)] animate-bounce"
         >
           <span className="material-symbols-outlined" style={{ fontSize: "12px" }}>keyboard_arrow_down</span>
           {unreadCount} novas
@@ -359,7 +359,7 @@ function InlineChat() {
       {/* Input */}
       <div className="px-3 py-2.5 border-t border-white/[0.04] shrink-0 bg-[#0a1020]">
         {user ? (
-          <div className="flex items-center gap-2 bg-[#12101A] rounded-xl border border-[#1e2a3a] focus-within:border-[#F5A623]/40 transition-colors px-3">
+          <div className="flex items-center gap-2 bg-[#12101A] rounded-xl border border-[#1e2a3a] focus-within:border-[#80FF00]/40 transition-colors px-3">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -367,13 +367,13 @@ function InlineChat() {
               placeholder="Enviar mensagem..."
               className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder-[#8B95A8]"
             />
-            <button onClick={send} className="text-white/50 hover:text-[#F5A623] transition-colors p-1">
+            <button onClick={send} className="text-white/50 hover:text-[#80FF00] transition-colors p-1">
               <span className="material-symbols-outlined text-base">send</span>
             </button>
           </div>
         ) : (
           <p className="text-center text-sm text-white/50">
-            <a href="/login" className="text-[#F5A623] font-bold">Faca login</a> para enviar mensagens
+            <a href="/login" className="text-[#80FF00] font-bold">Faca login</a> para enviar mensagens
           </p>
         )}
       </div>
@@ -409,7 +409,7 @@ function RoundHistory({ marketId }: { marketId: string }) {
         {history.map((r) => {
           const isOver = (r.final_count || 0) > (r.threshold || 0);
           return (
-            <div key={r.id} className={`flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg text-[10px] font-bold ${isOver ? "bg-[#F5A623]/10 text-[#F5A623]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
+            <div key={r.id} className={`flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg text-[10px] font-bold ${isOver ? "bg-[#80FF00]/10 text-[#80FF00]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
               <span>#{r.round_number}</span>
               <span className="text-xs font-black">{r.final_count}</span>
               <span className="text-[8px] opacity-70">{isOver ? "OVER" : "UNDER"} {r.threshold}</span>
@@ -467,7 +467,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
     setPlacing(false);
   }, [user, selectedType, betAmount, marketId, refreshUser]);
 
-  if (loading) return <div className="min-h-screen bg-[#080d1a] flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#F5A623] border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="min-h-screen bg-[#080d1a] flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin" /></div>;
   if (!market) return <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white/50">Mercado nao encontrado</div>;
 
   const isBetting = market.phase === "betting";
@@ -489,7 +489,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           {/* Top bar: Title + Timer */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14]">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/" className="text-[#F5A623] shrink-0">
+              <Link href="/" className="text-[#80FF00] shrink-0">
                 <span className="material-symbols-outlined">arrow_back</span>
               </Link>
               <div className="min-w-0">
@@ -504,7 +504,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                   {/* Camera status dots */}
                   <div className="flex gap-1">
                     {[1,2,3,4,5,6,7].map((i) => (
-                      <span key={i} className={`w-2 h-2 rounded-full ${i <= 3 ? "bg-[#F5A623]" : "bg-[#8B95A8]/30"}`} />
+                      <span key={i} className={`w-2 h-2 rounded-full ${i <= 3 ? "bg-[#80FF00]" : "bg-[#8B95A8]/30"}`} />
                     ))}
                   </div>
                 </div>
@@ -519,7 +519,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0a1222]">
             <div className="flex items-center gap-3">
               <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Contagem atual:</span>
-              <span className="text-2xl font-black text-[#F5A623] tabular-nums">{currentCount}</span>
+              <span className="text-2xl font-black text-[#80FF00] tabular-nums">{currentCount}</span>
             </div>
             <div>
               {isBetting && (
@@ -553,12 +553,12 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 disabled={!isBetting}
                 className={`py-4 rounded-xl text-center transition-all active:scale-95 border-2 ${
                   selectedType === "over"
-                    ? "bg-[#F5A623]/20 border-[#F5A623] text-[#F5A623] shadow-[0_0_20px_rgba(245,166,35,0.15)]"
-                    : "bg-[#12101A] border-[#1e2a3a] text-white hover:border-[#F5A623]/40 disabled:opacity-40"
+                    ? "bg-[#80FF00]/20 border-[#80FF00] text-[#80FF00] shadow-[0_0_20px_rgba(128,255,0,0.15)]"
+                    : "bg-[#12101A] border-[#1e2a3a] text-white hover:border-[#80FF00]/40 disabled:opacity-40"
                 }`}
               >
                 <span className="text-xs font-bold opacity-70">Mais de {threshold}</span>
-                <span className={`block text-lg font-black ${selectedType === "over" ? "text-[#F5A623]" : "text-[#F5A623]"}`}>
+                <span className={`block text-lg font-black ${selectedType === "over" ? "text-[#80FF00]" : "text-[#80FF00]"}`}>
                   {odds.over > 0 ? `(${odds.over.toFixed(2)}x)` : "(--x)"}
                 </span>
               </button>
@@ -587,7 +587,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             <div className="mx-4 mb-3 space-y-3">
               <div className={`rounded-xl p-4 border text-center ${
                 lastResult.result === "over"
-                  ? "bg-[#F5A623]/10 border-[#F5A623]/30 text-[#F5A623]"
+                  ? "bg-[#80FF00]/10 border-[#80FF00]/30 text-[#80FF00]"
                   : "bg-[#FF5252]/10 border-[#FF5252]/30 text-[#FF5252]"
               }`}>
                 <p className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Resultado da Rodada</p>
@@ -607,7 +607,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                       });
                     } catch {}
                   }}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-[#F5A623] to-[#E09520] text-[#1A0E00] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(245,166,35,0.2)]"
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-[#80FF00] to-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(128,255,0,0.2)]"
                 >
                   Proxima Previsao
                 </button>
@@ -627,7 +627,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     });
                   } catch {}
                 }}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-[#F5A623] to-[#E09520] text-[#1A0E00] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(245,166,35,0.2)] animate-pulse"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-[#80FF00] to-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(128,255,0,0.2)] animate-pulse"
               >
                 Iniciar Previsao
               </button>
@@ -659,7 +659,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold mb-2">Valor (R$)</p>
                 <div className="flex items-center gap-2 mb-2">
                   {[1, 10, 50, 100].map((v) => (
-                    <button key={v} onClick={() => setBetAmount(String(v))} className={`flex-1 py-2 rounded-lg text-xs font-bold ${betAmount === String(v) ? "bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/40" : "bg-[#12101A] text-white/50 border border-[#1e2a3a]"}`}>
+                    <button key={v} onClick={() => setBetAmount(String(v))} className={`flex-1 py-2 rounded-lg text-xs font-bold ${betAmount === String(v) ? "bg-[#80FF00]/20 text-[#80FF00] border border-[#80FF00]/40" : "bg-[#12101A] text-white/50 border border-[#1e2a3a]"}`}>
                       R$ {v}
                     </button>
                   ))}
@@ -668,7 +668,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     disabled={!user || Number(user.balance) <= 0}
                     className={`flex-1 py-2 rounded-lg text-xs font-bold ${
                       user && betAmount === String(Math.floor(Number(user.balance) * 100) / 100)
-                        ? "bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/40"
+                        ? "bg-[#80FF00]/20 text-[#80FF00] border border-[#80FF00]/40"
                         : "bg-[#12101A] text-white/50 border border-[#1e2a3a] disabled:opacity-40"
                     }`}
                   >
@@ -677,13 +677,13 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 </div>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold">R$</span>
-                  <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="0" min="1" className="w-full bg-[#0A0910] rounded-xl pl-12 pr-4 py-3 text-white text-lg font-black outline-none border border-[#1e2a3a] focus:border-[#F5A623]/40" />
+                  <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="0" min="1" className="w-full bg-[#0A0910] rounded-xl pl-12 pr-4 py-3 text-white text-lg font-black outline-none border border-[#1e2a3a] focus:border-[#80FF00]/40" />
                 </div>
                 {user && <p className="text-[10px] text-white/50 mt-1">Saldo: R$ {Number(user.balance).toFixed(2)}</p>}
               </div>
 
               {betMsg && (
-                <div className={`rounded-xl p-3 text-xs font-bold text-center ${betMsg.type === "success" ? "bg-[#F5A623]/10 text-[#F5A623]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
+                <div className={`rounded-xl p-3 text-xs font-bold text-center ${betMsg.type === "success" ? "bg-[#80FF00]/10 text-[#80FF00]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
                   {betMsg.text}
                 </div>
               )}
@@ -692,7 +692,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 onClick={placePrediction}
                 disabled={!isBetting || !betAmount || Number(betAmount) < 1 || placing || !user}
                 className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider active:scale-[0.98] transition-all disabled:opacity-40 ${
-                  selectedType === "under" ? "bg-[#FF5252] text-white" : "bg-[#F5A623] text-[#1A0E00]"
+                  selectedType === "under" ? "bg-[#FF5252] text-white" : "bg-[#80FF00] text-[#0a0a0a]"
                 }`}
               >
                 {!user ? "Faca login" : placing ? "Enviando..." : `${selectedType === "over" ? "MAIS DE" : "ATE"} ${threshold} — R$ ${betAmount || "0"}`}
@@ -703,7 +703,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             <>
               <div className="flex border-b border-white/[0.04]">
                 {(["posicoes", "aberto", "encerradas"] as const).map((t) => (
-                  <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#F5A623] border-b-2 border-[#F5A623]" : "text-white/50"}`}>
+                  <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#80FF00] border-b-2 border-[#80FF00]" : "text-white/50"}`}>
                     {t === "posicoes" ? "Posicoes" : t === "aberto" ? "Em aberto" : "Encerradas"}
                   </button>
                 ))}
@@ -712,17 +712,17 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 {tab === "posicoes" && (
                   <div className="text-center text-white/50 py-8">
                     <p className="text-sm">Faca login para visualizar suas posicoes.</p>
-                    {!user && <Link href="/login" className="text-[#F5A623] text-sm font-bold mt-2 inline-block">Entrar</Link>}
+                    {!user && <Link href="/login" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Entrar</Link>}
                     {user && myPredictions.length === 0 && <p className="text-xs mt-2">Nenhuma previsao feita ainda.</p>}
                     {user && myPredictions.length > 0 && (
                       <div className="space-y-2 mt-4 text-left">
                         {myPredictions.slice(0, 10).map((p) => (
                           <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
                             <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#F5A623]/15 text-[#F5A623]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
                                 {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
                               </span>
-                              <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#F5A623]" : p.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>
+                              <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : p.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>
                                 {p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : p.status === "lost" ? "PERDEU" : `@${Number(p.odds_at_entry).toFixed(2)}x`}
                               </span>
                             </div>
@@ -738,7 +738,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     {openPredictions.length === 0 && <p className="text-center text-white/50 text-sm py-8">Nenhuma previsao em aberto.</p>}
                     {openPredictions.map((p) => (
                       <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#F5A623]/15 text-[#F5A623]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
                           {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold} @{Number(p.odds_at_entry).toFixed(2)}x
                         </span>
                         <span className="text-xs font-bold text-[#FFC700]">R$ {Number(p.amount_brl).toFixed(2)}</span>
@@ -752,10 +752,10 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     {closedPredictions.map((p) => (
                       <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#F5A623]/15 text-[#F5A623]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
                             {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
                           </span>
-                          <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#F5A623]" : "text-[#FF5252]"}`}>
+                          <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
                             {p.status === "won" ? "GANHOU" : "PERDEU"}
                           </span>
                         </div>

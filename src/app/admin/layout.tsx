@@ -47,8 +47,8 @@ function AdminLoginScreen({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-screen bg-[#0A0910] flex items-center justify-center p-6 relative overflow-hidden">
       {/* Ambient glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-[#F5A623]/[0.04] blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[320px] h-[320px] rounded-full bg-[#FFB800]/[0.03] blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-[#80FF00]/[0.04] blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[320px] h-[320px] rounded-full bg-[#A0FF40]/[0.03] blur-[100px] pointer-events-none" />
 
       <div className="w-full max-w-[380px] relative z-10">
         {/* Logo + badge */}
@@ -179,7 +179,7 @@ function MoreSheet({
                   </span>
                   <span className="text-[15px] font-medium">{item.label}</span>
                   {isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#F5A623]" />
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#80FF00]" />
                   )}
                 </Link>
               );
@@ -278,11 +278,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 {/* Active pill indicator */}
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-[#F5A623]" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-[#80FF00]" />
                 )}
                 <span
                   className={`material-symbols-outlined text-xl transition-colors duration-200 ${
-                    isActive ? "text-[#F5A623]" : "text-white/30 group-hover:text-white/50"
+                    isActive ? "text-[#80FF00]" : "text-white/30 group-hover:text-white/50"
                   }`}
                   style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
@@ -363,11 +363,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }`}
               >
                 {isActive && (
-                  <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#F5A623]" />
+                  <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#80FF00]" />
                 )}
                 <span
                   className={`material-symbols-outlined text-[22px] transition-all duration-200 ${
-                    isActive ? "text-[#F5A623]" : ""
+                    isActive ? "text-[#80FF00]" : ""
                   }`}
                   style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
@@ -385,11 +385,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             }`}
           >
             {moreItemActive && (
-              <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#F5A623]" />
+              <div className="absolute top-0 w-6 h-[2px] rounded-full bg-[#80FF00]" />
             )}
             <span
               className={`material-symbols-outlined text-[22px] ${
-                moreItemActive ? "text-[#F5A623]" : ""
+                moreItemActive ? "text-[#80FF00]" : ""
               }`}
               style={moreItemActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
             >

@@ -58,7 +58,7 @@ export default function CameraLobbyPage() {
     return (
       <div className="min-h-screen bg-[#080d1a] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[#F5A623] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white/50 text-sm">Entrando no lobby...</p>
         </div>
       </div>

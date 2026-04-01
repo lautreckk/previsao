@@ -29,7 +29,7 @@ const TABS: { key: SortKey; label: string; icon: string }[] = [
   { key: "streak", label: "Streak", icon: "local_fire_department" },
 ];
 
-const MEDAL_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"]; // gold, silver, bronze
+const MEDAL_COLORS = ["#80FF00", "#C0C0C0", "#CD7F32"]; // gold, silver, bronze
 
 export default function RankingPage() {
   const [users, setUsers] = useState<RankedUser[]>([]);
@@ -98,7 +98,7 @@ export default function RankingPage() {
       const p = Number(user.total_returns) - Number(user.total_wagered);
       return p >= 0 ? "#10B981" : "#EF4444";
     }
-    return "#F5A623";
+    return "#80FF00";
   }
 
   return (
@@ -106,8 +106,8 @@ export default function RankingPage() {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-[#080d1a]/90 backdrop-blur-lg border-b border-white/[0.04]">
         <div className="px-4 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#F5A623]/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#F5A623]">leaderboard</span>
+          <div className="w-9 h-9 rounded-xl bg-[#80FF00]/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[#80FF00]">leaderboard</span>
           </div>
           <div>
             <h1 className="font-black text-sm uppercase tracking-wider">Ranking</h1>
@@ -123,7 +123,7 @@ export default function RankingPage() {
               onClick={() => setSortKey(t.key)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                 sortKey === t.key
-                  ? "bg-[#F5A623]/10 text-[#F5A623] border border-[#F5A623]/20"
+                  ? "bg-[#80FF00]/10 text-[#80FF00] border border-[#80FF00]/20"
                   : "text-white/30 hover:text-white/50"
               }`}
             >
@@ -136,7 +136,7 @@ export default function RankingPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#80FF00]/30 border-t-[#80FF00] rounded-full animate-spin" />
         </div>
       ) : (
         <div className="px-4 py-4">
@@ -171,7 +171,7 @@ export default function RankingPage() {
                       </div>
                       <div
                         className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black"
-                        style={{ backgroundColor: MEDAL_COLORS[podiumIdx], color: "#1A0E00" }}
+                        style={{ backgroundColor: MEDAL_COLORS[podiumIdx], color: "#0a0a0a" }}
                       >
                         {pos}
                       </div>
@@ -201,7 +201,7 @@ export default function RankingPage() {
                     {isTop3 ? (
                       <div
                         className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black mx-auto"
-                        style={{ backgroundColor: MEDAL_COLORS[pos - 1], color: "#1A0E00" }}
+                        style={{ backgroundColor: MEDAL_COLORS[pos - 1], color: "#0a0a0a" }}
                       >
                         {pos}
                       </div>
@@ -225,7 +225,7 @@ export default function RankingPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-bold text-white truncate">{u.name}</span>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[#F5A623]/10 text-[#F5A623] font-bold shrink-0">
+                      <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[#80FF00]/10 text-[#80FF00] font-bold shrink-0">
                         Lv.{u.level}
                       </span>
                     </div>

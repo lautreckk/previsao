@@ -1,34 +1,35 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #0A0910;
-  --color-foreground: #F0EDF5;
-  --color-surface-dim: #0A0910;
-  --color-surface: #0A0910;
-  --color-surface-container-lowest: #070612;
-  --color-surface-container-low: #110F1A;
-  --color-surface-container: #161320;
-  --color-surface-container-high: #1C1828;
-  --color-surface-container-highest: #241F32;
-  --color-surface-bright: #2D2640;
-  --color-surface-variant: #241F32;
-  --color-primary: #F5A623;
-  --color-primary-dim: #E09520;
-  --color-primary-fixed: #FFCB47;
-  --color-primary-container: #C4841A;
-  --color-on-primary: #1A0E00;
-  --color-on-primary-container: #120900;
+  --color-background: #121212;
+  --color-foreground: #F2F2F2;
+  --color-surface-dim: #0A0A0A;
+  --color-surface: #121212;
+  --color-surface-container-lowest: #0A0A0A;
+  --color-surface-container-low: #141414;
+  --color-surface-container: #1C1C1C;
+  --color-surface-container-high: #242424;
+  --color-surface-container-highest: #2E2E2E;
+  --color-surface-bright: #383838;
+  --color-surface-variant: #2E2E2E;
+  --color-primary: #80FF00;
+  --color-primary-dim: #6BE000;
+  --color-primary-fixed: #A0FF40;
+  --color-primary-container: #4A9900;
+  --color-on-primary: #0A1400;
+  --color-on-primary-container: #061000;
   --color-success: #10B981;
   --color-success-dim: #059669;
   --color-live: #FF4444;
-  --color-secondary: #FFC700;
-  --color-secondary-dim: #E6A600;
-  --color-secondary-container: #7A5C00;
-  --color-on-secondary: #3D2E00;
+  --color-secondary: #242424;
+  --color-secondary-dim: #1C1C1C;
+  --color-secondary-container: #383838;
+  --color-on-secondary: #F2F2F2;
   --color-tertiary: #5B9DFF;
   --color-tertiary-container: #2979FF;
   --color-on-tertiary: #002966;
@@ -36,20 +37,25 @@
   --color-error-dim: #E0533F;
   --color-error-container: #B92902;
   --color-on-error: #450900;
-  --color-on-surface: #f1f3fc;
-  --color-on-surface-variant: #9B95A8;
-  --color-on-background: #f1f3fc;
-  --color-outline: #5A5468;
-  --color-outline-variant: #3A3450;
-  --color-inverse-surface: #f8f9ff;
-  --color-inverse-on-surface: #51555d;
-  --color-inverse-primary: #8B6914;
-  --color-surface-tint: #E09520;
-  --font-headline: 'Plus Jakarta Sans', sans-serif;
-  --font-body: 'Be Vietnam Pro', sans-serif;
-  --font-label: 'Be Vietnam Pro', sans-serif;
+  --color-on-surface: #F2F2F2;
+  --color-on-surface-variant: #8C8C8C;
+  --color-on-background: #F2F2F2;
+  --color-outline: #5A5A5A;
+  --color-outline-variant: #3A3A3A;
+  --color-inverse-surface: #F2F2F2;
+  --color-inverse-on-surface: #1C1C1C;
+  --color-inverse-primary: #3D7A00;
+  --color-surface-tint: #80FF00;
+  --color-odds-green: hsl(142 70% 45%);
+  --color-odds-red: hsl(0 72% 50%);
+  --color-ticker-bg: hsl(0 0% 4%);
+  --color-highlight-gold: hsl(42 96% 58%);
+  --color-highlight-blue: hsl(196 100% 60%);
+  --font-headline: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-label: 'Inter', sans-serif;
   --font-heading: var(--font-sans);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -87,40 +93,41 @@
 }
 
 :root {
-  --color-primary: #F5A623;
-  --color-secondary: #FFC700;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --color-primary: #80FF00;
+  --color-secondary: #242424;
+  --background: 0 0% 7%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 90 100% 50%;
+  --primary-foreground: 0 0% 5%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 0 0% 85%;
+  --muted: 0 0% 16%;
+  --muted-foreground: 0 0% 55%;
+  --accent: 90 100% 50%;
+  --accent-foreground: 0 0% 5%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 90 100% 50%;
+  --radius: 0.75rem;
+  --sidebar-background: 0 0% 5%;
+  --sidebar-foreground: 0 0% 85%;
+  --sidebar-primary: 90 100% 50%;
+  --sidebar-primary-foreground: 0 0% 5%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 90%;
+  --sidebar-border: 0 0% 14%;
+  --sidebar-ring: 90 100% 50%;
+  --chart-1: 90 100% 50%;
+  --chart-2: 142 70% 45%;
+  --chart-3: 0 72% 50%;
+  --chart-4: 42 96% 58%;
+  --chart-5: 196 100% 60%;
 }
 
 * {
@@ -134,9 +141,9 @@ html, body {
 }
 
 body {
-  background: #0A0910;
-  color: #f1f3fc;
-  font-family: var(--font-body), 'Be Vietnam Pro', system-ui, sans-serif;
+  background: #121212;
+  color: #F2F2F2;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -152,17 +159,25 @@ body {
 }
 
 .font-headline {
-  font-family: var(--font-headline), 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .font-body {
-  font-family: var(--font-body), 'Be Vietnam Pro', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -174,30 +189,30 @@ body {
 }
 
 .glass-card {
-  background: rgba(20, 29, 48, 0.5);
+  background: rgba(20, 20, 20, 0.5);
   backdrop-filter: blur(12px);
 }
 
 .glass-panel {
-  background: rgba(11, 17, 32, 0.7);
+  background: rgba(14, 14, 14, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
 .kinetic-gradient {
-  background: linear-gradient(135deg, #F5A623 0%, #FFCB47 50%, #FFD700 100%);
+  background: linear-gradient(135deg, #80FF00 0%, #A0FF40 50%, #60CC00 100%);
 }
 
 .kinetic-gradient-gold {
-  background: linear-gradient(135deg, #FFB800 0%, #FFA000 100%);
+  background: linear-gradient(135deg, #80FF00 0%, #60CC00 100%);
 }
 
 .pulse-glow {
-  box-shadow: 0 0 25px rgba(245, 166, 35, 0.25);
+  box-shadow: 0 0 25px rgba(128, 255, 0, 0.25);
 }
 
 .glow-gold {
-  box-shadow: 0 0 25px rgba(245, 166, 35, 0.4);
+  box-shadow: 0 0 25px rgba(128, 255, 0, 0.4);
 }
 
 .glow-green {
@@ -206,10 +221,6 @@ body {
 
 .glow-live {
   box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
-}
-
-.glow-gold {
-  box-shadow: 0 0 25px rgba(255, 199, 0, 0.4);
 }
 
 @keyframes pulse-live {
@@ -259,38 +270,47 @@ body {
   animation: float-up 2s ease-out forwards;
 }
 
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker-scroll {
+  animation: ticker-scroll 30s linear infinite;
+}
+
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: 0 0% 7%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 90 100% 50%;
+  --primary-foreground: 0 0% 5%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 0 0% 85%;
+  --muted: 0 0% 16%;
+  --muted-foreground: 0 0% 55%;
+  --accent: 90 100% 50%;
+  --accent-foreground: 0 0% 5%;
+  --destructive: 0 84% 60%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 90 100% 50%;
+  --chart-1: 90 100% 50%;
+  --chart-2: 142 70% 45%;
+  --chart-3: 0 72% 50%;
+  --chart-4: 42 96% 58%;
+  --chart-5: 196 100% 60%;
+  --sidebar: 0 0% 5%;
+  --sidebar-foreground: 0 0% 85%;
+  --sidebar-primary: 90 100% 50%;
+  --sidebar-primary-foreground: 0 0% 5%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 90%;
+  --sidebar-border: 0 0% 14%;
+  --sidebar-ring: 90 100% 50%;
 }
 
 @layer base {

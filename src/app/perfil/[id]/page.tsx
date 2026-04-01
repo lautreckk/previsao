@@ -51,7 +51,7 @@ export default function PublicProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#080d1a] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#80FF00]/30 border-t-[#80FF00] rounded-full animate-spin" />
       </div>
     );
   }
@@ -65,7 +65,7 @@ export default function PublicProfilePage() {
           </div>
           <h2 className="font-black text-lg mb-2">Perfil Privado</h2>
           <p className="text-sm text-white/40 mb-6">Este usuario optou por manter seu perfil privado.</p>
-          <button onClick={() => router.back()} className="text-[#F5A623] font-bold text-sm">Voltar</button>
+          <button onClick={() => router.back()} className="text-[#80FF00] font-bold text-sm">Voltar</button>
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function PublicProfilePage() {
         <div className="text-center">
           <span className="material-symbols-outlined text-5xl text-white/30">person_off</span>
           <p className="mt-2 text-white/40">Usuario nao encontrado</p>
-          <button onClick={() => router.push("/")} className="mt-4 text-[#F5A623] font-bold">Voltar</button>
+          <button onClick={() => router.push("/")} className="mt-4 text-[#80FF00] font-bold">Voltar</button>
         </div>
       </div>
     );
@@ -103,7 +103,7 @@ export default function PublicProfilePage() {
       <div className="px-4 py-6">
         <div className="bg-[#0D0B14] rounded-2xl border border-white/[0.06] p-6 text-center">
           {/* Avatar */}
-          <div className="w-20 h-20 mx-auto rounded-full p-[2px] bg-gradient-to-tr from-[#F5A623] via-[#FFB800] to-[#F5A623] mb-4">
+          <div className="w-20 h-20 mx-auto rounded-full p-[2px] bg-gradient-to-tr from-[#80FF00] via-[#A0FF40] to-[#80FF00] mb-4">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt={profile.name} className="w-full h-full rounded-full object-cover border-[3px] border-[#0D0B14]" />
             ) : (
@@ -120,9 +120,9 @@ export default function PublicProfilePage() {
           <h1 className="text-xl font-black">{profile.name}</h1>
 
           {/* Level badge */}
-          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-[#F5A623]/10 border border-[#F5A623]/20">
-            <span className="material-symbols-outlined text-[#F5A623] text-xs">military_tech</span>
-            <span className="text-[10px] font-black text-[#F5A623] uppercase">Nivel {profile.level} - {getLevelName(profile.level)}</span>
+          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-[#80FF00]/10 border border-[#80FF00]/20">
+            <span className="material-symbols-outlined text-[#80FF00] text-xs">military_tech</span>
+            <span className="text-[10px] font-black text-[#80FF00] uppercase">Nivel {profile.level} - {getLevelName(profile.level)}</span>
           </div>
 
           {profile.rank_position > 0 && profile.rank_position <= 100 && (
@@ -136,12 +136,12 @@ export default function PublicProfilePage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mt-4">
-          <StatCard icon="target" label="Previsoes" value={String(profile.total_predictions)} color="#F5A623" />
+          <StatCard icon="target" label="Previsoes" value={String(profile.total_predictions)} color="#80FF00" />
           <StatCard icon="check_circle" label="Taxa de Acerto" value={`${winRate}%`} color="#10B981" />
           <StatCard icon="trending_up" label="Lucro" value={`R$ ${profit.toFixed(0)}`} color={profit >= 0 ? "#10B981" : "#EF4444"} />
           <StatCard icon="local_fire_department" label="Melhor Streak" value={`${profile.best_streak}x`} color="#FF6B6B" />
           <StatCard icon="toll" label="Volume Total" value={`R$ ${Number(profile.total_wagered).toFixed(0)}`} color="#8B5CF6" />
-          <StatCard icon="emoji_events" label="Vitorias" value={`${profile.total_wins}/${profile.total_predictions}`} color="#FFD700" />
+          <StatCard icon="emoji_events" label="Vitorias" value={`${profile.total_wins}/${profile.total_predictions}`} color="#80FF00" />
         </div>
 
         {/* Win/Loss Visual */}
