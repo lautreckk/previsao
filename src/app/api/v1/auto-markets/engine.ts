@@ -816,12 +816,17 @@ export async function resolveExpiredMarkets(): Promise<{
       const distributable = poolTotal - houseFee;
       const payoutPerUnit = winnerPool > 0 ? distributable / winnerPool : 0;
 
-      // Update market
+      // Update market with evidence
       await supabase.from("prediction_markets").update({
         status: "resolved",
         winning_outcome_key: winningKey,
         resolved_at: new Date().toISOString(),
         resolved_by: "auto_engine",
+        resolution_evidence: JSON.stringify({
+          reason: resolveReason,
+          source_data: resolveSourceData,
+          resolved_at: new Date().toISOString(),
+        }),
       }).eq("id", market.id);
 
       // Pay winners

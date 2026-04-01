@@ -7,6 +7,7 @@ import Link from "next/link";
 import { calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { supabase } from "@/lib/supabase";
 import Icon from "@/components/Icon";
+import { ENTITY_MAP } from "@/lib/entity-map";
 
 /* Mini round history from Supabase */
 function RoundHistoryDots({ marketId }: { marketId: string }) {
@@ -99,38 +100,45 @@ export default function MarketCard({ market }: { market: PredictionMarket }) {
 
         {/* ── Title + Thumbnail ── */}
         <div className="px-3 pt-2 pb-2 flex items-start gap-2.5">
-          {market.banner_url ? (
-            <img src={market.banner_url} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 ring-1 ring-white/[0.06]" />
-          ) : (
-            <div className="w-9 h-9 rounded-lg shrink-0 mt-0.5 flex items-center justify-center text-xl" style={{ backgroundColor: (meta?.color || "#888") + "20" }}>
-              {(() => {
-                // Category emoji fallback — more visually engaging than material icons
-                const t = market.title.toLowerCase();
-                if (t.includes("bitcoin") || t.includes("btc")) return "₿";
-                if (t.includes("ethereum") || t.includes("eth")) return "⟠";
-                if (t.includes("solana") || t.includes("sol")) return "◎";
-                if (t.includes("dolar") || t.includes("dólar")) return "💵";
-                if (t.includes("petr") || t.includes("vale") || t.includes("itub")) return "📈";
-                if (t.includes("clima") || t.includes("°c") || t.includes("chove") || t.includes("maxima")) return "🌡️";
-                if (t.includes("futebol") || t.includes("serie a") || t.includes("vs") || t.includes("gol")) return "⚽";
-                if (t.includes("bbb") || t.includes("paredao") || t.includes("eliminad")) return "📺";
-                if (t.includes("stories") || t.includes("virginia") || t.includes("carlinhos")) return "📱";
-                if (t.includes("rodovia") || t.includes("carro")) return "🚗";
-                if (t.includes("petroleo") || t.includes("barril")) return "🛢️";
-                if (t.includes("ibovespa") || t.includes("acao") || t.includes("ação")) return "📊";
-                if (t.includes("champions") || t.includes("copa")) return "🏆";
-                if (t.includes("eleicao") || t.includes("presidente") || t.includes("lula") || t.includes("bolsonaro")) return "🗳️";
-                if (market.category === "crypto") return "🪙";
-                if (market.category === "sports") return "⚽";
-                if (market.category === "weather") return "☀️";
-                if (market.category === "economy") return "💹";
-                if (market.category === "entertainment") return "🎬";
-                if (market.category === "politics") return "🏛️";
-                if (market.category === "social_media") return "📱";
-                return "🎯";
-              })()}
-            </div>
-          )}
+          {(() => {
+            // Try banner_url first (skip placeholder avatars), then entity map fallback, then emoji
+            const hasBanner = market.banner_url && !market.banner_url.includes("ui-avatars.com");
+            const imgUrl = (hasBanner ? market.banner_url : "") || (() => {
+              const norm = market.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              for (const entity of ENTITY_MAP) {
+                for (const alias of entity.aliases) {
+                  if (norm.includes(alias.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) {
+                    return entity.image_url;
+                  }
+                }
+              }
+              return "";
+            })();
+
+            if (imgUrl) {
+              return <img src={imgUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 ring-1 ring-white/[0.06]" />;
+            }
+
+            // Emoji fallback for abstract topics
+            const t = market.title.toLowerCase();
+            let emoji = "🎯";
+            if (t.includes("dolar") || t.includes("dólar")) emoji = "💵";
+            else if (t.includes("clima") || t.includes("°c") || t.includes("chove") || t.includes("maxima") || t.includes("atinge")) emoji = "🌡️";
+            else if (t.includes("rodovia") || t.includes("carro") || t.includes("veiculo")) emoji = "🚗";
+            else if (t.includes("petroleo") || t.includes("barril")) emoji = "🛢️";
+            else if (t.includes("acao") || t.includes("ação") || t.includes("retorno")) emoji = "📊";
+            else if (market.category === "weather") emoji = "☀️";
+            else if (market.category === "economy") emoji = "💹";
+            else if (market.category === "sports") emoji = "⚽";
+            else if (market.category === "entertainment") emoji = "🎬";
+            else if (market.category === "politics") emoji = "🏛️";
+
+            return (
+              <div className="w-9 h-9 rounded-lg shrink-0 mt-0.5 flex items-center justify-center text-xl" style={{ backgroundColor: (meta?.color || "#888") + "20" }}>
+                {emoji}
+              </div>
+            );
+          })()}
           <h4 className="text-[13px] font-bold leading-snug text-white line-clamp-2 group-hover:text-[#F5A623] transition-colors">
             {market.title}
           </h4>

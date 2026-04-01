@@ -70,6 +70,12 @@ export async function GET(request: NextRequest) {
       { slug: "brasilia", id: 3469058 },
       { slug: "belo-horizonte", id: 3470127 },
       { slug: "curitiba", id: 3464975 },
+      { slug: "salvador", id: 3450554 },
+      { slug: "fortaleza", id: 3399415 },
+      { slug: "recife", id: 3390760 },
+      { slug: "porto-alegre", id: 3452925 },
+      { slug: "florianopolis", id: 3463237 },
+      { slug: "manaus", id: 3663517 },
     ];
     try {
       const weatherRows = await Promise.all(
