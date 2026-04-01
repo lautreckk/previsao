@@ -124,6 +124,54 @@ export default function EventoPage() {
   const [isResolved, setIsResolved] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
+  // User bets for this market (from prediction_bets)
+  interface UserBet {
+    id: string;
+    outcome_key: string;
+    outcome_label: string;
+    amount: number;
+    payout_at_entry: number;
+    status: string;
+    created_at: string;
+    entry_price?: number;
+  }
+  const [userBets, setUserBets] = useState<UserBet[]>([]);
+  const [betsLoading, setBetsLoading] = useState(false);
+
+  const fetchUserBets = useCallback(async (marketId: string, userId: string) => {
+    setBetsLoading(true);
+    try {
+      const { data, error: err } = await supabase
+        .from("prediction_bets")
+        .select("*")
+        .eq("market_id", marketId)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (!err && data) {
+        setUserBets(data.map((b: Record<string, unknown>) => ({
+          id: b.id as string,
+          outcome_key: b.outcome_key as string,
+          outcome_label: b.outcome_label as string,
+          amount: Number(b.amount),
+          payout_at_entry: Number(b.payout_at_entry),
+          status: (b.status as string) || "pending",
+          created_at: b.created_at as string,
+          entry_price: b.entry_price ? Number(b.entry_price) : undefined,
+        })));
+      }
+    } catch {
+      // silently fail
+    }
+    setBetsLoading(false);
+  }, []);
+
+  // Fetch user bets on mount and when user/market changes
+  useEffect(() => {
+    if (user?.id && market?.id) {
+      fetchUserBets(market.id, user.id);
+    }
+  }, [user?.id, market?.id, fetchUserBets]);
+
   // Derive live price symbol from market title
   const getLivePriceInfo = useCallback((m: PredictionMarket | null) => {
     if (!m) return null;
@@ -257,6 +305,8 @@ export default function EventoPage() {
       setMarket(result.market || market);
     }
     setBetPlaced(true); setShowConfirm(false); setSelectedOutcome(null); setBetAmount(""); setPlacing(false);
+    // Re-fetch user bets so POSICOES tab updates
+    if (user?.id && market?.id) fetchUserBets(market.id, user.id);
     setTimeout(() => setBetPlaced(false), 3000);
   };
 
@@ -339,6 +389,11 @@ export default function EventoPage() {
                     openPrice={
                       (market.source_config?.custom_params?.open_price as number) ??
                       undefined
+                    }
+                    entryPrice={
+                      userBets.length > 0
+                        ? userBets[0].entry_price
+                        : undefined
                     }
                   />
                 </div>
@@ -533,8 +588,8 @@ export default function EventoPage() {
                 ))}
               </div>
               <div className="flex-1 overflow-y-auto p-4">
-                <div className="text-center py-8">
-                  {!user ? (
+                {!user ? (
+                  <div className="text-center py-8">
                     <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-6">
                       <div className="w-14 h-14 rounded-2xl bg-[#00D4AA]/10 flex items-center justify-center mx-auto mb-3">
                         <span className="material-symbols-outlined text-[#00D4AA] text-2xl">account_circle</span>
@@ -543,16 +598,118 @@ export default function EventoPage() {
                       <p className="text-xs text-[#5A6478] mb-4">Veja suas posicoes, historico e gerencie suas previsoes.</p>
                       <Link href="/login" className="inline-block px-6 py-2.5 rounded-lg bg-[#00D4AA] text-[#003D2E] text-sm font-black uppercase tracking-wider hover:bg-[#00D4AA]/90 active:scale-95 transition-all">Entrar</Link>
                     </div>
-                  ) : (
-                    <div className="bg-[#0d1525] rounded-xl border border-[#1a2a3a] p-6">
-                      <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
-                        <span className="material-symbols-outlined text-[#5A6478] text-2xl">touch_app</span>
+                  </div>
+                ) : betsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-2 border-[#00D4AA]/30 border-t-[#00D4AA] rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-[#5A6478] mt-3">Carregando posicoes...</p>
+                  </div>
+                ) : (() => {
+                  const filteredBets = tab === "posicoes"
+                    ? userBets
+                    : tab === "aberto"
+                    ? userBets.filter((b) => b.status === "pending")
+                    : userBets.filter((b) => b.status === "won" || b.status === "lost" || b.status === "settled");
+
+                  if (filteredBets.length === 0) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-6">
+                          <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
+                            <span className="material-symbols-outlined text-[#5A6478] text-2xl">
+                              {tab === "posicoes" ? "touch_app" : tab === "aberto" ? "hourglass_empty" : "check_circle"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-white font-bold mb-1">
+                            {tab === "posicoes" ? "Nenhuma posicao ainda" : tab === "aberto" ? "Nenhuma aposta em aberto" : "Nenhuma aposta encerrada"}
+                          </p>
+                          <p className="text-xs text-[#5A6478]">Selecione um resultado ao lado para fazer sua previsao.</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-white font-bold mb-1">Nenhuma posicao ainda</p>
-                      <p className="text-xs text-[#5A6478]">Selecione um resultado ao lado para fazer sua previsao.</p>
+                    );
+                  }
+
+                  // Totals summary
+                  const totalInvested = filteredBets.reduce((s, b) => s + b.amount, 0);
+                  const totalPotential = filteredBets.reduce((s, b) => s + b.amount * b.payout_at_entry, 0);
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Summary bar */}
+                      <div className="bg-[#111827] rounded-xl border border-white/[0.06] p-3 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-[#5A6478] uppercase tracking-wider font-bold">Investido</span>
+                          <p className="text-sm font-black text-white font-mono">R$ {totalInvested.toFixed(2)}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-[#5A6478] uppercase tracking-wider font-bold">Potencial</span>
+                          <p className="text-sm font-black text-[#00D4AA] font-mono">R$ {totalPotential.toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      {/* Bet cards */}
+                      {filteredBets.map((bet) => {
+                        const outcomeObj = market.outcomes.find((o) => o.key === bet.outcome_key);
+                        const outcomeColor = outcomeObj?.color || "#00D4AA";
+                        const isWon = bet.status === "won";
+                        const isLost = bet.status === "lost";
+                        const isPending = bet.status === "pending";
+                        const potentialReturn = bet.amount * bet.payout_at_entry;
+
+                        return (
+                          <div key={bet.id} className="bg-[#111827] rounded-xl border border-white/[0.06] p-3 transition-all hover:border-white/[0.12]">
+                            {/* Header: outcome + status */}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: outcomeColor + "15" }}>
+                                  <span className="text-xs font-black" style={{ color: outcomeColor }}>
+                                    {bet.outcome_key === "up" || bet.outcome_key === "sobe" ? "\u25B2" : bet.outcome_key === "down" || bet.outcome_key === "desce" ? "\u25BC" : bet.outcome_key.slice(0, 2).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-sm font-bold text-white">{bet.outcome_label}</span>
+                                  <span className="block text-[10px] text-[#5A6478]">
+                                    {new Date(bet.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                isWon ? "bg-[#00D4AA]/10 text-[#00D4AA]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#FFD700]/10 text-[#FFD700]"
+                              }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#00D4AA]" : isLost ? "bg-[#FF5252]" : "bg-[#FFD700] animate-pulse"}`} />
+                                {isWon ? "Ganhou" : isLost ? "Perdeu" : "Em aberto"}
+                              </div>
+                            </div>
+
+                            {/* Bet details */}
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-[#5A6478]">Valor</span>
+                                <span className="font-bold text-white font-mono">R$ {bet.amount.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-[#5A6478]">Odds</span>
+                                <span className="font-bold text-white font-mono">{bet.payout_at_entry.toFixed(2)}x</span>
+                              </div>
+                              <div className="flex justify-between col-span-2">
+                                <span className="text-[#5A6478]">Potencial</span>
+                                <span className={`font-bold font-mono ${isPending ? "text-[#00D4AA]" : isWon ? "text-[#00D4AA]" : "text-[#FF5252]"}`}>
+                                  {isLost ? "- R$ " + bet.amount.toFixed(2) : "R$ " + potentialReturn.toFixed(2)}
+                                </span>
+                              </div>
+                              {bet.entry_price && (
+                                <div className="flex justify-between col-span-2 pt-1.5 border-t border-white/[0.06]">
+                                  <span className="text-[#5A6478]">Entrada</span>
+                                  <span className="font-bold text-white font-mono">R$ {bet.entry_price.toFixed(4)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
               </div>
             </>
           )}
