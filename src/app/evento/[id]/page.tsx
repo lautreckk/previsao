@@ -305,14 +305,15 @@ export default function EventoPage() {
     return () => { supabase.removeChannel(channel); };
   }, [market?.id, addLiveBet]);
 
-  // Bot engine: auto-bet with bots when market is open
+  // Bot engine: auto-bet with bots when market is truly open (not past close_at)
   useEffect(() => {
     if (!market?.id || market.status !== "open") return;
+    if (new Date(market.close_at).getTime() <= Date.now()) return;
     const engine = createBotEngine(market.id, addLiveBet);
     botEngineRef.current = engine;
     engine.start(market.outcomes);
     return () => { engine.stop(); botEngineRef.current = null; };
-  }, [market?.id, market?.status, addLiveBet]);
+  }, [market?.id, market?.status, market?.close_at, addLiveBet]);
 
   // Update bot engine with fresh outcomes
   useEffect(() => {
