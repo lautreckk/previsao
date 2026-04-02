@@ -1,12 +1,30 @@
-logLevel: warn
+logLevel: info
 api: yes
 apiAddress: :9997
+
+# RTSP — FFmpeg pipe from counter_v2.py (local only)
 rtsp: yes
 rtspAddress: :8554
+
+# WebRTC — WHEP signaling via HTTP
+# On Vast.ai: internal :6006 → external mapped port (check VAST_TCP_PORT_6006)
 webrtc: yes
-webrtcAddress: :8889
+webrtcAddress: :6006
 webrtcAllowOrigin: "*"
+# No UDP on Vast.ai — use ICE TCP only
+# Internal :8888 → external mapped port (check VAST_TCP_PORT_8888)
+webrtcLocalUDPAddress: ""
+webrtcLocalTCPAddress: :8888
+# Set to VPS public IP (replaced at deploy time)
+webrtcAdditionalHosts: ["1.208.108.242"]
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+
+# Disable unused protocols
 hls: no
+rtmp: no
+srt: no
+
 paths:
   all:
     source: publisher

@@ -248,10 +248,14 @@ def main():
                     "c": 1 if tid in counted else 0,
                 })
 
-        # Persist count + boxes to DB (postgres_changes delivers to frontend)
-        if (total != last_db or blist) and a.supabase_url:
+        # Broadcast boxes via WebSocket (low latency, no DB overhead)
+        if blist and a.supabase_url:
+            Thread(target=broadcast_count, args=(a.supabase_url, a.supabase_key, a.market_id, total, blist), daemon=True).start()
+
+        # Persist count to DB only when it changes (no boxes — saves DB load)
+        if total != last_db and a.supabase_url:
             last_db = total
-            Thread(target=persist_count, args=(a.supabase_url, a.supabase_key, a.market_id, total, blist if blist else None), daemon=True).start()
+            Thread(target=persist_count, args=(a.supabase_url, a.supabase_key, a.market_id, total), daemon=True).start()
 
         # FPS
         fpsc += 1

@@ -1,9 +1,25 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 
-// Vast.ai instance (Quebec, CA) — WebRTC port not yet exposed
-// TODO: expose port 8889 on Vast.ai instance for WebRTC
-const MEDIAMTX_BASE = process.env.MEDIAMTX_WHEP_URL || "http://82.25.68.62:8889";
+// MediaMTX WHEP endpoint — Vast.ai maps internal :6006 → external :53144
+const MEDIAMTX_BASE = process.env.MEDIAMTX_WHEP_URL || "http://1.208.108.242:53144";
+
+// Vast.ai NAT port mapping: internal → external
+// MediaMTX announces internal ports in ICE candidates; we rewrite to external
+const PORT_MAP: Record<string, string> = {
+  "8888": process.env.MEDIAMTX_ICE_TCP_PORT || "53189",
+};
+
+function rewriteIcePorts(sdp: string): string {
+  // Rewrite ICE candidate lines: replace internal ports with external NAT ports
+  return sdp.replace(/^a=candidate:(.+?) (\d+) tcp (.+)$/gm, (line, prefix, port, rest) => {
+    const mapped = PORT_MAP[port];
+    if (mapped) {
+      return `a=candidate:${prefix} ${mapped} tcp ${rest}`;
+    }
+    return line;
+  });
+}
 
 export async function POST(request: NextRequest) {
   const streamId = request.nextUrl.searchParams.get("stream");
@@ -13,24 +29,32 @@ export async function POST(request: NextRequest) {
 
   const sdp = await request.text();
 
-  const res = await fetch(`${MEDIAMTX_BASE}/${streamId}/whep`, {
-    method: "POST",
-    headers: { "Content-Type": "application/sdp" },
-    body: sdp,
-  });
+  try {
+    const res = await fetch(`${MEDIAMTX_BASE}/${streamId}/whep`, {
+      method: "POST",
+      headers: { "Content-Type": "application/sdp" },
+      body: sdp,
+    });
 
-  if (!res.ok) {
-    return new NextResponse(await res.text(), { status: res.status });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[WHEP] MediaMTX error ${res.status}: ${errText}`);
+      return new NextResponse(errText, { status: res.status });
+    }
+
+    // Rewrite ICE candidate ports for Vast.ai NAT
+    const answer = rewriteIcePorts(await res.text());
+    const headers = new Headers();
+    headers.set("Content-Type", "application/sdp");
+    headers.set("Access-Control-Allow-Origin", "*");
+    const location = res.headers.get("location");
+    if (location) headers.set("Location", location);
+
+    return new NextResponse(answer, { status: 201, headers });
+  } catch (err) {
+    console.error("[WHEP] Proxy error:", err);
+    return NextResponse.json({ error: "MediaMTX unreachable" }, { status: 502 });
   }
-
-  const answer = await res.text();
-  const headers = new Headers();
-  headers.set("Content-Type", "application/sdp");
-  // Forward Location header (needed for WHEP resource URL)
-  const location = res.headers.get("location");
-  if (location) headers.set("Location", location);
-
-  return new NextResponse(answer, { status: 201, headers });
 }
 
 export async function OPTIONS() {

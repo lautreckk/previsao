@@ -62,130 +62,26 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
   );
 }
 
-/* ─── HLS Live Stream with Canvas Overlay (boxes + counting line) ─── */
-function LiveStream({ marketId, streamUrl, count, cameraId, boxes }: { marketId: string; streamUrl: string; count: number; cameraId: string; boxes: Array<{ x1: number; y1: number; x2: number; y2: number; c: number }> }) {
+/* ─── Live Stream: WebRTC (annotated by worker) with HLS fallback ─── */
+function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [connected, setConnected] = useState(false);
   const hlsRef = useRef<any>(null);
-  const boxesRef = useRef<Array<{ x1: number; y1: number; x2: number; y2: number; c: number }>>([]);
-  const boxesTimeRef = useRef(0);
+  const [connected, setConnected] = useState(false);
+  const [useHLS, setUseHLS] = useState(false);
 
-  // ROI config matching worker params
-  const ROI_X_START = 0.08;
-  const ROI_X_END = 0.85;
-  const LINE_Y = 0.48;
+  // WebRTC stream ID matches market_id in MediaMTX
+  const webrtcStreamId = marketId;
 
-  // Update boxes ref when prop changes
+  // HLS fallback — only used if WebRTC fails
   useEffect(() => {
-    if (boxes && boxes.length > 0) {
-      boxesRef.current = boxes;
-      boxesTimeRef.current = Date.now();
-    }
-  }, [boxes]);
-
-  // Canvas overlay rendering — draws boxes + counting line on every animation frame
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    if (!canvas || !video) return;
-
-    let animId: number;
-    const draw = () => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      canvas.width = w;
-      canvas.height = h;
-
-      ctx.clearRect(0, 0, w, h);
-
-      // Counting line (dashed green)
-      const lineY = h * LINE_Y;
-      const xStart = w * ROI_X_START;
-      const xEnd = w * ROI_X_END;
-
-      ctx.setLineDash([10, 8]);
-      ctx.strokeStyle = "#80FF00";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(xStart, lineY);
-      ctx.lineTo(xEnd, lineY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // "ZONA DE CONTAGEM" label
-      ctx.font = "bold 10px sans-serif";
-      ctx.fillStyle = "#80FF00";
-      ctx.fillText("ZONA DE CONTAGEM", xStart + 4, lineY - 6);
-
-      // Bounding boxes from worker — persistent display (always show latest)
-      if (boxesRef.current.length > 0) {
-        const age = Date.now() - boxesTimeRef.current;
-        const alpha = Math.min(1, Math.max(0.3, 1 - age / 5000)); // fade slowly over 5s, min 0.3
-        for (const box of boxesRef.current) {
-          const bx = box.x1 * w;
-          const by = box.y1 * h;
-          const bw = (box.x2 - box.x1) * w;
-          const bh = (box.y2 - box.y1) * h;
-          const isCounted = box.c === 1;
-          const color = isCounted ? `rgba(128, 255, 0, ${alpha})` : `rgba(255, 82, 82, ${alpha})`;
-
-          // Box
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.strokeRect(bx, by, bw, bh);
-
-          // Small label background
-          if (isCounted) {
-            ctx.fillStyle = `rgba(128, 255, 0, ${alpha * 0.7})`;
-            ctx.fillRect(bx, by - 14, 8, 14);
-            ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-            ctx.font = "bold 9px sans-serif";
-            ctx.fillText("V", bx + 1, by - 3);
-          }
-
-          // Center dot
-          ctx.beginPath();
-          ctx.arc(bx + bw / 2, by + bh / 2, 3, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
-        }
-      }
-
-      // ROI boundary lines (subtle)
-      ctx.strokeStyle = "rgba(0, 255, 255, 0.12)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(xStart, 0); ctx.lineTo(xStart, h);
-      ctx.moveTo(xEnd, 0); ctx.lineTo(xEnd, h);
-      ctx.stroke();
-
-      // "Veiculos" count on canvas too (top left of video area)
-      ctx.font = "bold 12px sans-serif";
-      ctx.fillStyle = "rgba(128, 255, 0, 0.9)";
-      ctx.fillText(`Veiculos: ${boxesRef.current.filter(b => b.c === 1).length} detectados`, xStart + 4, lineY + 16);
-
-      animId = requestAnimationFrame(draw);
-    };
-
-    animId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animId);
-  }, []);
-
-  // HLS setup
-  useEffect(() => {
+    if (!useHLS) return;
     const video = videoRef.current;
     if (!video || !streamUrl) return;
 
     let cancelled = false;
-
     async function setupHLS() {
       const { default: Hls } = await import("hls.js");
       if (cancelled) return;
-
       if (Hls.isSupported()) {
         const hls = new Hls({
           liveSyncDurationCount: 2,
@@ -198,9 +94,9 @@ function LiveStream({ marketId, streamUrl, count, cameraId, boxes }: { marketId:
         });
         hlsRef.current = hls;
         hls.loadSource(streamUrl);
-        hls.attachMedia(video);
+        hls.attachMedia(video!);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
+          video?.play().catch(() => {});
           if (!cancelled) setConnected(true);
         });
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
@@ -213,18 +109,96 @@ function LiveStream({ marketId, streamUrl, count, cameraId, boxes }: { marketId:
             }
           }
         });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = streamUrl;
-        video.addEventListener("loadedmetadata", () => {
-          video.play().catch(() => {});
+      } else if (video!.canPlayType("application/vnd.apple.mpegurl")) {
+        video!.src = streamUrl;
+        video!.addEventListener("loadedmetadata", () => {
+          video?.play().catch(() => {});
           if (!cancelled) setConnected(true);
         });
       }
     }
-
     setupHLS();
     return () => { cancelled = true; hlsRef.current?.destroy(); hlsRef.current = null; };
-  }, [streamUrl]);
+  }, [streamUrl, useHLS]);
+
+  // WebRTC connection via WHEP
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const retriesRef = useRef(0);
+
+  const connectWebRTC = useCallback(async () => {
+    if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
+
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      });
+      pcRef.current = pc;
+
+      pc.addTransceiver("video", { direction: "recvonly" });
+      pc.addTransceiver("audio", { direction: "recvonly" });
+
+      pc.ontrack = (ev) => {
+        if (videoRef.current && ev.streams[0]) {
+          videoRef.current.srcObject = ev.streams[0];
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        if (state === "connected") {
+          setConnected(true);
+          retriesRef.current = 0;
+        } else if (state === "failed" || state === "disconnected") {
+          setConnected(false);
+          if (retriesRef.current < 3) {
+            retriesRef.current++;
+            setTimeout(connectWebRTC, 2000 * retriesRef.current);
+          } else {
+            // Fallback to HLS after 3 WebRTC failures
+            console.warn("[WebRTC] Falling back to HLS");
+            setUseHLS(true);
+          }
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      // Wait for ICE gathering
+      await new Promise<void>((resolve) => {
+        if (pc.iceGatheringState === "complete") { resolve(); return; }
+        const timeout = setTimeout(resolve, 2000);
+        pc.onicegatheringstatechange = () => {
+          if (pc.iceGatheringState === "complete") { clearTimeout(timeout); resolve(); }
+        };
+      });
+
+      const res = await fetch(`/api/camera/whep?stream=${encodeURIComponent(webrtcStreamId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: pc.localDescription!.sdp,
+      });
+
+      if (!res.ok) throw new Error(`WHEP ${res.status}`);
+
+      const answerSdp = await res.text();
+      await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+    } catch (err) {
+      console.error("[WebRTC] Error:", err);
+      if (retriesRef.current < 3) {
+        retriesRef.current++;
+        setTimeout(connectWebRTC, 3000);
+      } else {
+        console.warn("[WebRTC] Falling back to HLS");
+        setUseHLS(true);
+      }
+    }
+  }, [webrtcStreamId]);
+
+  useEffect(() => {
+    if (!useHLS) connectWebRTC();
+    return () => { pcRef.current?.close(); pcRef.current = null; };
+  }, [connectWebRTC, useHLS]);
 
   return (
     <div className="relative w-full" style={{ paddingBottom: "80%" }}>
@@ -235,17 +209,12 @@ function LiveStream({ marketId, streamUrl, count, cameraId, boxes }: { marketId:
         playsInline
         className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
       />
-      {/* Canvas overlay for boxes + counting line */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full object-contain rounded-lg pointer-events-none z-[5]"
-      />
 
       {!connected && (
         <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-[10px] text-white/50">Conectando camera...</p>
+            <p className="text-[10px] text-white/50">{useHLS ? "Conectando HLS..." : "Conectando WebRTC..."}</p>
           </div>
         </div>
       )}
@@ -256,10 +225,11 @@ function LiveStream({ marketId, streamUrl, count, cameraId, boxes }: { marketId:
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
       </div>
 
-      {/* IA YOLO badge */}
+      {/* IA YOLO badge + transport indicator */}
       <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5">
         <span className="text-[10px] font-bold text-[#80FF00]">IA YOLO</span>
-        <span className="w-1.5 h-1.5 rounded-full bg-[#80FF00] animate-pulse" />
+        <span className={`w-1.5 h-1.5 rounded-full ${useHLS ? "bg-yellow-400" : "bg-[#80FF00]"} animate-pulse`} />
+        {useHLS && <span className="text-[8px] text-yellow-400/70 ml-1">HLS</span>}
       </div>
 
       {/* Count overlay */}
@@ -497,7 +467,7 @@ function RoundHistory({ marketId }: { marketId: string }) {
 
 /* ─── Main Page ─── */
 export function CameraMarketView({ marketId }: { marketId: string }) {
-  const { market, currentRound, currentCount, detectionBoxes, odds, loading, lastResult } = useCameraMarket(marketId);
+  const { market, currentRound, currentCount, odds, loading, lastResult } = useCameraMarket(marketId);
   const { user, refreshUser } = useUser();
 
   const [selectedType, setSelectedType] = useState<"over" | "under" | null>(null);
@@ -616,7 +586,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
 
           {/* Live HLS stream */}
           <div className="px-4 pt-3">
-            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} cameraId={market.camera_id || marketId} boxes={detectionBoxes} />
+            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} cameraId={market.camera_id || marketId} />
           </div>
 
           {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}
