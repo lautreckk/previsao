@@ -63,7 +63,7 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
 }
 
 /* ─── HLS Live Stream with Canvas Overlay (boxes + counting line) ─── */
-function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
+function LiveStream({ marketId, streamUrl, count, cameraId, boxes }: { marketId: string; streamUrl: string; count: number; cameraId: string; boxes: Array<{ x1: number; y1: number; x2: number; y2: number; c: number }> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [connected, setConnected] = useState(false);
@@ -76,28 +76,13 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
   const ROI_X_END = 0.85;
   const LINE_Y = 0.48;
 
-  // Listen for detection boxes from worker broadcast
+  // Update boxes ref when prop changes
   useEffect(() => {
-    let sub: any;
-    import("@/lib/supabase").then(({ supabase }) => {
-      sub = supabase
-        .channel(`overlay-${marketId}`)
-        .on("broadcast", { event: "count.sync" }, ({ payload }) => {
-          if (payload.boxes) {
-            boxesRef.current = payload.boxes;
-            boxesTimeRef.current = Date.now();
-          }
-        })
-        .on("broadcast", { event: "detections" }, ({ payload }) => {
-          if (payload.boxes) {
-            boxesRef.current = payload.boxes;
-            boxesTimeRef.current = Date.now();
-          }
-        })
-        .subscribe();
-    });
-    return () => { sub?.unsubscribe(); };
-  }, [marketId]);
+    if (boxes && boxes.length > 0) {
+      boxesRef.current = boxes;
+      boxesTimeRef.current = Date.now();
+    }
+  }, [boxes]);
 
   // Canvas overlay rendering — draws boxes + counting line on every animation frame
   useEffect(() => {
@@ -512,7 +497,7 @@ function RoundHistory({ marketId }: { marketId: string }) {
 
 /* ─── Main Page ─── */
 export function CameraMarketView({ marketId }: { marketId: string }) {
-  const { market, currentRound, currentCount, odds, loading, lastResult } = useCameraMarket(marketId);
+  const { market, currentRound, currentCount, detectionBoxes, odds, loading, lastResult } = useCameraMarket(marketId);
   const { user, refreshUser } = useUser();
 
   const [selectedType, setSelectedType] = useState<"over" | "under" | null>(null);
@@ -631,7 +616,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
 
           {/* Live HLS stream */}
           <div className="px-4 pt-3">
-            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} cameraId={market.camera_id || marketId} />
+            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} cameraId={market.camera_id || marketId} boxes={detectionBoxes} />
           </div>
 
           {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}

@@ -46,6 +46,7 @@ export function useCameraMarket(marketId: string) {
   const [currentCount, setCurrentCount] = useState(0);
   const [odds, setOdds] = useState<Odds>({ over: 0, under: 0 });
   const [loading, setLoading] = useState(true);
+  const [detectionBoxes, setDetectionBoxes] = useState<Array<{ x1: number; y1: number; x2: number; y2: number; c: number }>>([]);
   const [lastResult, setLastResult] = useState<{
     final_count: number;
     threshold: number;
@@ -196,9 +197,11 @@ export function useCameraMarket(marketId: string) {
       })
       .on("broadcast", { event: "count.sync" }, ({ payload }) => {
         if (payload.count !== undefined) setCurrentCount(payload.count);
+        if (payload.boxes) setDetectionBoxes(payload.boxes);
       })
       .on("broadcast", { event: "detections" }, ({ payload }) => {
         if (payload.count !== undefined) setCurrentCount(payload.count);
+        if (payload.boxes) setDetectionBoxes(payload.boxes);
       })
       .on("broadcast", { event: "round.resolved" }, ({ payload }) => {
         setLastResult({
@@ -261,6 +264,7 @@ export function useCameraMarket(marketId: string) {
     market,
     currentRound,
     currentCount,
+    detectionBoxes,
     odds,
     loading,
     lastResult,
