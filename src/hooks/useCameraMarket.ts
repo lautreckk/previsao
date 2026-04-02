@@ -196,10 +196,12 @@ export function useCameraMarket(marketId: string) {
         );
       })
       .on("broadcast", { event: "count.sync" }, ({ payload }) => {
+        console.log("[RT] count.sync", payload.count, "boxes:", payload.boxes?.length || 0);
         if (payload.count !== undefined) setCurrentCount(payload.count);
         if (payload.boxes) setDetectionBoxes(payload.boxes);
       })
       .on("broadcast", { event: "detections" }, ({ payload }) => {
+        console.log("[RT] detections", payload.count, "boxes:", payload.boxes?.length || 0);
         if (payload.count !== undefined) setCurrentCount(payload.count);
         if (payload.boxes) setDetectionBoxes(payload.boxes);
       })
