@@ -47,20 +47,21 @@ def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_star
     cv2.putText(out, "ZONA DE CONTAGEM", (x_start + 5, line_y - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, GREEN, 1)
 
-    # Bounding boxes
+    # Bounding boxes — show when approaching or counted
     for track in tracks:
         if not track.is_confirmed():
             continue
         tid = track.track_id
         ltrb = track.to_ltrb()
         x1, y1, x2, y2 = int(ltrb[0]), int(ltrb[1]), int(ltrb[2]), int(ltrb[3])
+        cy = (y1 + y2) // 2
+        dist = cy - line_y
         is_counted = tid in counted_ids
+        approaching = -80 < dist < 20
+        if not approaching and not is_counted:
+            continue
         color = GREEN if is_counted else RED
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
-        label = f"#{tid}"
-        (tw, th_t), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
-        cv2.rectangle(out, (x1, y1 - th_t - 8), (x1 + tw + 6, y1), color, -1)
-        cv2.putText(out, label, (x1 + 3, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.45, WHITE, 1)
 
     # Count display
     txt = f"Veiculos: {total_count}"
@@ -227,10 +228,9 @@ def main():
             frame = cv2.resize(frame, (w, h))
 
         fc += 1
-        run_yolo = (fc % 3 == 0)
+        run_yolo = True  # Run YOLO on every frame for 1-by-1 counting
 
         if run_yolo:
-            # YOLO detection every 3rd frame
             results = model(frame, conf=args.confidence, verbose=False)
             dets = []
             for r in results:
@@ -273,7 +273,8 @@ def main():
             known_phase = new_phase
             t_round_check = now
 
-        # Count vehicles crossing line (only on YOLO frames to avoid duplicates)
+        # Count vehicles APPROACHING the line (count earlier for snappier feel)
+        # Asymmetric zone: detect 80px BEFORE line, 20px AFTER
         if run_yolo and not counting_paused:
             for t in tracks:
                 if not t.is_confirmed():
@@ -283,16 +284,17 @@ def main():
                 cx = (bb[0] + bb[2]) / 2
                 cy = (bb[1] + bb[3]) / 2
                 in_roi = roi_x_start_px <= cx <= roi_x_end_px
-                near_line = abs(cy - line_y_px) < args.tolerance
-                if tid not in counted and in_roi and near_line:
+                # Count when approaching: vehicle is within 80px above or 20px below line
+                dist_to_line = cy - line_y_px
+                approaching = -80 < dist_to_line < 20
+                if tid not in counted and in_roi and approaching:
                     counted.add(tid)
                     total += 1
 
-        # Persist to DB every 5s
-        if args.supabase_url and now - t_db >= 5 and total != last_db_count:
+        # Persist to DB immediately on count change
+        if total != last_db_count and args.supabase_url:
             last_db_count = total
             Thread(target=persist_count_to_db, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
-            t_db = now
 
         # Draw annotations on EVERY frame and pipe to MediaMTX
         annotated = draw_annotations(frame, tracks, counted, line_y_px, total,

@@ -34,7 +34,7 @@ export default function TestCameraPage() {
         .then(({ data }) => { if (data) setCount(data.current_count || 0); });
     };
     fetchCount();
-    const iv = setInterval(fetchCount, 2000);
+    const iv = setInterval(fetchCount, 1000);
     const channel = supabase.channel(`test-${selected.marketId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "camera_markets", filter: `id=eq.${selected.marketId}` },
         (payload) => { const c = (payload.new as { current_count: number }).current_count; if (c !== undefined) setCount(c); })
