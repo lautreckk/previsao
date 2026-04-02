@@ -95,6 +95,19 @@ def start_ffmpeg_pipe(rtsp_url, width, height, fps=24):
     return sp.Popen(cmd, stdin=sp.PIPE, stderr=sp.DEVNULL)
 
 
+def broadcast_detections(supa_url, supa_key, market_id, boxes, count):
+    """Send detection boxes to frontend via Supabase broadcast."""
+    try:
+        requests.post(
+            f"{supa_url}/realtime/v1/api/broadcast",
+            headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}", "Content-Type": "application/json"},
+            json={"channel": f"cars-stream-{market_id}", "event": "detections", "payload": {"boxes": boxes, "count": count}},
+            timeout=2,
+        )
+    except:
+        pass
+
+
 def persist_count_to_db(supa_url, supa_key, market_id, count):
     """Save count to DB for betting/round resolution."""
     try:
@@ -228,7 +241,7 @@ def main():
             frame = cv2.resize(frame, (w, h))
 
         fc += 1
-        run_yolo = True  # Run YOLO on every frame for 1-by-1 counting
+        run_yolo = (fc % 2 == 0)  # Every 2nd frame: ~12 FPS video, catches each car
 
         if run_yolo:
             results = model(frame, conf=args.confidence, verbose=False)
@@ -291,10 +304,31 @@ def main():
                     counted.add(tid)
                     total += 1
 
-        # Persist to DB immediately on count change
+        # Persist count + detections to DB immediately on count change
         if total != last_db_count and args.supabase_url:
             last_db_count = total
             Thread(target=persist_count_to_db, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
+
+        # Send detection boxes via Supabase broadcast (for canvas overlay on frontend)
+        if run_yolo and args.supabase_url and tracks:
+            boxes = []
+            for t in tracks:
+                if not t.is_confirmed():
+                    continue
+                tid = t.track_id
+                bb = t.to_ltrb()
+                cy = (bb[1] + bb[3]) / 2
+                dist = cy - line_y_px
+                is_near = -80 < dist < 40
+                if not is_near and tid not in counted:
+                    continue
+                boxes.append({
+                    "x1": round(bb[0] / w, 4), "y1": round(bb[1] / h, 4),
+                    "x2": round(bb[2] / w, 4), "y2": round(bb[3] / h, 4),
+                    "c": 1 if tid in counted else 0,
+                })
+            if boxes:
+                Thread(target=broadcast_detections, args=(args.supabase_url, args.supabase_key, args.market_id, boxes, total), daemon=True).start()
 
         # Draw annotations on EVERY frame and pipe to MediaMTX
         annotated = draw_annotations(frame, tracks, counted, line_y_px, total,
