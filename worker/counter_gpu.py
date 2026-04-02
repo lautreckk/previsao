@@ -64,8 +64,7 @@ def broadcast_count(supa_url, supa_key, market_id, count, boxes=None):
         requests.post(
             f"{supa_url}/realtime/v1/api/broadcast",
             headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}", "Content-Type": "application/json"},
-            json={"channel": f"cars-stream-{market_id}", "event": "count.sync",
-                  "payload": payload},
+            json={"messages": [{"topic": f"cars-stream-{market_id}", "event": "count.sync", "payload": payload}]},
             timeout=2,
         )
     except:
