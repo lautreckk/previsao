@@ -195,7 +195,10 @@ export function useCameraMarket(marketId: string) {
         );
       })
       .on("broadcast", { event: "count.sync" }, ({ payload }) => {
-        setCurrentCount(payload.count);
+        if (payload.count !== undefined) setCurrentCount(payload.count);
+      })
+      .on("broadcast", { event: "detections" }, ({ payload }) => {
+        if (payload.count !== undefined) setCurrentCount(payload.count);
       })
       .on("broadcast", { event: "round.resolved" }, ({ payload }) => {
         setLastResult({
@@ -226,9 +229,13 @@ export function useCameraMarket(marketId: string) {
         .eq("id", marketId)
         .maybeSingle();
       if (data) {
-        // Sync count as fallback (postgres_changes is primary)
-        setCurrentCount(data.current_count || 0);
-        setMarket((prev) => (prev ? { ...prev, ...data } : null));
+        // Only update state if values actually changed (avoid unnecessary re-renders)
+        setCurrentCount((prev) => data.current_count !== prev ? (data.current_count || 0) : prev);
+        setMarket((prev) => {
+          if (!prev) return null;
+          const changed = prev.phase !== data.phase || prev.round_number !== data.round_number || prev.status !== data.status;
+          return changed ? { ...prev, ...data } : prev;
+        });
 
         // Auto-tick: if phase expired or waiting, call round endpoint to advance
         const expired = data.phase_ends_at && new Date(data.phase_ends_at).getTime() < Date.now();

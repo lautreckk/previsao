@@ -62,98 +62,83 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
   );
 }
 
-/* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
-function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
+/* ─── HLS Live Stream — smooth 30fps video ─── */
+function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [connected, setConnected] = useState(false);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const hlsRef = useRef<any>(null);
 
-  // WebRTC via WHEP — annotated stream from worker with bounding boxes, <1s latency
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !streamUrl) return;
 
-    let pc: RTCPeerConnection | null = null;
     let cancelled = false;
 
-    async function connect() {
-      try {
-        pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    async function setupHLS() {
+      // Dynamic import HLS.js
+      const { default: Hls } = await import("hls.js");
+
+      if (cancelled) return;
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          liveSyncDurationCount: 2,        // Stay close to live edge
+          liveMaxLatencyDurationCount: 4,   // Max 4 segments behind
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 0,             // Don't keep back buffer
+          maxBufferLength: 3,              // Small buffer for low latency
+          maxMaxBufferLength: 5,
         });
-        pcRef.current = pc;
+        hlsRef.current = hls;
 
-        pc.ontrack = (ev) => {
-          if (video) {
-            video.srcObject = ev.streams[0];
-            video.play().catch(() => {});
-            if (!cancelled) setConnected(true);
-          }
-        };
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
 
-        pc.oniceconnectionstatechange = () => {
-          if (pc?.iceConnectionState === "disconnected" || pc?.iceConnectionState === "failed") {
-            if (!cancelled) {
-              setConnected(false);
-              // Retry after 3s
-              setTimeout(() => { if (!cancelled) connect(); }, 3000);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+          if (!cancelled) setConnected(true);
+        });
+
+        hls.on(Hls.Events.ERROR, (_: any, data: any) => {
+          if (data.fatal) {
+            console.error("[HLS] Fatal error:", data.type);
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              setTimeout(() => { if (!cancelled) hls.startLoad(); }, 3000);
+            } else {
+              hls.destroy();
+              setTimeout(() => { if (!cancelled) setupHLS(); }, 5000);
             }
           }
-        };
-
-        // Add receive-only transceivers
-        pc.addTransceiver("video", { direction: "recvonly" });
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        // Wait for ICE gathering
-        await new Promise<void>((resolve) => {
-          if (pc!.iceGatheringState === "complete") { resolve(); return; }
-          const check = () => { if (pc!.iceGatheringState === "complete") { pc!.removeEventListener("icegatheringstatechange", check); resolve(); } };
-          pc!.addEventListener("icegatheringstatechange", check);
-          // Timeout after 3s
-          setTimeout(resolve, 3000);
         });
-
-        // Send offer via HTTPS proxy (avoids mixed content)
-        const whepUrl = `/api/camera/whep?stream=${marketId}`;
-        const res = await fetch(whepUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/sdp" },
-          body: pc.localDescription!.sdp,
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safari native HLS
+        video.src = streamUrl;
+        video.addEventListener("loadedmetadata", () => {
+          video.play().catch(() => {});
+          if (!cancelled) setConnected(true);
         });
-
-        if (!res.ok) throw new Error(`WHEP ${res.status}`);
-
-        const answer = await res.text();
-        await pc.setRemoteDescription({ type: "answer", sdp: answer });
-      } catch (err) {
-        console.error("[WebRTC] Connection failed:", err);
-        if (!cancelled) {
-          setConnected(false);
-          setTimeout(() => { if (!cancelled) connect(); }, 5000);
-        }
       }
     }
 
-    connect();
+    setupHLS();
 
     return () => {
       cancelled = true;
-      pc?.close();
-      pcRef.current = null;
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
     };
-  }, [marketId]);
+  }, [streamUrl]);
 
   return (
-    <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+    <div className="relative w-full" style={{ paddingBottom: "80%" }}>
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
         className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
+        style={{ imageRendering: "auto" }}
       />
 
       {/* Loading */}
@@ -172,7 +157,12 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
       </div>
 
-      {/* Count overlay with animation */}
+      {/* Veiculos count from YOLO */}
+      <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full">
+        <span className="text-[10px] font-bold text-[#80FF00]">Veiculos: <AnimatedCount value={count} /></span>
+      </div>
+
+      {/* Count overlay */}
       <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#80FF00]/30">
         <p className="text-[8px] uppercase tracking-widest text-white/50 font-bold">Contagem Atual</p>
         <p className="text-3xl font-black text-[#80FF00] tabular-nums leading-none">

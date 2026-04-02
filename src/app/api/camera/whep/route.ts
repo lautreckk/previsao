@@ -1,7 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 
-const MEDIAMTX_BASE = "http://82.25.68.62:8889";
+// Vast.ai instance (Quebec, CA) — WebRTC port not yet exposed
+// TODO: expose port 8889 on Vast.ai instance for WebRTC
+const MEDIAMTX_BASE = process.env.MEDIAMTX_WHEP_URL || "http://82.25.68.62:8889";
 
 export async function POST(request: NextRequest) {
   const streamId = request.nextUrl.searchParams.get("stream");
