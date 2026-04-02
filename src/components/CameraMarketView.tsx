@@ -136,29 +136,52 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
       ctx.fillStyle = "#80FF00";
       ctx.fillText("ZONA DE CONTAGEM", xStart + 4, lineY - 6);
 
-      // Bounding boxes from worker (fade after 2s)
-      const age = Date.now() - boxesTimeRef.current;
-      if (age < 2000 && boxesRef.current.length > 0) {
-        const alpha = Math.max(0, 1 - age / 2000);
+      // Bounding boxes from worker — persistent display (always show latest)
+      if (boxesRef.current.length > 0) {
+        const age = Date.now() - boxesTimeRef.current;
+        const alpha = Math.min(1, Math.max(0.3, 1 - age / 5000)); // fade slowly over 5s, min 0.3
         for (const box of boxesRef.current) {
           const bx = box.x1 * w;
           const by = box.y1 * h;
           const bw = (box.x2 - box.x1) * w;
           const bh = (box.y2 - box.y1) * h;
-          const color = box.c === 1 ? `rgba(128, 255, 0, ${alpha})` : `rgba(255, 82, 82, ${alpha})`;
+          const isCounted = box.c === 1;
+          const color = isCounted ? `rgba(128, 255, 0, ${alpha})` : `rgba(255, 82, 82, ${alpha})`;
+
+          // Box
           ctx.strokeStyle = color;
           ctx.lineWidth = 2;
           ctx.strokeRect(bx, by, bw, bh);
+
+          // Small label background
+          if (isCounted) {
+            ctx.fillStyle = `rgba(128, 255, 0, ${alpha * 0.7})`;
+            ctx.fillRect(bx, by - 14, 8, 14);
+            ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+            ctx.font = "bold 9px sans-serif";
+            ctx.fillText("V", bx + 1, by - 3);
+          }
+
+          // Center dot
+          ctx.beginPath();
+          ctx.arc(bx + bw / 2, by + bh / 2, 3, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
         }
       }
 
       // ROI boundary lines (subtle)
-      ctx.strokeStyle = "rgba(0, 255, 255, 0.15)";
+      ctx.strokeStyle = "rgba(0, 255, 255, 0.12)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(xStart, 0); ctx.lineTo(xStart, h);
       ctx.moveTo(xEnd, 0); ctx.lineTo(xEnd, h);
       ctx.stroke();
+
+      // "Veiculos" count on canvas too (top left of video area)
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillStyle = "rgba(128, 255, 0, 0.9)";
+      ctx.fillText(`Veiculos: ${boxesRef.current.filter(b => b.c === 1).length} detectados`, xStart + 4, lineY + 16);
 
       animId = requestAnimationFrame(draw);
     };
