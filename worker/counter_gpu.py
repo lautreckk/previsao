@@ -71,13 +71,16 @@ def broadcast_count(supa_url, supa_key, market_id, count, boxes=None):
         pass
 
 
-def persist_count(supa_url, supa_key, market_id, count):
+def persist_count(supa_url, supa_key, market_id, count, boxes=None):
     try:
+        data = {"current_count": count, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        if boxes is not None:
+            data["detection_boxes"] = boxes
         requests.patch(
             f"{supa_url}/rest/v1/camera_markets?id=eq.{market_id}",
             headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}",
                      "Content-Type": "application/json", "Prefer": "return=minimal"},
-            json={"current_count": count, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
+            json=data,
             timeout=5,
         )
     except:
@@ -229,14 +232,9 @@ def main():
                     counted.add(tid)
                     total += 1
 
-        # Persist + broadcast on change
-        if total != last_db and a.supabase_url:
-            last_db = total
-            Thread(target=persist_count, args=(a.supabase_url, a.supabase_key, a.market_id, total), daemon=True).start()
-
-        # Broadcast boxes + count every 3rd frame for canvas overlay
-        if fc % 3 == 0 and a.supabase_url and results and results[0].boxes is not None:
-            blist = []
+        # Build detection boxes every 3rd frame
+        blist = []
+        if fc % 3 == 0 and results and results[0].boxes is not None:
             rboxes = results[0].boxes
             for i in range(len(rboxes)):
                 cid = int(rboxes.cls[i])
@@ -249,7 +247,11 @@ def main():
                     "x2": round(float(x2b) / w, 4), "y2": round(float(y2b) / h, 4),
                     "c": 1 if tid in counted else 0,
                 })
-            Thread(target=broadcast_count, args=(a.supabase_url, a.supabase_key, a.market_id, total, blist if blist else None), daemon=True).start()
+
+        # Persist count + boxes to DB (postgres_changes delivers to frontend)
+        if (total != last_db or blist) and a.supabase_url:
+            last_db = total
+            Thread(target=persist_count, args=(a.supabase_url, a.supabase_key, a.market_id, total, blist if blist else None), daemon=True).start()
 
         # FPS
         fpsc += 1

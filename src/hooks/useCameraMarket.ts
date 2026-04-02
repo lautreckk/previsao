@@ -137,10 +137,12 @@ export function useCameraMarket(marketId: string) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "camera_markets", filter: `id=eq.${marketId}` },
         (payload) => {
-          const updated = payload.new as CameraMarket;
-          // Update count immediately from DB change (fastest path)
+          const updated = payload.new as any;
           if (updated.current_count !== undefined) {
             setCurrentCount(updated.current_count);
+          }
+          if (updated.detection_boxes && Array.isArray(updated.detection_boxes)) {
+            setDetectionBoxes(updated.detection_boxes);
           }
           setMarket((prev) => (prev ? { ...prev, ...updated } : null));
         }
