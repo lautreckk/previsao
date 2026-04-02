@@ -8,15 +8,36 @@ import Link from "next/link";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
 
+/* ─── Beep sound when count increments ─── */
+let audioCtx: AudioContext | null = null;
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new AudioContext();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 880; // A5 note
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.12);
+  } catch {}
+}
+
 /* ─── Animated Count (odometer style) ─── */
-function AnimatedCount({ value }: { value: number }) {
+function AnimatedCount({ value, onIncrement }: { value: number; onIncrement?: () => void }) {
   const [display, setDisplay] = useState(value);
   const [flash, setFlash] = useState(false);
+  const prevRef = useRef(value);
 
   useEffect(() => {
     if (value === display) return;
+    const increased = value > prevRef.current;
+    prevRef.current = value;
+    if (increased) onIncrement?.();
     setFlash(true);
-    // Animate from current to target
     const diff = value - display;
     const steps = Math.min(Math.abs(diff), 10);
     const stepTime = 150 / steps;
@@ -236,7 +257,7 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
       <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#80FF00]/30">
         <p className="text-[8px] uppercase tracking-widest text-white/50 font-bold">Contagem Atual</p>
         <p className="text-3xl font-black text-[#80FF00] tabular-nums leading-none">
-          <AnimatedCount value={count} />
+          <AnimatedCount value={count} onIncrement={playBeep} />
         </p>
       </div>
     </div>
@@ -563,7 +584,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0a1222]">
             <div className="flex items-center gap-3">
               <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Contagem atual:</span>
-              <span className="text-2xl font-black text-[#80FF00] tabular-nums"><AnimatedCount value={currentCount} /></span>
+              <span className="text-2xl font-black text-[#80FF00] tabular-nums"><AnimatedCount value={currentCount} onIncrement={playBeep} /></span>
             </div>
             <div>
               {isBetting && (

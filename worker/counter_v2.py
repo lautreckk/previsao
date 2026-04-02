@@ -34,20 +34,20 @@ def get_stream_url(url, stream_type):
     return url
 
 
-def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_start, roi_x_end):
+def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_start, roi_x_end, just_counted_ids=None):
     h, w = frame.shape[:2]
     out = frame.copy()
     x_start = int(w * roi_x_start)
     x_end = int(w * roi_x_end)
 
-    # Counting line
+    # Counting line (dashed green)
     for x in range(x_start, x_end, 20):
         cv2.line(out, (x, line_y), (min(x + 10, x_end), line_y), GREEN, 2)
 
     cv2.putText(out, "ZONA DE CONTAGEM", (x_start + 5, line_y - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, GREEN, 1)
 
-    # Bounding boxes — show when approaching or counted
+    # Bounding boxes — ONLY show when approaching the line (not after counted)
     for track in tracks:
         if not track.is_confirmed():
             continue
@@ -57,11 +57,25 @@ def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_star
         cy = (y1 + y2) // 2
         dist = cy - line_y
         is_counted = tid in counted_ids
-        approaching = -80 < dist < 20
-        if not approaching and not is_counted:
+
+        # Only show box when approaching the line (within 80px above)
+        # Once counted (crossed), box disappears
+        if is_counted:
             continue
-        color = GREEN if is_counted else RED
-        cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
+        approaching = -80 < dist < 10
+        if not approaching:
+            continue
+
+        cv2.rectangle(out, (x1, y1), (x2, y2), RED, 2)
+        # Center dot
+        cv2.circle(out, ((x1+x2)//2, cy), 3, RED, -1)
+
+    # Flash effect when vehicle just crossed the line
+    if just_counted_ids:
+        # Brief green flash on the counting line
+        overlay = out.copy()
+        cv2.rectangle(overlay, (x_start, line_y - 5), (x_end, line_y + 5), GREEN, -1)
+        cv2.addWeighted(overlay, 0.3, out, 0.7, 0, out)
 
     # Count display
     txt = f"Veiculos: {total_count}"
@@ -286,8 +300,8 @@ def main():
             known_phase = new_phase
             t_round_check = now
 
-        # Count vehicles APPROACHING the line (count earlier for snappier feel)
-        # Asymmetric zone: detect 80px BEFORE line, 20px AFTER
+        # Count vehicles APPROACHING the line
+        just_counted = set()
         if run_yolo and not counting_paused:
             for t in tracks:
                 if not t.is_confirmed():
@@ -297,42 +311,24 @@ def main():
                 cx = (bb[0] + bb[2]) / 2
                 cy = (bb[1] + bb[3]) / 2
                 in_roi = roi_x_start_px <= cx <= roi_x_end_px
-                # Count when approaching: vehicle is within 80px above or 20px below line
                 dist_to_line = cy - line_y_px
-                approaching = -80 < dist_to_line < 20
+                approaching = -args.tolerance < dist_to_line < 15
                 if tid not in counted and in_roi and approaching:
                     counted.add(tid)
                     total += 1
+                    just_counted.add(tid)
 
-        # Persist count + detections to DB immediately on count change
+        # Persist count to DB on change
         if total != last_db_count and args.supabase_url:
             last_db_count = total
             Thread(target=persist_count_to_db, args=(args.supabase_url, args.supabase_key, args.market_id, total), daemon=True).start()
 
-        # Send detection boxes via Supabase broadcast (for canvas overlay on frontend)
-        if run_yolo and args.supabase_url and tracks:
-            boxes = []
-            for t in tracks:
-                if not t.is_confirmed():
-                    continue
-                tid = t.track_id
-                bb = t.to_ltrb()
-                cy = (bb[1] + bb[3]) / 2
-                dist = cy - line_y_px
-                is_near = -80 < dist < 40
-                if not is_near and tid not in counted:
-                    continue
-                boxes.append({
-                    "x1": round(bb[0] / w, 4), "y1": round(bb[1] / h, 4),
-                    "x2": round(bb[2] / w, 4), "y2": round(bb[3] / h, 4),
-                    "c": 1 if tid in counted else 0,
-                })
-            if boxes:
-                Thread(target=broadcast_detections, args=(args.supabase_url, args.supabase_key, args.market_id, boxes, total), daemon=True).start()
-
         # Draw annotations on EVERY frame and pipe to MediaMTX
+        # Boxes only appear near the line, disappear after counted
         annotated = draw_annotations(frame, tracks, counted, line_y_px, total,
-                                     args.roi_x_start, args.roi_x_end)
+                                     args.roi_x_start, args.roi_x_end,
+                                     just_counted_ids=just_counted if just_counted else None)
+
         try:
             ffmpeg.stdin.write(annotated.tobytes())
         except:
@@ -340,9 +336,9 @@ def main():
             ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=24)
 
         # Log
-        if now - t_log >= 5:
+        if time.time() - t_log >= 5:
             print(f"[Worker v2] #{fc} | Round {known_round} | Veiculos: {total} | Rastreados: {len(counted)}")
-            t_log = now
+            t_log = time.time()
 
     cap.release()
     ffmpeg.stdin.close()
