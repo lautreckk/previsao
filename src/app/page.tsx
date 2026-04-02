@@ -7,7 +7,7 @@ import MarketTicker from "@/components/MarketTicker";
 import SidebarNav from "@/components/SidebarNav";
 import CategoryTabs from "@/components/CategoryTabs";
 import LiveCard from "@/components/LiveCard";
-import BettingSlip from "@/components/BettingSlip";
+// BettingSlip removed for cleaner layout
 import ChatPanelDesktop from "@/components/ChatPanelDesktop";
 import MobileNavNew from "@/components/MobileNavNew";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
@@ -478,7 +478,7 @@ export default function Home() {
         />
 
         {/* Main content */}
-        <main className={`flex-1 lg:ml-44 px-3 sm:px-4 lg:px-5 py-4 min-w-0 overflow-x-hidden transition-all duration-300 ${chatOpen ? 'xl:mr-[568px]' : 'xl:mr-[304px]'}`}>
+        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-5 py-4 min-w-0 overflow-x-hidden">
           {/* Banner */}
           <div className="relative rounded-xl overflow-hidden mb-4">
             <img
@@ -551,8 +551,7 @@ export default function Home() {
           </section>
         </main>
 
-        {/* Betting Slip + Chat */}
-        <BettingSlip isOpen={true} chatOpen={chatOpen} />
+        {/* Chat Panel - desktop only */}
         <ChatPanelDesktop isOpen={chatOpen} onToggle={() => setChatOpen(!chatOpen)} />
       </div>
 

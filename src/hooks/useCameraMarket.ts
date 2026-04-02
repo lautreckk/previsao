@@ -127,7 +127,8 @@ export function useCameraMarket(marketId: string) {
     fetchRound();
   }, [fetchMarket, fetchRound]);
 
-  // Realtime: postgres changes on camera_markets
+  // Realtime: postgres changes on camera_markets (PRIMARY source for count updates)
+  // Worker updates DB directly → postgres_changes fires in ~100-300ms → instant count update
   useEffect(() => {
     const channel = supabase
       .channel(`camera:${marketId}`)
@@ -136,6 +137,7 @@ export function useCameraMarket(marketId: string) {
         { event: "UPDATE", schema: "public", table: "camera_markets", filter: `id=eq.${marketId}` },
         (payload) => {
           const updated = payload.new as CameraMarket;
+          // Update count immediately from DB change (fastest path)
           if (updated.current_count !== undefined) {
             setCurrentCount(updated.current_count);
           }
@@ -214,7 +216,7 @@ export function useCameraMarket(marketId: string) {
     };
   }, [marketId, fetchRound]);
 
-  // Poll (3s) for count + phase management
+  // Light poll (3s) for phase management only — count comes from postgres_changes (faster)
   useEffect(() => {
     let ticking = false;
     const iv = setInterval(async () => {
@@ -224,6 +226,7 @@ export function useCameraMarket(marketId: string) {
         .eq("id", marketId)
         .maybeSingle();
       if (data) {
+        // Sync count as fallback (postgres_changes is primary)
         setCurrentCount(data.current_count || 0);
         setMarket((prev) => (prev ? { ...prev, ...data } : null));
 

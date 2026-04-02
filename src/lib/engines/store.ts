@@ -14,7 +14,7 @@ import { addBetToMarket, tickMarket, createMarket, presetBinary, presetUpDown, p
 const K = {
   markets: "w_markets", bets: "w_bets", ledger: "w_ledger", settlements: "w_settlements",
   alerts: "w_alerts", audit: "w_audit", affiliates: "w_affiliates", resLogs: "w_reslogs",
-  config: "w_config", init: "w_init_v17_no_seed_streams",
+  config: "w_config", init: "w_init_v16_rules",
 };
 
 function get<T>(key: string, fb: T): T {
@@ -278,7 +278,8 @@ export function initializeStore() {
   ));
   urban1.status = "open"; urban1.is_featured = true;
   urban1.subcategory = "Av. Curitiba, Goioere - PR";
-  // Real camera markets are in camera_markets table, not seeds
+  urban1.stream_url = "https://www.youtube.com/watch?v=ZWk3xR9mdtA";
+  urban1.stream_type = "youtube";
   urban1.outcomes[0] = { ...urban1.outcomes[0], key: "MAIS", label: "Mais de 26", pool: 2900, color: "#10B981" };
   urban1.outcomes[1] = { ...urban1.outcomes[1], key: "ATE", label: "Ate 26", pool: 7100, color: "#FF5252" };
   seeds.push(urban1);
@@ -544,7 +545,8 @@ export function initializeStore() {
 
   // Rodovia - Porto de Santos
   const rodovia = q("Rodovia (5 min): quantos veiculos passam no Porto de Santos?", "custom", "Contagem automatica via IA. Camera ao vivo 24h - Entrada do Canal do Porto.", [["Mais de 97", 2900, "#10B981"], ["Ate 97", 7100, "#FF5252"]], 5 * 60000, "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=200&q=80", "Porto de Santos - SP");
-  // Real camera markets are in camera_markets table, not seeds
+  rodovia.stream_url = "https://www.youtube.com/watch?v=tMYtrEBNVAU";
+  rodovia.stream_type = "youtube";
   seeds.push(rodovia);
 
   saveMarkets(seeds.map(recalcMarket));
