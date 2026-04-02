@@ -55,14 +55,17 @@ def get_stream_url(url, stream_type):
     return url
 
 
-def broadcast_count(supa_url, supa_key, market_id, count):
-    """Broadcast count.sync — the event the frontend listens to."""
+def broadcast_count(supa_url, supa_key, market_id, count, boxes=None):
+    """Broadcast count.sync with optional boxes for canvas overlay."""
     try:
+        payload = {"count": count, "timestamp": int(time.time() * 1000)}
+        if boxes:
+            payload["boxes"] = boxes
         requests.post(
             f"{supa_url}/realtime/v1/api/broadcast",
             headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}", "Content-Type": "application/json"},
             json={"channel": f"cars-stream-{market_id}", "event": "count.sync",
-                  "payload": {"count": count, "timestamp": int(time.time() * 1000)}},
+                  "payload": payload},
             timeout=2,
         )
     except:
@@ -231,7 +234,23 @@ def main():
         if total != last_db and a.supabase_url:
             last_db = total
             Thread(target=persist_count, args=(a.supabase_url, a.supabase_key, a.market_id, total), daemon=True).start()
-            Thread(target=broadcast_count, args=(a.supabase_url, a.supabase_key, a.market_id, total), daemon=True).start()
+
+        # Broadcast boxes + count every 3rd frame for canvas overlay
+        if fc % 3 == 0 and a.supabase_url and results and results[0].boxes is not None:
+            blist = []
+            rboxes = results[0].boxes
+            for i in range(len(rboxes)):
+                cid = int(rboxes.cls[i])
+                if cid not in VEHICLE_CLASSES:
+                    continue
+                x1b, y1b, x2b, y2b = rboxes.xyxy[i].cpu().numpy()
+                tid = int(rboxes.id[i]) if rboxes.id is not None else 0
+                blist.append({
+                    "x1": round(float(x1b) / w, 4), "y1": round(float(y1b) / h, 4),
+                    "x2": round(float(x2b) / w, 4), "y2": round(float(y2b) / h, 4),
+                    "c": 1 if tid in counted else 0,
+                })
+            Thread(target=broadcast_count, args=(a.supabase_url, a.supabase_key, a.market_id, total, blist if blist else None), daemon=True).start()
 
         # FPS
         fpsc += 1

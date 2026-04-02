@@ -62,12 +62,112 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
   );
 }
 
-/* ─── HLS Live Stream — smooth 30fps video ─── */
+/* ─── HLS Live Stream with Canvas Overlay (boxes + counting line) ─── */
 function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [connected, setConnected] = useState(false);
   const hlsRef = useRef<any>(null);
+  const boxesRef = useRef<Array<{ x1: number; y1: number; x2: number; y2: number; c: number }>>([]);
+  const boxesTimeRef = useRef(0);
 
+  // ROI config matching worker params
+  const ROI_X_START = 0.08;
+  const ROI_X_END = 0.85;
+  const LINE_Y = 0.48;
+
+  // Listen for detection boxes from worker broadcast
+  useEffect(() => {
+    let sub: any;
+    import("@/lib/supabase").then(({ supabase }) => {
+      sub = supabase
+        .channel(`overlay-${marketId}`)
+        .on("broadcast", { event: "count.sync" }, ({ payload }) => {
+          if (payload.boxes) {
+            boxesRef.current = payload.boxes;
+            boxesTimeRef.current = Date.now();
+          }
+        })
+        .on("broadcast", { event: "detections" }, ({ payload }) => {
+          if (payload.boxes) {
+            boxesRef.current = payload.boxes;
+            boxesTimeRef.current = Date.now();
+          }
+        })
+        .subscribe();
+    });
+    return () => { sub?.unsubscribe(); };
+  }, [marketId]);
+
+  // Canvas overlay rendering — draws boxes + counting line on every animation frame
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
+
+    let animId: number;
+    const draw = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      canvas.width = w;
+      canvas.height = h;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Counting line (dashed green)
+      const lineY = h * LINE_Y;
+      const xStart = w * ROI_X_START;
+      const xEnd = w * ROI_X_END;
+
+      ctx.setLineDash([10, 8]);
+      ctx.strokeStyle = "#80FF00";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(xStart, lineY);
+      ctx.lineTo(xEnd, lineY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // "ZONA DE CONTAGEM" label
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillStyle = "#80FF00";
+      ctx.fillText("ZONA DE CONTAGEM", xStart + 4, lineY - 6);
+
+      // Bounding boxes from worker (fade after 2s)
+      const age = Date.now() - boxesTimeRef.current;
+      if (age < 2000 && boxesRef.current.length > 0) {
+        const alpha = Math.max(0, 1 - age / 2000);
+        for (const box of boxesRef.current) {
+          const bx = box.x1 * w;
+          const by = box.y1 * h;
+          const bw = (box.x2 - box.x1) * w;
+          const bh = (box.y2 - box.y1) * h;
+          const color = box.c === 1 ? `rgba(128, 255, 0, ${alpha})` : `rgba(255, 82, 82, ${alpha})`;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(bx, by, bw, bh);
+        }
+      }
+
+      // ROI boundary lines (subtle)
+      ctx.strokeStyle = "rgba(0, 255, 255, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(xStart, 0); ctx.lineTo(xStart, h);
+      ctx.moveTo(xEnd, 0); ctx.lineTo(xEnd, h);
+      ctx.stroke();
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    animId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  // HLS setup
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !streamUrl) return;
@@ -75,34 +175,28 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
     let cancelled = false;
 
     async function setupHLS() {
-      // Dynamic import HLS.js
       const { default: Hls } = await import("hls.js");
-
       if (cancelled) return;
 
       if (Hls.isSupported()) {
         const hls = new Hls({
-          liveSyncDurationCount: 2,        // Stay close to live edge
-          liveMaxLatencyDurationCount: 4,   // Max 4 segments behind
+          liveSyncDurationCount: 2,
+          liveMaxLatencyDurationCount: 4,
           enableWorker: true,
           lowLatencyMode: true,
-          backBufferLength: 0,             // Don't keep back buffer
-          maxBufferLength: 3,              // Small buffer for low latency
+          backBufferLength: 0,
+          maxBufferLength: 3,
           maxMaxBufferLength: 5,
         });
         hlsRef.current = hls;
-
         hls.loadSource(streamUrl);
         hls.attachMedia(video);
-
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play().catch(() => {});
           if (!cancelled) setConnected(true);
         });
-
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
           if (data.fatal) {
-            console.error("[HLS] Fatal error:", data.type);
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
               setTimeout(() => { if (!cancelled) hls.startLoad(); }, 3000);
             } else {
@@ -112,7 +206,6 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
           }
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari native HLS
         video.src = streamUrl;
         video.addEventListener("loadedmetadata", () => {
           video.play().catch(() => {});
@@ -122,12 +215,7 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
     }
 
     setupHLS();
-
-    return () => {
-      cancelled = true;
-      hlsRef.current?.destroy();
-      hlsRef.current = null;
-    };
+    return () => { cancelled = true; hlsRef.current?.destroy(); hlsRef.current = null; };
   }, [streamUrl]);
 
   return (
@@ -138,10 +226,13 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
         muted
         playsInline
         className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
-        style={{ imageRendering: "auto" }}
+      />
+      {/* Canvas overlay for boxes + counting line */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full object-contain rounded-lg pointer-events-none z-[5]"
       />
 
-      {/* Loading */}
       {!connected && (
         <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
           <div className="text-center">
@@ -157,9 +248,10 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
       </div>
 
-      {/* Veiculos count from YOLO */}
-      <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full">
-        <span className="text-[10px] font-bold text-[#80FF00]">Veiculos: <AnimatedCount value={count} /></span>
+      {/* IA YOLO badge */}
+      <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5">
+        <span className="text-[10px] font-bold text-[#80FF00]">IA YOLO</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#80FF00] animate-pulse" />
       </div>
 
       {/* Count overlay */}
