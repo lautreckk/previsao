@@ -149,6 +149,8 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
   const connectWebRTC = useCallback(async () => {
     if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
 
+    console.log(`[WebRTC] Connecting attempt ${retriesRef.current + 1}/4 to stream: ${webrtcStreamId}`);
+
     try {
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -159,31 +161,45 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
       pc.addTransceiver("audio", { direction: "recvonly" });
 
       pc.ontrack = (ev) => {
+        console.log("[WebRTC] Track received:", ev.track.kind, ev.streams.length, "streams");
         if (videoRef.current && ev.streams[0]) {
           videoRef.current.srcObject = ev.streams[0];
         }
       };
 
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate) {
+          console.log("[WebRTC] ICE candidate:", ev.candidate.type, ev.candidate.protocol, ev.candidate.address + ":" + ev.candidate.port);
+        }
+      };
+
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
+        console.log(`[WebRTC] Connection state: ${state}`);
         if (state === "connected") {
           setConnected(true);
           retriesRef.current = 0;
+          console.log("[WebRTC] SUCCESS — connected!");
         } else if (state === "failed" || state === "disconnected") {
           setConnected(false);
+          console.warn(`[WebRTC] ${state} — retry ${retriesRef.current + 1}/3`);
           if (retriesRef.current < 3) {
             retriesRef.current++;
             setTimeout(connectWebRTC, 2000 * retriesRef.current);
           } else {
-            // Fallback to HLS after 3 WebRTC failures
-            console.warn("[WebRTC] Falling back to HLS");
+            console.warn("[WebRTC] All retries failed. Falling back to HLS.");
             setUseHLS(true);
           }
         }
       };
 
+      pc.onicegatheringstatechange = () => {
+        console.log("[WebRTC] ICE gathering state:", pc.iceGatheringState);
+      };
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      console.log("[WebRTC] Offer created, waiting for ICE gathering...");
 
       // Wait for ICE gathering
       await new Promise<void>((resolve) => {
@@ -194,23 +210,32 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
         };
       });
 
+      console.log("[WebRTC] Sending offer to WHEP proxy...");
       const res = await fetch(`/api/camera/whep?stream=${encodeURIComponent(webrtcStreamId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
         body: pc.localDescription!.sdp,
       });
 
-      if (!res.ok) throw new Error(`WHEP ${res.status}`);
+      console.log(`[WebRTC] WHEP response: ${res.status}`);
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error("[WebRTC] WHEP error body:", errBody);
+        throw new Error(`WHEP ${res.status}: ${errBody}`);
+      }
 
       const answerSdp = await res.text();
+      console.log("[WebRTC] Got SDP answer, length:", answerSdp.length);
+      console.log("[WebRTC] Answer ICE candidates:", (answerSdp.match(/a=candidate/g) || []).length);
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      console.log("[WebRTC] Remote description set. Waiting for connection...");
     } catch (err) {
       console.error("[WebRTC] Error:", err);
       if (retriesRef.current < 3) {
         retriesRef.current++;
         setTimeout(connectWebRTC, 3000);
       } else {
-        console.warn("[WebRTC] Falling back to HLS");
+        console.warn("[WebRTC] All retries failed. Falling back to HLS.");
         setUseHLS(true);
       }
     }
