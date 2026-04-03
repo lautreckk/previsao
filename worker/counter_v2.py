@@ -47,35 +47,32 @@ def draw_annotations(frame, tracks, counted_ids, line_y, total_count, roi_x_star
     cv2.putText(out, "ZONA DE CONTAGEM", (x_start + 5, line_y - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, GREEN, 1)
 
-    # Bounding boxes — ONLY show when approaching the line (not after counted)
+    # Bounding boxes — show approaching + just-counted vehicles
     for track in tracks:
         if not track.is_confirmed():
             continue
         tid = track.track_id
         ltrb = track.to_ltrb()
         x1, y1, x2, y2 = int(ltrb[0]), int(ltrb[1]), int(ltrb[2]), int(ltrb[3])
-        cy = (y1 + y2) // 2
-        dist = cy - line_y
+        front_y = y2  # bottom of box = front of vehicle (moving downward)
+        dist = front_y - line_y
         is_counted = tid in counted_ids
+        just_now = just_counted_ids and tid in just_counted_ids
 
-        # Only show box when approaching the line (within 80px above)
-        # Once counted (crossed), box disappears
-        if is_counted:
-            continue
-        approaching = -80 < dist < 10
-        if not approaching:
+        # Show box when: approaching line (within 100px above) OR just counted
+        approaching = -100 < dist < 20
+        if not approaching and not just_now:
             continue
 
-        cv2.rectangle(out, (x1, y1), (x2, y2), RED, 2)
-        # Center dot
-        cv2.circle(out, ((x1+x2)//2, cy), 3, RED, -1)
-
-    # Flash effect when vehicle just crossed the line
-    if just_counted_ids:
-        # Brief green flash on the counting line
-        overlay = out.copy()
-        cv2.rectangle(overlay, (x_start, line_y - 5), (x_end, line_y + 5), GREEN, -1)
-        cv2.addWeighted(overlay, 0.3, out, 0.7, 0, out)
+        if just_now:
+            # Just crossed — green box with label
+            color = GREEN
+            cv2.rectangle(out, (x1, y1), (x2, y2), GREEN, 3)
+            cv2.putText(out, "OK", (x1 + 2, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, GREEN, 1)
+        elif not is_counted:
+            # Approaching — red box
+            cv2.rectangle(out, (x1, y1), (x2, y2), RED, 2)
+            cv2.circle(out, ((x1+x2)//2, front_y), 3, RED, -1)
 
     # Count display
     txt = f"Veiculos: {total_count}"
@@ -213,8 +210,12 @@ def main():
 
     # State
     fc = 0
-    total = db_count
+    # Always start from 0 — the round system manages the count lifecycle
+    # If we're mid-round (betting/observation), sync from DB; otherwise start fresh
+    total = db_count if phase in ("betting", "observation") else 0
     last_db_count = total
+    if total != db_count:
+        print(f"[Worker v2] Starting fresh at 0 (phase={phase})")
     counted = set()
     last_tracks = []  # Cache tracks for drawing on non-YOLO frames
     t_log = t_round_check = t_db = time.time()
@@ -225,7 +226,12 @@ def main():
     known_phase = phase
     counting_paused = phase == "waiting"
 
-    print(f"[Worker v2] Running. count={total} round={known_round}")
+    # Frame pacing — output at steady 24 FPS regardless of input timing
+    TARGET_FPS = 24
+    frame_interval = 1.0 / TARGET_FPS
+    next_frame_time = time.monotonic()
+
+    print(f"[Worker v2] Running. count={total} round={known_round} target={TARGET_FPS}fps")
 
     while True:
         ret, frame = cap.read()
@@ -300,7 +306,7 @@ def main():
             known_phase = new_phase
             t_round_check = now
 
-        # Count vehicles APPROACHING the line
+        # Count vehicles — trigger when FRONT of vehicle touches the line
         just_counted = set()
         if run_yolo and not counting_paused:
             for t in tracks:
@@ -309,11 +315,12 @@ def main():
                 tid = t.track_id
                 bb = t.to_ltrb()
                 cx = (bb[0] + bb[2]) / 2
-                cy = (bb[1] + bb[3]) / 2
+                front_y = bb[3]  # bottom of box = front of vehicle
                 in_roi = roi_x_start_px <= cx <= roi_x_end_px
-                dist_to_line = cy - line_y_px
-                approaching = -args.tolerance < dist_to_line < 15
-                if tid not in counted and in_roi and approaching:
+                dist_to_line = front_y - line_y_px
+                # Count when front touches or just passed the line
+                touching = -5 < dist_to_line < 25
+                if tid not in counted and in_roi and touching:
                     counted.add(tid)
                     total += 1
                     just_counted.add(tid)
@@ -329,11 +336,20 @@ def main():
                                      args.roi_x_start, args.roi_x_end,
                                      just_counted_ids=just_counted if just_counted else None)
 
+        # Frame pacing — wait until it's time to send the next frame
+        # This prevents burst sending when HLS segments arrive in chunks
+        now_mono = time.monotonic()
+        sleep_time = next_frame_time - now_mono
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+        next_frame_time = max(time.monotonic(), next_frame_time + frame_interval)
+
         try:
             ffmpeg.stdin.write(annotated.tobytes())
         except:
             print("[Worker v2] FFmpeg pipe broken, restarting...")
             ffmpeg = start_ffmpeg_pipe(rtsp_out, w, h, fps=24)
+            next_frame_time = time.monotonic()
 
         # Log
         if time.time() - t_log >= 5:

@@ -83,21 +83,18 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
   );
 }
 
-/* ─── Live Stream: WebRTC (annotated by worker) with HLS fallback ─── */
-function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
+/* ─── Live Stream: HLS from our server (annotated video with boxes) ─── */
+function LiveStream({ marketId, count }: { marketId: string; count: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<any>(null);
   const [connected, setConnected] = useState(false);
-  const [useHLS, setUseHLS] = useState(false);
 
-  // WebRTC stream ID matches market_id in MediaMTX
-  const webrtcStreamId = marketId;
+  // HLS from our MediaMTX server (proxied through Next.js API for HTTPS)
+  const hlsUrl = `/api/camera/stream/${marketId}/index.m3u8`;
 
-  // HLS fallback — only used if WebRTC fails
   useEffect(() => {
-    if (!useHLS) return;
     const video = videoRef.current;
-    if (!video || !streamUrl) return;
+    if (!video) return;
 
     let cancelled = false;
     async function setupHLS() {
@@ -105,24 +102,28 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
       if (cancelled) return;
       if (Hls.isSupported()) {
         const hls = new Hls({
-          liveSyncDurationCount: 2,
-          liveMaxLatencyDurationCount: 4,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 6,
           enableWorker: true,
           lowLatencyMode: true,
           backBufferLength: 0,
-          maxBufferLength: 3,
-          maxMaxBufferLength: 5,
+          maxBufferLength: 10,
+          maxMaxBufferLength: 15,
         });
         hlsRef.current = hls;
-        hls.loadSource(streamUrl);
+        console.log("[HLS] Loading annotated stream:", hlsUrl);
+        hls.loadSource(hlsUrl);
         hls.attachMedia(video!);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.log("[HLS] Manifest parsed, playing...");
           video?.play().catch(() => {});
           if (!cancelled) setConnected(true);
         });
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
+          console.error("[HLS] Error:", data.type, data.details);
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              console.log("[HLS] Network error, retrying in 3s...");
               setTimeout(() => { if (!cancelled) hls.startLoad(); }, 3000);
             } else {
               hls.destroy();
@@ -131,7 +132,7 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
           }
         });
       } else if (video!.canPlayType("application/vnd.apple.mpegurl")) {
-        video!.src = streamUrl;
+        video!.src = hlsUrl;
         video!.addEventListener("loadedmetadata", () => {
           video?.play().catch(() => {});
           if (!cancelled) setConnected(true);
@@ -140,111 +141,7 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
     }
     setupHLS();
     return () => { cancelled = true; hlsRef.current?.destroy(); hlsRef.current = null; };
-  }, [streamUrl, useHLS]);
-
-  // WebRTC connection via WHEP
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const retriesRef = useRef(0);
-
-  const connectWebRTC = useCallback(async () => {
-    if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
-
-    console.log(`[WebRTC] Connecting attempt ${retriesRef.current + 1}/4 to stream: ${webrtcStreamId}`);
-
-    try {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
-      pcRef.current = pc;
-
-      pc.addTransceiver("video", { direction: "recvonly" });
-      pc.addTransceiver("audio", { direction: "recvonly" });
-
-      pc.ontrack = (ev) => {
-        console.log("[WebRTC] Track received:", ev.track.kind, ev.streams.length, "streams");
-        if (videoRef.current && ev.streams[0]) {
-          videoRef.current.srcObject = ev.streams[0];
-        }
-      };
-
-      pc.onicecandidate = (ev) => {
-        if (ev.candidate) {
-          console.log("[WebRTC] ICE candidate:", ev.candidate.type, ev.candidate.protocol, ev.candidate.address + ":" + ev.candidate.port);
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        const state = pc.connectionState;
-        console.log(`[WebRTC] Connection state: ${state}`);
-        if (state === "connected") {
-          setConnected(true);
-          retriesRef.current = 0;
-          console.log("[WebRTC] SUCCESS — connected!");
-        } else if (state === "failed" || state === "disconnected") {
-          setConnected(false);
-          console.warn(`[WebRTC] ${state} — retry ${retriesRef.current + 1}/3`);
-          if (retriesRef.current < 3) {
-            retriesRef.current++;
-            setTimeout(connectWebRTC, 2000 * retriesRef.current);
-          } else {
-            console.warn("[WebRTC] All retries failed. Falling back to HLS.");
-            setUseHLS(true);
-          }
-        }
-      };
-
-      pc.onicegatheringstatechange = () => {
-        console.log("[WebRTC] ICE gathering state:", pc.iceGatheringState);
-      };
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      console.log("[WebRTC] Offer created, waiting for ICE gathering...");
-
-      // Wait for ICE gathering
-      await new Promise<void>((resolve) => {
-        if (pc.iceGatheringState === "complete") { resolve(); return; }
-        const timeout = setTimeout(resolve, 2000);
-        pc.onicegatheringstatechange = () => {
-          if (pc.iceGatheringState === "complete") { clearTimeout(timeout); resolve(); }
-        };
-      });
-
-      console.log("[WebRTC] Sending offer to WHEP proxy...");
-      const res = await fetch(`/api/camera/whep?stream=${encodeURIComponent(webrtcStreamId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/sdp" },
-        body: pc.localDescription!.sdp,
-      });
-
-      console.log(`[WebRTC] WHEP response: ${res.status}`);
-      if (!res.ok) {
-        const errBody = await res.text();
-        console.error("[WebRTC] WHEP error body:", errBody);
-        throw new Error(`WHEP ${res.status}: ${errBody}`);
-      }
-
-      const answerSdp = await res.text();
-      console.log("[WebRTC] Got SDP answer, length:", answerSdp.length);
-      console.log("[WebRTC] Answer ICE candidates:", (answerSdp.match(/a=candidate/g) || []).length);
-      await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
-      console.log("[WebRTC] Remote description set. Waiting for connection...");
-    } catch (err) {
-      console.error("[WebRTC] Error:", err);
-      if (retriesRef.current < 3) {
-        retriesRef.current++;
-        setTimeout(connectWebRTC, 3000);
-      } else {
-        console.warn("[WebRTC] All retries failed. Falling back to HLS.");
-        setUseHLS(true);
-      }
-    }
-  }, [webrtcStreamId]);
-
-  useEffect(() => {
-    if (!useHLS) connectWebRTC();
-    return () => { pcRef.current?.close(); pcRef.current = null; };
-  }, [connectWebRTC, useHLS]);
+  }, [hlsUrl]);
 
   return (
     <div className="relative w-full" style={{ paddingBottom: "80%" }}>
@@ -260,7 +157,7 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
         <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-[10px] text-white/50">{useHLS ? "Conectando HLS..." : "Conectando WebRTC..."}</p>
+            <p className="text-[10px] text-white/50">Conectando camera...</p>
           </div>
         </div>
       )}
@@ -271,11 +168,10 @@ function LiveStream({ marketId, streamUrl, count, cameraId }: { marketId: string
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
       </div>
 
-      {/* IA YOLO badge + transport indicator */}
+      {/* IA YOLO badge */}
       <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5">
         <span className="text-[10px] font-bold text-[#80FF00]">IA YOLO</span>
-        <span className={`w-1.5 h-1.5 rounded-full ${useHLS ? "bg-yellow-400" : "bg-[#80FF00]"} animate-pulse`} />
-        {useHLS && <span className="text-[8px] text-yellow-400/70 ml-1">HLS</span>}
+        <span className="w-1.5 h-1.5 rounded-full bg-[#80FF00] animate-pulse" />
       </div>
 
       {/* Count overlay */}
@@ -632,7 +528,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
 
           {/* Live HLS stream */}
           <div className="px-4 pt-3">
-            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} cameraId={market.camera_id || marketId} />
+            <LiveStream marketId={marketId} count={currentCount} />
           </div>
 
           {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}
