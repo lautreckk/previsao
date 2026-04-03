@@ -438,6 +438,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
   const [placing, setPlacing] = useState(false);
   const [betMsg, setBetMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [tab, setTab] = useState<"posicoes" | "aberto" | "encerradas">("posicoes");
+  const [mobilePanel, setMobilePanel] = useState<"camera" | "posicoes" | "chat">("camera");
   const [myPredictions, setMyPredictions] = useState<
     { id: string; prediction_type: string; threshold: number; amount_brl: number; odds_at_entry: number; payout: number; status: string }[]
   >([]);
@@ -487,11 +488,32 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
 
   return (
     <div className="h-screen bg-[#080d1a] text-white overflow-hidden">
-      {/* ─── DESKTOP: 3-column layout like Palpitano ─── */}
-      <div className="flex flex-col lg:flex-row h-screen">
+      {/* ─── MOBILE: Panel switcher tabs ─── */}
+      <div className="lg:hidden flex border-b border-white/[0.04] bg-[#0D0B14] sticky top-0 z-20">
+        {([
+          { key: "camera" as const, icon: "videocam", label: "Camera" },
+          { key: "posicoes" as const, icon: "receipt_long", label: "Posicoes" },
+          { key: "chat" as const, icon: "forum", label: "Chat" },
+        ]).map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setMobilePanel(p.key)}
+            className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider transition-colors ${
+              mobilePanel === p.key
+                ? "text-[#80FF00] border-b-2 border-[#80FF00]"
+                : "text-white/40"
+            }`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>{p.icon}</span>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-41px-70px)] lg:h-screen">
 
         {/* ─── LEFT COLUMN: Stream + Betting ─── */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto ${mobilePanel !== "camera" ? "hidden lg:flex" : ""}`}>
 
           {/* Top bar: Title + Timer */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14]">
@@ -642,7 +664,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
         </div>
 
         {/* ─── MIDDLE COLUMN: Positions + Bet form ─── */}
-        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0a1222] overflow-hidden">
+        <div className={`w-full lg:w-[340px] lg:border-l border-white/[0.04] flex flex-col bg-[#0a1222] overflow-hidden ${mobilePanel !== "posicoes" ? "hidden lg:flex" : ""}`}>
           {/* Tabs */}
           {selectedType ? (
             /* Bet form when type is selected */
@@ -776,7 +798,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
         </div>
 
         {/* ─── RIGHT COLUMN: Chat ao Vivo ─── */}
-        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden">
+        <div className={`w-full lg:w-[340px] lg:border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden ${mobilePanel !== "chat" ? "hidden lg:flex" : ""}`}>
           <InlineChat />
         </div>
       </div>
