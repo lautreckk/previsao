@@ -328,7 +328,7 @@ export default function Home() {
       </div>
 
       {/* Header */}
-      <header className="fixed top-[62px] left-0 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+      <header className="fixed top-[62px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
         <button className="lg:hidden text-white/70" onClick={() => setMobileMenuOpen(true)}>
           <Menu size={22} />
         </button>
