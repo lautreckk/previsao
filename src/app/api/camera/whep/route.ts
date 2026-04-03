@@ -1,13 +1,14 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 
-// MediaMTX WHEP endpoint — Vast.ai maps internal :6006 → external :53144
-const MEDIAMTX_BASE = process.env.MEDIAMTX_WHEP_URL || "http://1.208.108.242:53144";
+// MediaMTX WHEP endpoint — Vast.ai BR (RTX 4090), internal :6006 → external :42949
+const MEDIAMTX_BASE = process.env.MEDIAMTX_WHEP_URL || "http://189.79.25.23:42949";
 
 // Vast.ai NAT port mapping: internal → external
 // MediaMTX announces internal ports in ICE candidates; we rewrite to external
+// Vast.ai BR NAT: internal 8384 → external 42817
 const PORT_MAP: Record<string, string> = {
-  "8888": process.env.MEDIAMTX_ICE_TCP_PORT || "53189",
+  "8384": "42817",
 };
 
 function rewriteIcePorts(sdp: string): string {
