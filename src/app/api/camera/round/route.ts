@@ -37,9 +37,9 @@ async function getLastRounds(marketId: string, limit: number) {
 }
 
 // Available DER-SP cameras — rotated each round
-// Night-safe cameras only — others can be added back for daytime
+// Camera rotation — SP008 is the most reliable day and night
 const CAMERAS = [
-  { id: "SP123-KM046", highway: "SP-123 (Floriano R. Pinheiro)", km: "046", city: "Campos do Jordao" },
+  { id: "SP008-KM095", highway: "SP-008 (Fernao Dias)", km: "095", city: "Braganca Paulista" },
 ];
 const HLS_BASE = "https://34.104.32.249.nip.io";
 
