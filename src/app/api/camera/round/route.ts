@@ -37,12 +37,9 @@ async function getLastRounds(marketId: string, limit: number) {
 }
 
 // Available DER-SP cameras — rotated each round
+// Night-safe cameras only — others can be added back for daytime
 const CAMERAS = [
-  { id: "SP008-KM095", highway: "SP-008 (Fernao Dias)", km: "095", city: "Braganca Paulista" },
-  { id: "SP055-KM110", highway: "SP-055 (Santos Dumont)", km: "110", city: "Jacarei" },
   { id: "SP123-KM046", highway: "SP-123 (Floriano R. Pinheiro)", km: "046", city: "Campos do Jordao" },
-  { id: "SP270-KM020", highway: "SP-270 (Raposo Tavares)", km: "020", city: "Sao Paulo" },
-  { id: "SP270-KM030", highway: "SP-270 (Raposo Tavares)", km: "030", city: "Cotia" },
 ];
 const HLS_BASE = "https://34.104.32.249.nip.io";
 
