@@ -39,7 +39,6 @@ async function getLastRounds(marketId: string, limit: number) {
 // Available DER-SP cameras — rotated each round
 const CAMERAS = [
   { id: "SP008-KM095", highway: "SP-008 (Fernao Dias)", km: "095", city: "Braganca Paulista" },
-  { id: "SP055-KM073", highway: "SP-055 (Santos Dumont)", km: "073", city: "Sao Jose dos Campos" },
   { id: "SP055-KM110", highway: "SP-055 (Santos Dumont)", km: "110", city: "Jacarei" },
   { id: "SP123-KM046", highway: "SP-123 (Floriano R. Pinheiro)", km: "046", city: "Campos do Jordao" },
   { id: "SP270-KM020", highway: "SP-270 (Raposo Tavares)", km: "020", city: "Sao Paulo" },
