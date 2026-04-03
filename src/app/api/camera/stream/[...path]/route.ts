@@ -15,6 +15,7 @@ export async function GET(
   try {
     const res = await fetch(url, {
       headers: { Accept: request.headers.get("Accept") || "*/*" },
+      cache: "no-store",
     });
 
     if (!res.ok) {
@@ -29,7 +30,9 @@ export async function GET(
       headers: {
         "Content-Type": contentType,
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": contentType.includes("m3u8") ? "no-cache, no-store" : "public, max-age=5",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "CDN-Cache-Control": "no-store",
+        "Vercel-CDN-Cache-Control": "no-store",
       },
     });
   } catch (err) {
