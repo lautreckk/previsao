@@ -8,7 +8,7 @@ import SidebarNav from "@/components/SidebarNav";
 import CategoryTabs from "@/components/CategoryTabs";
 import LiveCard from "@/components/LiveCard";
 // BettingSlip removed for cleaner layout
-import ChatPanelDesktop from "@/components/ChatPanelDesktop";
+// Chat panel removed for cleaner layout
 import MobileNavNew from "@/components/MobileNavNew";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import { initializeStore, getMarkets, tickAllMarkets } from "@/lib/engines/store";
@@ -125,7 +125,6 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-  const [chatOpen, setChatOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [ageVerified, setAgeVerified] = useState(true);
 
@@ -285,323 +284,188 @@ export default function Home() {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#121212] pb-16 lg:pb-0">
-      {!ageVerified && (
-        <AgeVerificationModal onConfirm={handleAgeConfirm} />
-      )}
+    <div className="min-h-screen bg-[#0d1117] pb-20 lg:pb-0">
+      {!ageVerified && <AgeVerificationModal onConfirm={handleAgeConfirm} />}
 
       {/* Mobile Sidebar Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#121212] overflow-y-auto animate-in slide-in-from-left duration-300">
-            <div className="flex items-center justify-between px-4 py-4">
-              <h2 className="text-[#80FF00] font-black text-xl tracking-tight">PALPITEX</h2>
-              <button onClick={() => setMobileMenuOpen(false)} className="text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] w-10 h-10 flex items-center justify-center rounded-full bg-[hsl(0,0%,14%)]">
-                <X size={20} />
+          <aside className="absolute left-0 top-0 bottom-0 w-[80%] max-w-xs bg-[#0d1117] overflow-y-auto scrollbar-hide border-r border-white/[0.06]">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
+              <img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" />
+              <button onClick={() => setMobileMenuOpen(false)} className="text-white/40 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.04]">
+                <X size={18} />
               </button>
             </div>
-            <div className="px-4 py-3">
-              <p className="text-xs text-[hsl(0,0%,55%)] uppercase tracking-wider font-semibold mb-3">Ao Vivo</p>
-              <Link href="/camera/cam_highway" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between w-full py-2.5 text-[hsl(0,0%,95%)]">
-                <div className="flex items-center gap-3">
-                  <Radio size={18} className="text-[hsl(0,0%,55%)]" />
-                  <span className="text-sm">Rodovia</span>
-                </div>
-                <span className="text-xs font-bold text-[hsl(0,84%,60%)] animate-pulse">LIVE</span>
-              </Link>
-            </div>
-            <div className="border-t border-[hsl(0,0%,18%)] mx-4" />
-            <div className="px-4 py-3">
-              <p className="text-xs text-[hsl(0,0%,55%)] uppercase tracking-wider font-semibold mb-3">Cripto 5 min</p>
+            <div className="p-4 space-y-1">
+              <p className="text-[10px] text-white/30 uppercase tracking-wider font-semibold mb-2">Temas</p>
+              <button onClick={() => { setActiveCategory("all"); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm ${activeCategory === "all" ? "bg-[#80FF00]/10 text-[#80FF00] font-semibold" : "text-white/60"}`}>
+                <Search size={16} /> Todos
+              </button>
               {[
-                { icon: "🟠", label: "BTC", change: "+1.2%", positive: true },
-                { icon: "💎", label: "ETH", change: "+2.9%", positive: true },
-                { icon: "🟣", label: "SOL", change: "+0.8%", positive: true },
-                { icon: "⚪", label: "XRP", change: "+1.5%", positive: true },
-                { icon: "🟡", label: "DOGE", change: "+1.7%", positive: true },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-2.5">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="text-sm text-[hsl(0,0%,95%)] font-medium">{item.label}</span>
-                  </div>
-                  <span className={`text-sm font-semibold ${item.positive ? 'text-[#80FF00]' : 'text-[hsl(0,84%,60%)]'}`}>
-                    {item.change}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-[hsl(0,0%,18%)] mx-4" />
-            <div className="px-4 py-3">
-              <p className="text-xs text-[hsl(0,0%,55%)] uppercase tracking-wider font-semibold mb-3">Temas</p>
-              {[
-                { icon: Tv, label: "Entretenimento", count: 22, value: "entertainment" },
-                { icon: Trophy, label: "Esportes", count: 80, value: "sports" },
-                { icon: Landmark, label: "Política", count: 17, value: "politics" },
-                { icon: DollarSign, label: "Financeiro", count: 35, value: "economy" },
-                { icon: Cloud, label: "Clima", count: 10, value: "weather" },
-                { icon: Bitcoin, label: "Criptomoedas", count: 3273, value: "crypto" },
-                { icon: Globe, label: "Geopolítica", count: 118, value: "war" },
+                { icon: Tv, label: "Entretenimento", value: "entertainment" },
+                { icon: Trophy, label: "Esportes", value: "sports" },
+                { icon: Landmark, label: "Política", value: "politics" },
+                { icon: DollarSign, label: "Financeiro", value: "economy" },
+                { icon: Cloud, label: "Clima", value: "weather" },
+                { icon: Bitcoin, label: "Criptomoedas", value: "crypto" },
+                { icon: Globe, label: "Geopolítica", value: "war" },
               ].map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => { setActiveCategory(cat.value); setMobileMenuOpen(false); }}
-                  className={`flex items-center justify-between w-full py-2.5 text-sm ${
-                    activeCategory === cat.value ? "text-[#80FF00] font-semibold" : "text-[hsl(0,0%,95%)]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <cat.icon size={18} className="text-[hsl(0,0%,55%)]" />
-                    <span>{cat.label}</span>
-                  </div>
-                  <span className="text-xs text-[hsl(0,0%,55%)]">{cat.count}</span>
+                <button key={cat.value} onClick={() => { setActiveCategory(cat.value); setMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm ${activeCategory === cat.value ? "bg-[#80FF00]/10 text-[#80FF00] font-semibold" : "text-white/60"}`}>
+                  <cat.icon size={16} /> {cat.label}
                 </button>
               ))}
-            </div>
-            <div className="border-t border-[hsl(0,0%,18%)] mx-4" />
-            <div className="px-4 py-4 space-y-1">
-              <button className="flex items-center gap-3 text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] w-full py-2.5">
-                <MousePointer size={18} />
-                <span>Precisão</span>
-              </button>
-              <Link href="/como-funciona" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] w-full py-2.5">
-                <BookOpen size={18} />
-                <span>Dúvidas</span>
-              </Link>
             </div>
           </aside>
         </div>
       )}
 
-      {/* Ticker */}
+      {/* Ticker — fixed top */}
       <div className="fixed top-0 left-0 right-0 z-40">
         <MarketTicker />
-      </div>
-
-      {/* Winners Ticker */}
-      <div className="fixed top-[30px] left-0 right-0 z-40">
         <WinnersTicker />
       </div>
 
-      {/* Top Nav */}
-      <header className="fixed top-[62px] left-0 right-0 z-30 bg-[#121212] border-b border-[hsl(0,0%,18%)]">
-        <div className="flex items-center justify-between px-3 lg:px-4 h-14">
-          {/* Left: Menu + Logo */}
-          <div className="flex items-center gap-3">
-            <button className="lg:hidden text-[hsl(0,0%,95%)]" onClick={() => setMobileMenuOpen(true)}>
-              <Menu size={24} />
-            </button>
-            <Link href="/">
-              <img src="/logo.png" alt="PALPITEX" className="h-8 w-auto" />
-            </Link>
-            {/* Desktop search */}
-            <div className="hidden lg:flex items-center gap-2 bg-[hsl(0,0%,14%)] rounded-lg px-3 py-1.5 w-64 ml-2 relative" ref={searchRef}>
-              <Search size={14} className="text-[hsl(0,0%,55%)]" />
-              <input
-                type="text"
-                placeholder="Pesquisar por Mercados, Top"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                className="bg-transparent text-xs text-[hsl(0,0%,95%)] placeholder:text-[hsl(0,0%,55%)] outline-none flex-1"
-              />
-              {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#121212] border border-[hsl(0,0%,18%)] rounded-lg shadow-2xl shadow-black/50 overflow-hidden z-[60]">
-                  {searchResults.map((m) => {
-                    const isCam = !!m.stream_url || m.id.startsWith("cam_");
-                    const href = isCam ? `/camera/${m.id}` : `/evento/${m.id}`;
-                    return (
-                      <Link
-                        key={m.id}
-                        href={href}
-                        onClick={() => { setSearch(""); setSearchFocused(false); }}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-[hsl(0,0%,14%)] transition-colors"
-                      >
-                        {m.banner_url ? (
-                          <img src={m.banner_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-md bg-[hsl(0,0%,14%)] flex items-center justify-center shrink-0">
-                            <Icon name="monitoring" size={16} className="text-white/30" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-white truncate">{m.title}</p>
-                          <p className="text-xs text-white/30">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p>
-                        </div>
-                        <span className="text-xs text-[#80FF00] font-bold shrink-0">R$ {(m.pool_total || 0).toFixed(2)}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+      {/* Header */}
+      <header className="fixed top-[62px] left-0 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+        <button className="lg:hidden text-white/70" onClick={() => setMobileMenuOpen(true)}>
+          <Menu size={22} />
+        </button>
+        <Link href="/" className="shrink-0">
+          <img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" />
+        </Link>
+        {/* Search — desktop */}
+        <div className="hidden lg:block flex-1 max-w-md mx-4 relative" ref={searchRef}>
+          <div className="flex items-center bg-white/[0.04] rounded-lg border border-white/[0.06] px-3 py-2">
+            <Search size={15} className="text-white/30 shrink-0" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} onFocus={() => setSearchFocused(true)} placeholder="Pesquisar por Mercados..." className="bg-transparent text-sm text-white placeholder:text-white/30 outline-none flex-1 ml-2" />
+          </div>
+          {searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-[#161b22] border border-white/[0.06] rounded-lg shadow-2xl shadow-black/60 overflow-hidden z-[60]">
+              {searchResults.map((m) => (
+                <Link key={m.id} href={m.stream_url || m.id.startsWith("cam_") ? `/camera/${m.id}` : `/evento/${m.id}`} onClick={() => { setSearch(""); setSearchFocused(false); }} className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors">
+                  {m.banner_url ? <img src={m.banner_url} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" /> : <div className="w-8 h-8 rounded-md bg-white/[0.06] flex items-center justify-center shrink-0"><Icon name="monitoring" size={14} className="text-white/20" /></div>}
+                  <div className="flex-1 min-w-0"><p className="text-sm text-white truncate">{m.title}</p><p className="text-[11px] text-white/30">{CATEGORY_META[m.category as MarketCategory]?.label || m.category}</p></div>
+                </Link>
+              ))}
             </div>
-          </div>
-
-          {/* Right: Auth buttons */}
-          <div className="flex items-center gap-2">
-            {user ? (
-              <>
-                <Link href="/deposito" className="kinetic-gradient text-[#0a0a0a] px-4 py-2 rounded-lg text-sm font-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(128,255,0,0.3)] hover:shadow-[0_0_25px_rgba(128,255,0,0.5)] hover:scale-105 active:scale-95 transition-all">
-                  <Icon name="add" size={18} weight="bold" />Depositar
-                </Link>
-                <Link href="/perfil" className="bg-[hsl(0,0%,14%)] border border-[hsl(0,0%,18%)] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="border border-[hsl(0,0%,18%)] text-[hsl(0,0%,95%)] px-5 py-2 rounded-lg text-sm font-medium hover:bg-[hsl(0,0%,14%)] transition-colors"
-                >
-                  Entrar
-                </Link>
-                <Link
-                  href="/criar-conta"
-                  className="bg-[#80FF00] text-[#0a0a0a] px-5 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
-                >
-                  Registrar
-                </Link>
-              </>
-            )}
-          </div>
+          )}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {user ? (
+            <>
+              <Link href="/deposito" className="bg-[#80FF00] text-[#0a0a0a] px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black flex items-center gap-1.5 hover:opacity-90 transition-all">
+                <Icon name="add" size={16} weight="bold" />Depositar
+              </Link>
+              <Link href="/perfil" className="bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00] hidden sm:block">R$ {user.balance.toFixed(2)}</Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-white/70 px-3 py-2 rounded-lg text-sm font-medium hover:text-white transition-colors hidden sm:block">Entrar</Link>
+              <Link href="/criar-conta" className="bg-[#80FF00] text-[#0a0a0a] px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity">Registrar</Link>
+            </>
+          )}
         </div>
       </header>
 
-      {/* Spacer for fixed header + ticker + winners */}
+      {/* Spacer */}
       <div className="h-[108px]" />
 
       <div className="flex">
-        {/* Desktop Sidebar */}
-        <SidebarNav
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-        />
+        {/* Sidebar — desktop only */}
+        <SidebarNav activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
-        {/* Main content */}
-        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-5 py-4 min-w-0 overflow-x-hidden">
+        {/* Main */}
+        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden">
           {/* Banner */}
-          <div className="relative rounded-xl overflow-hidden mb-4">
-            <img
-              src="https://ik.imagekit.io/b4wareuuf/images/banner_s_n.png"
-              alt="Banner Votações e Previsões"
-              className="w-full h-44 sm:h-56 object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
+          <div className="rounded-xl overflow-hidden mb-4">
+            <img src="https://ik.imagekit.io/b4wareuuf/images/banner_s_n.png" alt="Banner" className="w-full h-36 sm:h-48 lg:h-56 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           </div>
 
-          {/* Category Tabs */}
+          {/* Categories */}
           <CategoryTabs active={activeCategory} onChange={setActiveCategory} />
 
-          {/* Mobile Search bar */}
-          <div className="lg:hidden flex items-center gap-2 bg-[hsl(0,0%,14%)] rounded-lg px-3 py-2.5 mb-5">
-            <Search size={16} className="text-[hsl(0,0%,55%)]" />
-            <input
-              type="text"
-              placeholder="Pesquisar mercados..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent text-sm text-[hsl(0,0%,95%)] placeholder:text-[hsl(0,0%,55%)] outline-none flex-1"
-            />
+          {/* Search — mobile */}
+          <div className="lg:hidden flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-2.5 mb-4">
+            <Search size={16} className="text-white/30" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar mercados..." className="bg-transparent text-sm text-white placeholder:text-white/30 outline-none flex-1" />
           </div>
 
-          {/* AO VIVO Card */}
+          {/* Live Card */}
           <LiveCard />
 
-          {/* Market Grid */}
+          {/* Markets */}
           <section className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 rounded-full bg-[hsl(0,84%,60%)] animate-pulse" />
-              <h2 className="text-lg font-bold text-[hsl(0,0%,95%)]">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <h2 className="text-base sm:text-lg font-bold text-white">
                 {activeCategory === "all" ? "Todos os Mercados" : CATEGORY_META[activeCategory as MarketCategory]?.label || "Mercados"}
               </h2>
-              <span className="text-sm text-[hsl(0,0%,55%)]">({sorted.length})</span>
+              <span className="text-xs sm:text-sm text-white/40">({sorted.length})</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {marketsLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-[hsl(0,0%,18%)] bg-[hsl(0,0%,11%)] p-4 h-[200px] animate-pulse">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-16 h-5 rounded-md bg-white/[0.06]" />
-                    </div>
-                    <div className="flex items-start gap-2.5 mb-4">
-                      <div className="w-9 h-9 rounded-lg bg-white/[0.06]" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 rounded bg-white/[0.06] w-3/4" />
-                        <div className="h-3 rounded bg-white/[0.04] w-1/2" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-3 rounded bg-white/[0.04]" />
-                      <div className="h-3 rounded bg-white/[0.04]" />
-                    </div>
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 h-[180px] animate-pulse">
+                    <div className="flex items-center gap-2 mb-3"><div className="w-14 h-4 rounded bg-white/[0.06]" /></div>
+                    <div className="flex gap-2.5 mb-3"><div className="w-9 h-9 rounded-lg bg-white/[0.06]" /><div className="flex-1 space-y-2"><div className="h-3.5 rounded bg-white/[0.06] w-3/4" /><div className="h-3 rounded bg-white/[0.04] w-1/2" /></div></div>
+                    <div className="space-y-1.5"><div className="h-3 rounded bg-white/[0.04]" /><div className="h-3 rounded bg-white/[0.04] w-4/5" /></div>
                   </div>
                 ))
               ) : sorted.length > 0 ? (
                 sorted.map((m) => <MarketCard key={m.id} market={m} />)
               ) : (
-                <div className="col-span-full text-center py-12 text-[hsl(0,0%,55%)]">
-                  <Icon name="search_off" size={40} className="mb-2 mx-auto block" />
-                  <p>Nenhum mercado encontrado.</p>
+                <div className="col-span-full text-center py-16 text-white/30">
+                  <Icon name="search_off" size={36} className="mb-2 mx-auto block" />
+                  <p className="text-sm">Nenhum mercado encontrado.</p>
                 </div>
               )}
             </div>
           </section>
         </main>
-
-        {/* Chat Panel - desktop only */}
-        <ChatPanelDesktop isOpen={chatOpen} onToggle={() => setChatOpen(!chatOpen)} />
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-[hsl(0,0%,18%)] bg-[hsl(0,0%,4%)] mt-8 lg:ml-44">
-        <div className="max-w-screen-xl mx-auto px-6 py-10">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-8">
-            <div className="col-span-2 sm:col-span-4 lg:col-span-1">
-              <img src="/logo.png" alt="PALPITEX" className="h-8 w-auto mb-3" />
-              <p className="text-xs text-[hsl(0,0%,55%)] leading-relaxed max-w-[240px]">A plataforma onde seu conhecimento vira oportunidade. Mercados de previsão em tempo real.</p>
+      <footer className="border-t border-white/[0.04] bg-[#080c14] lg:ml-44">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <div className="col-span-2 sm:col-span-4 lg:col-span-1 mb-4 lg:mb-0">
+              <img src="/logo.png" alt="PALPITEX" className="h-7 w-auto mb-3" />
+              <p className="text-[11px] text-white/30 leading-relaxed max-w-[240px]">A plataforma onde seu conhecimento vira oportunidade.</p>
             </div>
             <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Categorias</h4>
-              <ul className="space-y-2">
-                {(["Criptomoedas", "Esportes", "Entretenimento", "Política"] as const).map((c) => (
-                  <li key={c}><button onClick={() => { setActiveCategory(c === "Criptomoedas" ? "crypto" : c === "Esportes" ? "sports" : c === "Entretenimento" ? "entertainment" : "politics"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-white/50 hover:text-[#80FF00] transition-colors">{c}</button></li>
+              <h4 className="text-[10px] font-black text-white/50 uppercase tracking-wider mb-3">Categorias</h4>
+              <ul className="space-y-1.5">
+                {["Criptomoedas", "Esportes", "Entretenimento", "Política"].map((c) => (
+                  <li key={c}><button onClick={() => { setActiveCategory(c === "Criptomoedas" ? "crypto" : c === "Esportes" ? "sports" : c === "Entretenimento" ? "entertainment" : "politics"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors">{c}</button></li>
                 ))}
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Mercados</h4>
-              <ul className="space-y-2">
-                <li><button onClick={() => { setActiveCategory("all"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-xs text-white/50 hover:text-[#80FF00] transition-colors">Todos os mercados</button></li>
+              <h4 className="text-[10px] font-black text-white/50 uppercase tracking-wider mb-3">Conta</h4>
+              <ul className="space-y-1.5">
+                <li><Link href="/perfil" className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors">Perfil</Link></li>
+                <li><Link href="/saldos" className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors">Apostas</Link></li>
+                <li><Link href="/deposito" className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors">Depósito</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Minha conta</h4>
-              <ul className="space-y-2">
-                <li><Link href="/perfil" className="text-xs text-white/50 hover:text-[#80FF00] transition-colors">Perfil</Link></li>
-                <li><Link href="/saldos" className="text-xs text-white/50 hover:text-[#80FF00] transition-colors">Minhas apostas</Link></li>
-                <li><Link href="/deposito" className="text-xs text-white/50 hover:text-[#80FF00] transition-colors">Depósito</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Suporte</h4>
-              <ul className="space-y-2">
-                <li><span className="text-xs text-white/50 hover:text-[#80FF00] transition-colors cursor-pointer">FAQ</span></li>
-                <li><span className="text-xs text-white/50 hover:text-[#80FF00] transition-colors cursor-pointer">Termos de Uso</span></li>
-                <li><span className="text-xs text-white/50 hover:text-[#80FF00] transition-colors cursor-pointer">Privacidade</span></li>
+              <h4 className="text-[10px] font-black text-white/50 uppercase tracking-wider mb-3">Suporte</h4>
+              <ul className="space-y-1.5">
+                <li><span className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors cursor-pointer">FAQ</span></li>
+                <li><span className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors cursor-pointer">Termos</span></li>
+                <li><span className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors cursor-pointer">Privacidade</span></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/[0.04] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p className="text-[10px] text-[hsl(0,0%,30%)]">Todos os direitos reservados | Copyright &copy; 2026 | Powered by Oracore</p>
-            <p className="text-[10px] text-[hsl(0,0%,30%)]">Jogue com responsabilidade. +18</p>
+          <div className="border-t border-white/[0.04] mt-6 pt-4 text-center">
+            <p className="text-[10px] text-white/20">Todos os direitos reservados &copy; 2026 PALPITEX | Jogue com responsabilidade. +18</p>
           </div>
         </div>
       </footer>
 
-      {/* Mobile Nav */}
       <MobileNavNew />
     </div>
   );

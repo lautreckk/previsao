@@ -9,39 +9,39 @@ export default function MobileNavNew() {
   const pathname = usePathname();
   const { user } = useUser();
 
+  const items = [
+    { href: "/", icon: Home, label: "Mercados" },
+    { href: "/saldos", icon: TrendingUp, label: "Apostas" },
+    { href: "/deposito", icon: Wallet, label: "Depositar", center: true },
+    { href: "/ranking", icon: BookOpen, label: "Ranking" },
+    { href: user ? "/perfil" : "/login", icon: User, label: user ? "Perfil" : "Entrar" },
+  ];
+
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[hsl(0,0%,11%)] border-t border-[hsl(0,0%,18%)] z-30">
-      <div className="flex items-center justify-around py-2 relative">
-        <Link href="/" className={`flex flex-col items-center gap-0.5 ${pathname === "/" ? "text-[#80FF00]" : "text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)]"} transition-colors`}>
-          <Home size={22} />
-          <span className="text-[10px] font-medium">Mercados</span>
-        </Link>
-        <Link href="/saldos" className={`flex flex-col items-center gap-0.5 ${pathname === "/saldos" ? "text-[#80FF00]" : "text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)]"} transition-colors`}>
-          <TrendingUp size={22} />
-          <span className="text-[10px] font-medium">Portfolio</span>
-        </Link>
-        {/* Depositar - center elevated button */}
-        <Link href="/deposito" className="flex flex-col items-center gap-0.5 -mt-5">
-          <div className="w-14 h-14 rounded-full bg-[#80FF00] flex items-center justify-center shadow-lg shadow-[#80FF00]/30">
-            <Wallet size={24} className="text-[#0a0a0a]" />
-          </div>
-          <span className="text-[10px] font-medium text-[hsl(0,0%,95%)]">Depositar</span>
-        </Link>
-        <Link href="/como-funciona" className={`flex flex-col items-center gap-0.5 ${pathname === "/como-funciona" ? "text-[#80FF00]" : "text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)]"} transition-colors`}>
-          <BookOpen size={22} />
-          <span className="text-[10px] font-medium">Dúvidas</span>
-        </Link>
-        {user ? (
-          <Link href="/perfil" className={`flex flex-col items-center gap-0.5 ${pathname === "/perfil" ? "text-[#80FF00]" : "text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)]"} transition-colors`}>
-            <User size={22} />
-            <span className="text-[10px] font-medium">Perfil</span>
-          </Link>
-        ) : (
-          <Link href="/login" className="flex flex-col items-center gap-0.5 text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] transition-colors">
-            <User size={22} />
-            <span className="text-[10px] font-medium">Entrar</span>
-          </Link>
-        )}
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0d1117]/95 backdrop-blur-xl border-t border-white/[0.06] pb-safe">
+      <div className="flex items-center justify-around h-16 px-1">
+        {items.map((item) => {
+          const isActive = pathname === item.href;
+          const Ic = item.icon;
+
+          if (item.center) {
+            return (
+              <Link key={item.href} href={item.href} className="flex flex-col items-center -mt-6">
+                <div className="w-14 h-14 rounded-full bg-[#80FF00] flex items-center justify-center shadow-[0_4px_20px_rgba(128,255,0,0.35)]">
+                  <Ic size={24} className="text-[#0a0a0a]" />
+                </div>
+                <span className="text-[9px] font-bold text-white mt-1">{item.label}</span>
+              </Link>
+            );
+          }
+
+          return (
+            <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1 transition-colors ${isActive ? "text-[#80FF00]" : "text-white/30"}`}>
+              <Ic size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+              <span className="text-[9px] font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
