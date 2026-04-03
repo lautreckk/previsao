@@ -8,21 +8,18 @@ import Link from "next/link";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
 
-/* ─── Beep sound when count increments ─── */
-let audioCtx: AudioContext | null = null;
+/* ─── Money sound when count increments ─── */
+let moneyAudio: HTMLAudioElement | null = null;
 function playBeep() {
   try {
-    if (!audioCtx) audioCtx = new AudioContext();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.value = 880; // A5 note
-    osc.type = "sine";
-    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-    osc.start(audioCtx.currentTime);
-    osc.stop(audioCtx.currentTime + 0.12);
+    if (!moneyAudio) {
+      moneyAudio = new Audio("/sounds/money.mp3");
+      moneyAudio.volume = 0.3;
+    }
+    // Clone to allow overlapping plays
+    const sound = moneyAudio.cloneNode() as HTMLAudioElement;
+    sound.volume = 0.3;
+    sound.play().catch(() => {});
   } catch {}
 }
 
@@ -196,11 +193,6 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
       </div>
 
-      {/* IA YOLO badge */}
-      <div className="absolute top-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5">
-        <span className="text-[10px] font-bold text-[#80FF00]">IA YOLO</span>
-        <span className="w-1.5 h-1.5 rounded-full bg-[#80FF00] animate-pulse" />
-      </div>
 
       {/* Mute/unmute button */}
       <button
