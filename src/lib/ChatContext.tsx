@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 
 export interface ChatMessage {
   user: string;
@@ -8,12 +9,14 @@ export interface ChatMessage {
   id: number;
   ts: number;
   avatar_url?: string;
+  user_id?: string;
 }
 
 interface ChatContextType {
   messages: ChatMessage[];
   sendMessage: (text: string, username?: string, avatarUrl?: string) => void;
   onlineCount: number;
+  marketId?: string | null;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -102,22 +105,48 @@ const FALLBACK_REPLIES_NEGATIVE = [
 
 const MAX_MESSAGES = 60;
 
-export function ChatProvider({ children }: { children: ReactNode }) {
+interface ChatProviderProps {
+  children: ReactNode;
+  marketId?: string | null;
+}
+
+export function ChatProvider({ children, marketId = null }: ChatProviderProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [onlineCount] = useState(() => 580 + Math.floor(Math.random() * 120));
-  const messageQueue = useRef<{ user: string; text: string }[]>([]);
+  // Deterministic online count based on marketId hash
+  const [onlineCount] = useState(() => {
+    if (!marketId) return 580 + Math.floor(Math.random() * 120);
+    let hash = 0;
+    for (let i = 0; i < marketId.length; i++) hash = marketId.charCodeAt(i) + ((hash << 5) - hash);
+    const tier = Math.abs(hash) % 100;
+    if (tier < 10) return 150 + Math.abs(hash % 200); // 10% hot: 150-350
+    if (tier < 40) return 40 + Math.abs(hash % 80);   // 30% medium: 40-120
+    if (tier < 70) return 12 + Math.abs(hash % 30);    // 30% normal: 12-42
+    return 3 + Math.abs(hash % 12);                     // 30% quiet: 3-15
+  });
+  const messageQueue = useRef<{ user: string; text: string; avatar_url?: string }[]>([]);
   const fetchingRef = useRef(false);
   const initializedRef = useRef(false);
   const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Add a message to chat (used by both auto and reply systems)
-  const addMessage = useCallback((user: string, text: string, avatarUrl?: string) => {
+  const addMessage = useCallback((user: string, text: string, avatarUrl?: string, userId?: string) => {
     const now = Date.now();
     setMessages((prev) => [
       ...prev.slice(-(MAX_MESSAGES - 1)),
-      { user, text, id: now + Math.random(), ts: now, avatar_url: avatarUrl },
+      { user, text, id: now + Math.random(), ts: now, avatar_url: avatarUrl, user_id: userId },
     ]);
   }, []);
+
+  // Save message to Supabase (fire-and-forget)
+  const persistMessage = useCallback((username: string, text: string, avatarUrl?: string) => {
+    supabase.from("chat_messages").insert({
+      username,
+      message: text,
+      avatar_url: avatarUrl || "",
+      market_id: marketId || null,
+      predictions_count: 0,
+    }).then(() => {});
+  }, [marketId]);
 
   // Fetch contextual replies for a user message
   const fetchReplies = useCallback(async (message: string, username: string) => {
@@ -130,10 +159,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         if (data.replies?.length > 0) {
-          // Schedule replies with delays
           for (const reply of data.replies) {
             const timer = setTimeout(() => {
               addMessage(reply.user, reply.text);
+              persistMessage(reply.user, reply.text);
             }, (reply.delay || 3) * 1000);
             replyTimers.current.push(timer);
           }
@@ -144,21 +173,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       // Fallback below
     }
 
-    // Fallback: use static replies
     const lower = message.toLowerCase();
     const isNegative = ["golpe", "scam", "roubo", "nao paga", "n paga", "lixo", "fraude", "piramide", "fake", "calote", "roubando"].some((w) => lower.includes(w));
     const fallbacks = isNegative ? FALLBACK_REPLIES_NEGATIVE : FALLBACK_REPLIES_QUESTION;
-    const count = 1 + Math.floor(Math.random() * 2); // 1-2 replies
+    const count = 1 + Math.floor(Math.random() * 2);
     const shuffled = [...fallbacks].sort(() => Math.random() - 0.5);
 
     for (let i = 0; i < Math.min(count, shuffled.length); i++) {
       const reply = shuffled[i];
       const timer = setTimeout(() => {
         addMessage(reply.user, reply.text);
+        persistMessage(reply.user, reply.text);
       }, (3 + i * 4) * 1000);
       replyTimers.current.push(timer);
     }
-  }, [addMessage]);
+  }, [addMessage, persistMessage]);
 
   // Fetch a batch of AI-generated messages
   const fetchBatch = useCallback(async () => {
@@ -168,7 +197,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/chat/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context: "mercados de crypto, esportes, entretenimento e clima" }),
+        body: JSON.stringify({ context: marketId ? "mercado especifico de previsao" : "mercados de crypto, esportes, entretenimento e clima" }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -180,7 +209,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       // Silently fail, use fallback
     }
     fetchingRef.current = false;
-  }, []);
+  }, [marketId]);
 
   // Get next message from queue (AI or fallback)
   const getNextMessage = useCallback((): { user: string; text: string } => {
@@ -190,26 +219,60 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
   }, []);
 
-  // Initialize: fetch first batch and seed initial messages
+  // Initialize: load messages from Supabase, then fallback
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    const now = Date.now();
-    const initial: ChatMessage[] = [];
-    const shuffled = [...FALLBACK_MESSAGES].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < 8; i++) {
-      const msg = shuffled[i];
-      initial.push({
-        user: msg.user,
-        text: msg.text,
-        id: now - (8 - i) * 30000 + i,
-        ts: now - (8 - i) * 30000,
-      });
-    }
-    setMessages(initial);
-    fetchBatch();
-  }, [fetchBatch]);
+    (async () => {
+      try {
+        let query = supabase
+          .from("chat_messages")
+          .select("user_id, username, message, avatar_url, created_at, predictions_count")
+          .order("created_at", { ascending: true })
+          .limit(40);
+
+        if (marketId) {
+          query = query.eq("market_id", marketId);
+        } else {
+          query = query.is("market_id", null);
+        }
+
+        const { data } = await query;
+        if (data && data.length > 0) {
+          const loaded: ChatMessage[] = data.map((row, i) => ({
+            user: row.username,
+            text: row.message,
+            id: new Date(row.created_at).getTime() + i,
+            ts: new Date(row.created_at).getTime(),
+            avatar_url: row.avatar_url || undefined,
+            user_id: row.user_id || undefined,
+          }));
+          setMessages(loaded);
+          fetchBatch();
+          return;
+        }
+      } catch {
+        // Fallback below
+      }
+
+      // Fallback: use static messages
+      const now = Date.now();
+      const initial: ChatMessage[] = [];
+      const shuffled = [...FALLBACK_MESSAGES].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < 8; i++) {
+        const msg = shuffled[i];
+        initial.push({
+          user: msg.user,
+          text: msg.text,
+          id: now - (8 - i) * 30000 + i,
+          ts: now - (8 - i) * 30000,
+        });
+      }
+      setMessages(initial);
+      fetchBatch();
+    })();
+  }, [fetchBatch, marketId]);
 
   // Cleanup reply timers on unmount
   useEffect(() => {
@@ -220,6 +283,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // Auto-add messages at random intervals
   useEffect(() => {
+    // Market-specific chats are slower (8-15s), home chat is faster (4-10s)
+    const minDelay = marketId ? 8000 : 4000;
+    const maxExtra = marketId ? 7000 : 6000;
+
     const iv = setInterval(() => {
       const msg = getNextMessage();
       addMessage(msg.user, msg.text);
@@ -227,10 +294,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (messageQueue.current.length < 3) {
         fetchBatch();
       }
-    }, 4000 + Math.random() * 6000);
+    }, minDelay + Math.random() * maxExtra);
 
     return () => clearInterval(iv);
-  }, [getNextMessage, fetchBatch, addMessage]);
+  }, [getNextMessage, fetchBatch, addMessage, marketId]);
 
   // User sends a message
   const sendMessage = useCallback((text: string, username?: string, avatarUrl?: string) => {
@@ -238,15 +305,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const trimmed = text.trim();
     const user = username || "@voce";
     addMessage(user, trimmed, avatarUrl);
+    persistMessage(user, trimmed, avatarUrl);
 
-    // Check if this message should trigger bot replies
     if (shouldReply(trimmed)) {
       fetchReplies(trimmed, user);
     }
-  }, [addMessage, fetchReplies]);
+  }, [addMessage, persistMessage, fetchReplies]);
 
   return (
-    <ChatContext.Provider value={{ messages, sendMessage, onlineCount }}>
+    <ChatContext.Provider value={{ messages, sendMessage, onlineCount, marketId }}>
       {children}
     </ChatContext.Provider>
   );

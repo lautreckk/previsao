@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useUser } from "@/lib/UserContext";
 import { useChat, getUserBadge } from "@/lib/ChatContext";
+import Link from "next/link";
 
 export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user } = useUser();
@@ -71,22 +72,37 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
           const badge = getUserBadge(msg.text);
           const timeAgo = Math.max(0, Math.floor((Date.now() - msg.ts) / 60000));
           const timeStr = timeAgo === 0 ? "agora" : `${timeAgo}min`;
+          const profileHref = msg.user_id ? `/perfil/${msg.user_id}` : undefined;
 
           return (
             <div key={msg.id} className={`group flex gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[#1A1722]/60 transition-colors ${isGrouped ? "mt-0" : "mt-2"}`}>
               {!isGrouped ? (
-                <img
-                  src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
-                  alt={msg.user}
-                  className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover"
-                />
+                profileHref ? (
+                  <Link href={profileHref} onClick={onClose}>
+                    <img
+                      src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                      alt={msg.user}
+                      className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover cursor-pointer hover:ring-2 hover:ring-[#80FF00]/50 transition-all"
+                    />
+                  </Link>
+                ) : (
+                  <img
+                    src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                    alt={msg.user}
+                    className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover"
+                  />
+                )
               ) : (
                 <div className="w-8 shrink-0" />
               )}
               <div className="min-w-0 flex-1">
                 {!isGrouped && (
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[#80FF00] font-bold text-xs truncate">{msg.user}</span>
+                    {profileHref ? (
+                      <Link href={profileHref} onClick={onClose} className="text-[#80FF00] font-bold text-xs truncate hover:underline">{msg.user}</Link>
+                    ) : (
+                      <span className="text-[#80FF00] font-bold text-xs truncate">{msg.user}</span>
+                    )}
                     {badge && (
                       <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#1A1722] border border-white/[0.06] ${badge.color}`}>
                         <span className="material-symbols-outlined" style={{ fontSize: "11px" }}>{badge.icon}</span>

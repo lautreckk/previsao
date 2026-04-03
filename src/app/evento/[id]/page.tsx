@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
-import { useChat } from "@/lib/ChatContext";
+import { useChat, ChatProvider } from "@/lib/ChatContext";
 import { initializeStore, getMarket, placeBetFull, tickAllMarkets } from "@/lib/engines/store";
 import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { CATEGORY_META } from "@/lib/engines/types";
@@ -70,13 +70,28 @@ function EventChat() {
         {msgs.map((msg, idx) => {
           const prev = idx > 0 ? msgs[idx - 1] : null;
           const grouped = prev?.user === msg.user;
+          const profileHref = msg.user_id ? `/perfil/${msg.user_id}` : undefined;
           return (
             <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${grouped ? "" : "mt-1.5"}`}>
               {!grouped ? (
-                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5" />
+                profileHref ? (
+                  <Link href={profileHref}>
+                    <img src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5 cursor-pointer hover:ring-2 hover:ring-[#80FF00]/50 transition-all" />
+                  </Link>
+                ) : (
+                  <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5" />
+                )
               ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
-                {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span></div>}
+                {!grouped && (
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    {profileHref ? (
+                      <Link href={profileHref} className="text-[#80FF00] font-bold text-[11px] truncate hover:underline">{msg.user}</Link>
+                    ) : (
+                      <span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span>
+                    )}
+                  </div>
+                )}
                 <p className="text-[12px] text-gray-300 break-words leading-relaxed">{msg.text}</p>
               </div>
             </div>
@@ -871,10 +886,12 @@ export default function EventoPage() {
           )}
         </div>
 
-        {/* ─── RIGHT: Chat ─── */}
-        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden hidden lg:flex">
-          <EventChat />
-        </div>
+        {/* ─── RIGHT: Chat (market-specific) ─── */}
+        <ChatProvider marketId={market.id}>
+          <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden hidden lg:flex">
+            <EventChat />
+          </div>
+        </ChatProvider>
       </div>
 
       {/* Confirm modal */}
@@ -944,7 +961,9 @@ export default function EventoPage() {
       >
         <span className="material-symbols-outlined text-lg">forum</span>
       </button>
-      <LiveChat isOpen={mobileChatOpen} onClose={() => setMobileChatOpen(false)} />
+      <ChatProvider marketId={market.id}>
+        <LiveChat isOpen={mobileChatOpen} onClose={() => setMobileChatOpen(false)} />
+      </ChatProvider>
 
       <div className="lg:hidden"><BottomNav /></div>
     </div>
