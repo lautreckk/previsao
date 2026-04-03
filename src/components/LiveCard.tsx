@@ -5,7 +5,7 @@ import Link from "next/link";
 export default function LiveCard() {
   return (
     <Link
-      href="/camera/cam_highway"
+      href="/camera"
       className="relative rounded-xl overflow-hidden mb-5 cursor-pointer group block h-36 sm:h-44 lg:h-48"
     >
       {/* Background - gradient only, no conflicting image text */}
