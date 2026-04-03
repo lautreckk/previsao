@@ -174,13 +174,7 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
         <span className="w-1.5 h-1.5 rounded-full bg-[#80FF00] animate-pulse" />
       </div>
 
-      {/* Count overlay */}
-      <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#80FF00]/30">
-        <p className="text-[8px] uppercase tracking-widest text-white/50 font-bold">Contagem Atual</p>
-        <p className="text-3xl font-black text-[#80FF00] tabular-nums leading-none">
-          <AnimatedCount value={count} onIncrement={playBeep} />
-        </p>
-      </div>
+      {/* Count is shown IN the video by the worker (OpenCV) — no overlay needed */}
     </div>
   );
 }
@@ -501,11 +495,10 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             )}
           </header>
 
-          {/* Counter + Phase label */}
+          {/* Phase label — count is shown IN the video by the worker */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0a1222]">
             <div className="flex items-center gap-3">
-              <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Contagem atual:</span>
-              <span className="text-2xl font-black text-[#80FF00] tabular-nums"><AnimatedCount value={currentCount} onIncrement={playBeep} /></span>
+              <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Rodada {market.round_number}</span>
             </div>
             <div>
               {isBetting && (
