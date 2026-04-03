@@ -88,6 +88,17 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<any>(null);
   const [connected, setConnected] = useState(false);
+  const [buffering, setBuffering] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const prevCountRef = useRef(count);
+
+  // Sound effect when count increases
+  useEffect(() => {
+    if (count > prevCountRef.current && !muted) {
+      playBeep();
+    }
+    prevCountRef.current = count;
+  }, [count, muted]);
 
   // HLS from our MediaMTX server (proxied through Next.js API for HTTPS)
   const hlsUrl = `/api/camera/stream/${marketId}/index.m3u8`;
@@ -97,33 +108,37 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
     if (!video) return;
 
     let cancelled = false;
+
+    // Track actual playback start (not just manifest parsed)
+    const onPlaying = () => { if (!cancelled) { setConnected(true); setBuffering(false); } };
+    const onWaiting = () => { if (!cancelled) setBuffering(true); };
+    const onCanPlay = () => { if (!cancelled) setBuffering(false); };
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("canplay", onCanPlay);
+
     async function setupHLS() {
       const { default: Hls } = await import("hls.js");
       if (cancelled) return;
       if (Hls.isSupported()) {
         const hls = new Hls({
-          liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 6,
+          liveSyncDurationCount: 4,
+          liveMaxLatencyDurationCount: 8,
           enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 0,
-          maxBufferLength: 10,
-          maxMaxBufferLength: 15,
+          lowLatencyMode: false,
+          backBufferLength: 10,
+          maxBufferLength: 20,
+          maxMaxBufferLength: 30,
         });
         hlsRef.current = hls;
-        console.log("[HLS] Loading annotated stream:", hlsUrl);
         hls.loadSource(hlsUrl);
         hls.attachMedia(video!);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          console.log("[HLS] Manifest parsed, playing...");
           video?.play().catch(() => {});
-          if (!cancelled) setConnected(true);
         });
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
-          console.error("[HLS] Error:", data.type, data.details);
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              console.log("[HLS] Network error, retrying in 3s...");
               setTimeout(() => { if (!cancelled) hls.startLoad(); }, 3000);
             } else {
               hls.destroy();
@@ -133,14 +148,18 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
         });
       } else if (video!.canPlayType("application/vnd.apple.mpegurl")) {
         video!.src = hlsUrl;
-        video!.addEventListener("loadedmetadata", () => {
-          video?.play().catch(() => {});
-          if (!cancelled) setConnected(true);
-        });
+        video!.addEventListener("loadedmetadata", () => { video?.play().catch(() => {}); });
       }
     }
     setupHLS();
-    return () => { cancelled = true; hlsRef.current?.destroy(); hlsRef.current = null; };
+    return () => {
+      cancelled = true;
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("canplay", onCanPlay);
+    };
   }, [hlsUrl]);
 
   return (
@@ -153,12 +172,21 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
         className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
       />
 
+      {/* Loading — until video actually plays */}
       {!connected && (
         <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
           <div className="text-center">
-            <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-[10px] text-white/50">Conectando camera...</p>
+            <div className="w-10 h-10 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-xs text-white/70 font-bold">Carregando camera...</p>
+            <p className="text-[10px] text-white/40 mt-1">Processando IA em tempo real</p>
           </div>
+        </div>
+      )}
+
+      {/* Buffering indicator (when connected but rebuffering) */}
+      {connected && buffering && (
+        <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
+          <div className="w-8 h-8 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
@@ -174,7 +202,14 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
         <span className="w-1.5 h-1.5 rounded-full bg-[#80FF00] animate-pulse" />
       </div>
 
-      {/* Count is shown IN the video by the worker (OpenCV) — no overlay needed */}
+      {/* Mute/unmute button */}
+      <button
+        onClick={() => setMuted((m) => !m)}
+        className="absolute bottom-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-2 rounded-full text-white/70 hover:text-white transition-colors"
+        title={muted ? "Ativar som" : "Silenciar"}
+      >
+        <span className="material-symbols-outlined text-sm">{muted ? "volume_off" : "volume_up"}</span>
+      </button>
     </div>
   );
 }
