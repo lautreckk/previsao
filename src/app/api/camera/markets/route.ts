@@ -10,7 +10,7 @@ export async function GET() {
     .in("status", ["waiting", "open"])
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   return NextResponse.json({ markets: data || [] });
 }
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       thumbnail_url: thumbnail_url || "",
     }).select().single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     return NextResponse.json({ market: data });
   } catch (error) {
     console.error("[camera/markets] Error:", error);

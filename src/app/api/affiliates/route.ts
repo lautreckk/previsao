@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   return NextResponse.json(data || []);
 }
 
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     notes: notes || "",
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   return NextResponse.json({ id, code: normalizedCode });
 }
 
@@ -108,7 +108,7 @@ export async function PUT(req: NextRequest) {
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   return NextResponse.json({ success: true });
 }
 
@@ -123,6 +123,6 @@ export async function DELETE(req: NextRequest) {
   await supabase.from("referrals").delete().eq("affiliate_id", id);
   const { error } = await supabase.from("affiliates").delete().eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   return NextResponse.json({ success: true });
 }

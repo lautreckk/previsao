@@ -9,8 +9,14 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params;
-  const subpath = path.join("/");
-  const url = `${MEDIAMTX_HLS}/${subpath}`;
+  // Sanitize: remove path traversal attempts and only allow safe HLS file extensions
+  const sanitized = path
+    .filter((seg) => !seg.includes("..") && !seg.startsWith("."))
+    .join("/");
+  if (!sanitized || /[^a-zA-Z0-9_\-\/\.]/.test(sanitized)) {
+    return new NextResponse("Invalid path", { status: 400 });
+  }
+  const url = `${MEDIAMTX_HLS}/${sanitized}`;
 
   try {
     const res = await fetch(url, {

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 
   // Convert DB timestamps to milliseconds for frontend compatibility
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     }
 
     return NextResponse.json({ market: dbToMarket(data) });
@@ -131,7 +131,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     }
 
     return NextResponse.json({ market: dbToMarket(data) });
@@ -161,7 +161,7 @@ export async function DELETE(request: NextRequest) {
     .eq("id", id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

@@ -56,12 +56,7 @@ export async function GET() {
     version: "1.0.0",
     uptime_ms: Date.now() - start,
     providers,
-    env: {
-      OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY ? "configured" : "missing",
-      API_FOOTBALL_KEY: process.env.API_FOOTBALL_KEY ? "configured" : "missing",
-      BRAPI_TOKEN: process.env.BRAPI_TOKEN ? "configured" : "optional (free tier works)",
-      COINGECKO_API_KEY: process.env.COINGECKO_API_KEY ? "configured" : "optional (free tier works)",
-    },
+    // env config removed — internal details should not be exposed publicly
     endpoints: {
       health: "GET /api/v1/health",
       crypto: "GET /api/v1/prices/crypto?symbols=BTC,ETH&currency=BRL",

@@ -15,6 +15,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "cam required" }, { status: 400 });
   }
 
+  // Sanitize cam and seg to prevent path traversal
+  if (/[^a-zA-Z0-9_\-]/.test(cam) || (seg && /[^a-zA-Z0-9_\-\.]/.test(seg))) {
+    return NextResponse.json({ error: "Invalid parameter" }, { status: 400 });
+  }
+
   try {
     let url: string;
     let contentType: string;

@@ -244,7 +244,7 @@ export function useCameraMarket(marketId: string) {
             await fetch("/api/camera/round", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ market_id: marketId, secret: process.env.NEXT_PUBLIC_WORKER_SECRET || "" }),
+              body: JSON.stringify({ market_id: marketId }),
             });
           } catch {}
           setTimeout(() => { ticking = false; }, 5000);

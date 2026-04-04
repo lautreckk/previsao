@@ -131,7 +131,8 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
     console.error("[POST /api/bspay] Error:", message);
-    return NextResponse.json({ error: `Erro ao processar pagamento: ${message}` }, { status: 500 });
+    console.error("[POST /api/bspay] Error:", message);
+    return NextResponse.json({ error: "Erro ao processar pagamento" }, { status: 500 });
   }
 }
 

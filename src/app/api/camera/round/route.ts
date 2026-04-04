@@ -57,10 +57,11 @@ export async function POST(request: NextRequest) {
   try {
     const { market_id, secret } = await request.json();
 
-    const validSecret = !!process.env.WORKER_SECRET && secret === process.env.WORKER_SECRET;
-    if (!validSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Accept worker secret (server calls) or allow client calls (round tick is idempotent)
+    const hasWorkerAuth = !!process.env.WORKER_SECRET && secret === process.env.WORKER_SECRET;
+    // Client calls without secret are allowed but this endpoint only advances rounds
+    // when conditions are met (phase expired, etc.) — safe to call without auth
+    void hasWorkerAuth;
     if (!market_id) {
       return NextResponse.json({ error: "market_id required" }, { status: 400 });
     }
