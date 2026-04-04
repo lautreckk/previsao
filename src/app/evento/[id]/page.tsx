@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import type { PredictionMarket } from "@/lib/engines/types";
 import { createBotEngine, type LiveBet } from "@/lib/bot-engine";
+import { getBotAvatarUrl, getRandomBetMessage } from "@/lib/bot-avatars";
 import { trackViewContent, trackAddToCart } from "@/lib/pixel";
 
 /* ─── Chat (uses global ChatContext) ─── */
@@ -73,7 +74,7 @@ function EventChat() {
           return (
             <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${grouped ? "" : "mt-1.5"}`}>
               {!grouped ? (
-                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5" />
+                <img src={getBotAvatarUrl(msg.user)} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover" />
               ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
                 {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span></div>}
@@ -114,6 +115,7 @@ export default function EventoPage() {
   const params = useParams();
   const router = useRouter();
   const { user, placeBet: legacyPlaceBet, refreshUser } = useUser();
+  const { sendMessage: chatSendMessage } = useChat();
   const [market, setMarket] = useState<PredictionMarket | null>(null);
   const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState("");
@@ -138,7 +140,14 @@ export default function EventoPage() {
     setBetToast(bet);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setBetToast(null), 3500);
-  }, []);
+    // ~50% chance bot writes in chat after betting
+    if (Math.random() < 0.5) {
+      const delay = 1500 + Math.random() * 4000;
+      setTimeout(() => {
+        chatSendMessage(getRandomBetMessage(), `@${bet.user_name.replace("@", "")}`);
+      }, delay);
+    }
+  }, [chatSendMessage]);
 
   // User bets for this market (from prediction_bets)
   interface UserBet {
@@ -640,9 +649,9 @@ export default function EventoPage() {
                             style={{ animation: idx === 0 ? "slideIn 0.3s ease-out" : undefined }}
                           >
                             <img
-                              src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(bet.user_name)}&backgroundColor=transparent`}
+                              src={getBotAvatarUrl(bet.user_name)}
                               alt=""
-                              className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0"
+                              className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 object-cover"
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">

@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useUser } from "@/lib/UserContext";
 import { useChat, getUserBadge } from "@/lib/ChatContext";
+import { getBotAvatarUrl } from "@/lib/bot-avatars";
 import Link from "next/link";
 
 export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -80,14 +81,14 @@ export default function LiveChat({ isOpen, onClose }: { isOpen: boolean; onClose
                 profileHref ? (
                   <Link href={profileHref} onClick={onClose}>
                     <img
-                      src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                      src={msg.avatar_url || getBotAvatarUrl(msg.user)}
                       alt={msg.user}
                       className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover cursor-pointer hover:ring-2 hover:ring-[#80FF00]/50 transition-all"
                     />
                   </Link>
                 ) : (
                   <img
-                    src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`}
+                    src={msg.avatar_url || getBotAvatarUrl(msg.user)}
                     alt={msg.user}
                     className="w-8 h-8 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover"
                   />

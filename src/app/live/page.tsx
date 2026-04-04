@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useUser } from "@/lib/UserContext";
+import { getBotAvatarUrl, getRandomBetMessage } from "@/lib/bot-avatars";
 
 // ---- LOCATIONS (rotate every 5 min) ----
 const LOCATIONS = [
@@ -69,6 +70,35 @@ export default function LivePage() {
   const onlineCount = useRef(640 + Math.floor(Math.random() * 20));
   const animFrameRef = useRef<number>(0);
   const detectionLines = useRef<{ x: number; y: number; w: number; progress: number; color: string }[]>([]);
+
+  // Live bettors feed
+  const [liveBettors, setLiveBettors] = useState<{ name: string; type: "over" | "under"; amount: number; ts: number }[]>([]);
+  const usedBotNames = useRef(new Set<string>());
+  const BOT_POOL = ["lucas_m","pedro_bet","mari_plays","ana_trader","carol_bet","bia_bet22","julia_mg","joao_vitor","bruno_sp","rafael_rj","vini_sp","duda_plays","leo_trade","matheus_go","gui_sp01","davi_rj","amanda_sp","felipe_rj","luiza_sp","alice_rj","nath_plays","caio_bet","henr_mg","isa_trade"];
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (timeLeft <= 0) return;
+      setLiveBettors((prev) => {
+        const avail = BOT_POOL.filter((n) => !usedBotNames.current.has(n));
+        if (avail.length === 0) return prev;
+        const name = avail[Math.floor(Math.random() * avail.length)];
+        usedBotNames.current.add(name);
+        if (prev.length >= 8) { usedBotNames.current.delete(prev[0].name); }
+        const type = (Math.random() > 0.45 ? "over" : "under") as "over" | "under";
+        const amount = [1, 2, 5, 10, 20, 50, 100][Math.floor(Math.random() * 7)];
+        // Also inject into chat ~50%
+        if (Math.random() < 0.5) {
+          const msg = getRandomBetMessage();
+          setTimeout(() => {
+            setChatMsgs((p) => [...p.slice(-30), { user: `@${name}`, text: msg, id: Date.now() + Math.random() }]);
+          }, 1000 + Math.random() * 3000);
+        }
+        return [...prev.slice(-7), { name, type, amount, ts: Date.now() }];
+      });
+    }, 2500 + Math.random() * 4500);
+    return () => clearInterval(iv);
+  }, [timeLeft]);
 
   const loc = LOCATIONS[locationIdx % LOCATIONS.length];
 
@@ -351,6 +381,31 @@ export default function LivePage() {
                   <span>▼</span> Ate {threshold} ({payoutDown}x)
                 </button>
               </div>
+
+              {/* Live bettors feed */}
+              {liveBettors.length > 0 && (
+                <div className="mt-4 bg-[#1A1722] rounded-xl border border-white/[0.06] overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2 border-b border-white/[0.04]">
+                    <div className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#80FF00] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#80FF00]" />
+                    </div>
+                    <span className="text-[10px] font-black text-white/50 uppercase tracking-wider">Apostas ao vivo</span>
+                  </div>
+                  <div className="divide-y divide-white/[0.03]">
+                    {liveBettors.slice(-6).map((b, i) => (
+                      <div key={`${b.ts}-${i}`} className="flex items-center gap-2.5 px-4 py-2">
+                        <img src={getBotAvatarUrl(b.name)} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
+                        <span className="text-[11px] text-white/60 font-medium flex-1 min-w-0 truncate">{b.name}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${b.type === "over" ? "bg-[#80FF00]/10 text-[#80FF00]" : "bg-[#FF6B5A]/10 text-[#FF6B5A]"}`}>
+                          {b.type === "over" ? `OVER ${threshold}` : `UNDER ${threshold}`}
+                        </span>
+                        <span className="text-[10px] text-white/50 font-bold tabular-nums">R${b.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>
