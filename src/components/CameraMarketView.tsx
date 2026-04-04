@@ -160,7 +160,7 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
   }, [hlsUrl]);
 
   return (
-    <div className="relative w-full" style={{ paddingBottom: "80%" }}>
+    <div className="relative w-full" style={{ paddingBottom: "clamp(40%, 50vw, 56.25%)" }}>
       <video
         ref={videoRef}
         autoPlay
@@ -388,6 +388,83 @@ function InlineChat() {
   );
 }
 
+/* ─── Live Bettors (shows fake users betting) ─── */
+const BOT_NAMES = [
+  "lucas_m","pedro_bet","joao_vitor","mari_plays","bruno_sp","ana_trader",
+  "rafael_rj","carol_bet","vini_sp","thi_bet","gab_rj","duda_plays",
+  "leo_trade","bia_bet22","matheus_go","julia_mg","gui_sp01","lari_bet",
+  "davi_rj","amanda_sp","caio_bet","nath_plays","henr_mg","isa_trade",
+  "felipe_rj","luiza_sp","arthur_go","manu_bet","enzo_sp","alice_rj",
+];
+
+function LiveBettors({ threshold }: { threshold: number }) {
+  const [bettors, setBettors] = useState<{ name: string; type: "over" | "under"; amount: number; ts: number }[]>([]);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    const now = Date.now();
+    const seed = Array.from({ length: 8 }, (_, i) => ({
+      name: BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)],
+      type: (Math.random() > 0.45 ? "over" : "under") as "over" | "under",
+      amount: [1, 2, 5, 10, 20, 50, 100][Math.floor(Math.random() * 7)],
+      ts: now - (8 - i) * 3000,
+    }));
+    setBettors(seed);
+  }, []);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setBettors((prev) => [
+        ...prev.slice(-12),
+        {
+          name: BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)],
+          type: (Math.random() > 0.45 ? "over" : "under") as "over" | "under",
+          amount: [1, 2, 5, 10, 20, 50, 100][Math.floor(Math.random() * 7)],
+          ts: Date.now(),
+        },
+      ]);
+    }, 2000 + Math.random() * 4000);
+    return () => clearInterval(iv);
+  }, []);
+
+  if (bettors.length === 0) return null;
+
+  return (
+    <div className="px-4 py-1.5 lg:py-1">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#80FF00] opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#80FF00]" />
+        </span>
+        <span className="text-[9px] uppercase tracking-widest font-bold text-white/40">Apostas ao vivo</span>
+      </div>
+      <div className="flex flex-col gap-0.5 max-h-[120px] lg:max-h-[100px] overflow-hidden">
+        {bettors.slice(-6).map((b, i) => (
+          <div
+            key={`${b.ts}-${i}`}
+            className="flex items-center justify-between py-0.5 animate-[fadeIn_0.3s_ease-in]"
+          >
+            <div className="flex items-center gap-1.5">
+              <div className={`w-4 h-4 rounded-full bg-gradient-to-br ${camAvatarColor(b.name)} flex items-center justify-center text-[7px] font-black text-white`}>
+                {b.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-[10px] text-white/60 font-medium">{b.name}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${b.type === "over" ? "bg-[#80FF00]/10 text-[#80FF00]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
+                {b.type === "over" ? `OVER ${threshold}` : `UNDER ${threshold}`}
+              </span>
+              <span className="text-[10px] text-white/50 font-bold tabular-nums">R${b.amount}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Round History ─── */
 function RoundHistory({ marketId }: { marketId: string }) {
   const [history, setHistory] = useState<
@@ -514,10 +591,10 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
       <div className="flex flex-col lg:flex-row h-[calc(100vh-41px)] pb-16 lg:pb-0 lg:h-screen">
 
         {/* ─── LEFT COLUMN: Stream + Betting ─── */}
-        <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto ${mobilePanel !== "camera" ? "hidden lg:flex" : ""}`}>
+        <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto lg:overflow-hidden ${mobilePanel !== "camera" ? "hidden lg:flex" : ""}`}>
 
           {/* Top bar: Title + Timer */}
-          <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14]">
+          <header className="flex items-center justify-between px-4 py-2 lg:py-1.5 border-b border-white/[0.04] bg-[#0D0B14]">
             <div className="flex items-center gap-3 min-w-0">
               <Link href="/" className="text-[#80FF00] shrink-0">
                 <span className="material-symbols-outlined">arrow_back</span>
@@ -546,7 +623,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           </header>
 
           {/* Phase label — count is shown IN the video by the worker */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0a1222]">
+          <div className="flex items-center justify-between px-4 py-1.5 lg:py-1 border-b border-white/[0.04] bg-[#0a1222]">
             <div className="flex items-center gap-3">
               <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Rodada {market.round_number}</span>
             </div>
@@ -570,43 +647,46 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           </div>
 
           {/* Live HLS stream */}
-          <div className="px-4 pt-3">
+          <div className="px-4 pt-2 lg:pt-1">
             <LiveStream marketId={marketId} count={currentCount} />
           </div>
 
-          {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}
-          <div className="px-4 py-3">
-            <div className="grid grid-cols-2 gap-3">
+          {/* Betting buttons: OVER / UNDER */}
+          <div className="px-4 py-2 lg:py-1.5">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setSelectedType("over")}
                 disabled={!isBetting}
-                className={`py-4 rounded-xl text-center transition-all active:scale-95 border-2 ${
+                className={`py-3 lg:py-2 rounded-xl text-center transition-all active:scale-95 border-2 ${
                   selectedType === "over"
                     ? "bg-[#80FF00]/20 border-[#80FF00] text-[#80FF00] shadow-[0_0_20px_rgba(128,255,0,0.15)]"
                     : "bg-[#12101A] border-[#1e2a3a] text-white hover:border-[#80FF00]/40 disabled:opacity-40"
                 }`}
               >
                 <span className="text-xs font-bold opacity-70">Mais de {threshold}</span>
-                <span className={`block text-lg font-black ${selectedType === "over" ? "text-[#80FF00]" : "text-[#80FF00]"}`}>
+                <span className={`block text-base lg:text-sm font-black text-[#80FF00]`}>
                   {odds.over > 0 ? `(${odds.over.toFixed(2)}x)` : "(--x)"}
                 </span>
               </button>
               <button
                 onClick={() => setSelectedType("under")}
                 disabled={!isBetting}
-                className={`py-4 rounded-xl text-center transition-all active:scale-95 border-2 ${
+                className={`py-3 lg:py-2 rounded-xl text-center transition-all active:scale-95 border-2 ${
                   selectedType === "under"
                     ? "bg-[#FF5252]/20 border-[#FF5252] text-[#FF5252] shadow-[0_0_20px_rgba(255,82,82,0.15)]"
                     : "bg-[#12101A] border-[#1e2a3a] text-white hover:border-[#FF5252]/40 disabled:opacity-40"
                 }`}
               >
                 <span className="text-xs font-bold opacity-70">Ate {threshold}</span>
-                <span className={`block text-lg font-black ${selectedType === "under" ? "text-[#FF5252]" : "text-[#FF5252]"}`}>
+                <span className={`block text-base lg:text-sm font-black text-[#FF5252]`}>
                   {odds.under > 0 ? `(${odds.under.toFixed(2)}x)` : "(--x)"}
                 </span>
               </button>
             </div>
           </div>
+
+          {/* Live bettors strip */}
+          <LiveBettors threshold={threshold} />
 
           {/* Mobile inline bet form — appears in camera tab when type selected */}
           {selectedType && (
@@ -767,8 +847,12 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
               <div className="flex-1 overflow-y-auto p-4">
                 {tab === "posicoes" && (
                   <div className="text-center text-white/50 py-8">
-                    <p className="text-sm">Faca login para visualizar suas posicoes.</p>
-                    {!user && <Link href="/login" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Entrar</Link>}
+                    {!user && (
+                      <>
+                        <p className="text-sm">Faca login para visualizar suas posicoes.</p>
+                        <Link href="/login" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Entrar</Link>
+                      </>
+                    )}
                     {user && myPredictions.length === 0 && <p className="text-xs mt-2">Nenhuma previsao feita ainda.</p>}
                     {user && myPredictions.length > 0 && (
                       <div className="space-y-2 mt-4 text-left">
