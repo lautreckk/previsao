@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminDateFilter from "@/components/AdminDateFilter";
 
 interface PixTx {
   id: string; user_id: string | null; user_email: string; amount: number;
@@ -12,28 +13,23 @@ interface PixTx {
 export default function AdminPix() {
   const [txs, setTxs] = useState<PixTx[]>([]);
   const [filter, setFilter] = useState<string>("all");
-  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all">("30d");
+  const [startDate, setStartDate] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [bulkConfirming, setBulkConfirming] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  const getPeriodStart = () => {
-    const now = new Date();
-    if (period === "today") { now.setHours(0, 0, 0, 0); return now.toISOString(); }
-    if (period === "7d") return new Date(Date.now() - 7 * 86400000).toISOString();
-    if (period === "30d") return new Date(Date.now() - 30 * 86400000).toISOString();
-    return "2020-01-01T00:00:00Z";
-  };
-
   const refresh = async () => {
     setLoading(true);
-    const { data } = await supabase.from("pix_transactions").select("*").gte("created_at", getPeriodStart()).order("created_at", { ascending: false }).limit(500);
+    const periodStart = new Date(startDate + "T00:00:00").toISOString();
+    const periodEnd = new Date(endDate + "T23:59:59").toISOString();
+    const { data } = await supabase.from("pix_transactions").select("*").gte("created_at", periodStart).lte("created_at", periodEnd).order("created_at", { ascending: false }).limit(500);
     setTxs((data as PixTx[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); const iv = setInterval(refresh, 10000); return () => clearInterval(iv); }, [period]);
+  useEffect(() => { refresh(); const iv = setInterval(refresh, 10000); return () => clearInterval(iv); }, [startDate, endDate]);
 
   const showMsg = (text: string, type: "success" | "error") => {
     setMessage({ text, type });
@@ -111,13 +107,7 @@ export default function AdminPix() {
           <p className="text-xs text-white/40 mt-0.5">Gestao de depositos e confirmacoes</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-[#12101A] border border-white/[0.06] rounded-lg p-1">
-            {(["today", "7d", "30d", "all"] as const).map(p => (
-              <button key={p} onClick={() => setPeriod(p)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${period === p ? "bg-white/[0.08] text-white" : "text-white/30 hover:text-white/60"}`}>
-                {p === "today" ? "Hoje" : p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
-              </button>
-            ))}
-          </div>
+          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
           <button onClick={refresh} className="text-xs text-white/50 hover:text-white/80 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03]">
             <span className="material-symbols-outlined text-sm">refresh</span>
           </button>

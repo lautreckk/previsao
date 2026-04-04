@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminDateFilter from "@/components/AdminDateFilter";
 
 interface PixTx { id: string; user_email: string; amount: number; status: string; created_at: string; }
 interface Bet { id: string; user_id: string; market_id: string; outcome_key: string; outcome_label: string; amount: number; payout_at_entry: number; final_payout: number; status: string; created_at: string; market_title?: string; }
@@ -20,11 +21,13 @@ export default function AdminDashboard() {
   const [pendingPix, setPendingPix] = useState(0);
   const [wonBets, setWonBets] = useState<(Bet & { user_name?: string })[]>([]);
   const [pixList, setPixList] = useState<PixTx[]>([]);
-  const [period, setPeriod] = useState<"7d" | "30d" | "all">("30d");
+  const [startDate, setStartDate] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const fetchAll = useCallback(async () => {
     const now = new Date();
-    const periodStart = period === "7d" ? new Date(now.getTime() - 7 * 86400000) : period === "30d" ? new Date(now.getTime() - 30 * 86400000) : new Date("2020-01-01");
+    const periodStart = new Date(startDate + "T00:00:00").toISOString();
+    const periodEnd = new Date(endDate + "T23:59:59").toISOString();
 
     // Users
     const { data: users } = await supabase.from("users").select("id, name, email").eq("is_bot", false);
@@ -33,7 +36,7 @@ export default function AdminDashboard() {
     setUsersCount((users || []).length);
 
     // All bets in period
-    const { data: bets } = await supabase.from("prediction_bets").select("id, user_id, amount, status, payout_at_entry, final_payout, outcome_label, created_at").gte("created_at", periodStart.toISOString()).order("created_at", { ascending: false }).limit(500);
+    const { data: bets } = await supabase.from("prediction_bets").select("id, user_id, amount, status, payout_at_entry, final_payout, outcome_label, created_at").gte("created_at", periodStart).lte("created_at", periodEnd).order("created_at", { ascending: false }).limit(500);
     const betsList = bets || [];
     const vol = betsList.reduce((s, b) => s + Number(b.amount), 0);
     setVolume(vol);
@@ -48,7 +51,7 @@ export default function AdminDashboard() {
     setWonBets(won.slice(0, 15).map(b => ({ ...b, user_name: uMap[b.user_id]?.name || "—", market_id: "", outcome_key: "", market_title: "" } as Bet & { user_name?: string })));
 
     // PIX
-    const { data: pix } = await supabase.from("pix_transactions").select("id, user_email, amount, status, created_at").gte("created_at", periodStart.toISOString()).order("created_at", { ascending: false }).limit(50);
+    const { data: pix } = await supabase.from("pix_transactions").select("id, user_email, amount, status, created_at").gte("created_at", periodStart).lte("created_at", periodEnd).order("created_at", { ascending: false }).limit(50);
     const pixData = pix || [];
     setPixList(pixData as PixTx[]);
     const paidDeposits = pixData.filter(p => p.status === "paid").reduce((s, p) => s + Number(p.amount), 0);
@@ -60,7 +63,7 @@ export default function AdminDashboard() {
     setOpenMarkets((mkts || []).length);
 
     setLoading(false);
-  }, [period]);
+  }, [startDate, endDate]);
 
   useEffect(() => { fetchAll(); const iv = setInterval(fetchAll, 15000); return () => clearInterval(iv); }, [fetchAll]);
 
@@ -99,13 +102,9 @@ export default function AdminDashboard() {
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Dashboard</h1>
           <p className="text-sm text-white/40 mt-0.5 capitalize">{dateStr}</p>
         </div>
-        <div className="flex items-center gap-1 bg-[#12101A] border border-white/[0.06] rounded-lg p-1">
-          {(["7d", "30d", "all"] as const).map(p => (
-            <button key={p} onClick={() => setPeriod(p)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${period === p ? "bg-white/[0.08] text-white" : "text-white/30 hover:text-white/60"}`}>
-              {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
-            </button>
-          ))}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 ml-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
+          <div className="flex items-center gap-1.5 px-3 py-1.5">
             <div className="w-2 h-2 rounded-full bg-[#80FF00] animate-pulse" />
             <span className="text-xs text-white/40">Ao vivo</span>
           </div>

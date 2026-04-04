@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminDateFilter from "@/components/AdminDateFilter";
 
 interface LedgerEntry { id: string; user_id: string; type: string; amount: number; description: string; created_at: string; }
 interface Bet { id: string; user_id: string; amount: number; payout_at_entry: number; final_payout: number; status: string; outcome_label: string; created_at: string; }
@@ -10,29 +11,23 @@ export default function AdminFinance() {
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [bets, setBets] = useState<Bet[]>([]);
   const [filter, setFilter] = useState("all");
-  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all">("30d");
+  const [startDate, setStartDate] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(true);
-
-  const getPeriodStart = useCallback(() => {
-    const now = new Date();
-    if (period === "today") { now.setHours(0, 0, 0, 0); return now.toISOString(); }
-    if (period === "7d") return new Date(Date.now() - 7 * 86400000).toISOString();
-    if (period === "30d") return new Date(Date.now() - 30 * 86400000).toISOString();
-    return "2020-01-01T00:00:00Z";
-  }, [period]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const start = getPeriodStart();
+    const periodStart = new Date(startDate + "T00:00:00").toISOString();
+    const periodEnd = new Date(endDate + "T23:59:59").toISOString();
 
     const [{ data: ledgerData }, { data: betsData }] = await Promise.all([
-      supabase.from("ledger").select("*").gte("created_at", start).order("created_at", { ascending: false }).limit(300),
-      supabase.from("prediction_bets").select("*").gte("created_at", start).order("created_at", { ascending: false }).limit(500),
+      supabase.from("ledger").select("*").gte("created_at", periodStart).lte("created_at", periodEnd).order("created_at", { ascending: false }).limit(300),
+      supabase.from("prediction_bets").select("*").gte("created_at", periodStart).lte("created_at", periodEnd).order("created_at", { ascending: false }).limit(500),
     ]);
     setLedger((ledgerData as LedgerEntry[]) || []);
     setBets((betsData as Bet[]) || []);
     setLoading(false);
-  }, [getPeriodStart]);
+  }, [startDate, endDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -56,13 +51,7 @@ export default function AdminFinance() {
           <h2 className="font-bold text-2xl tracking-tight">Financeiro</h2>
           <p className="text-sm text-white/40 mt-0.5">Transações, apostas e receitas</p>
         </div>
-        <div className="flex items-center gap-1 bg-[#12101A] border border-white/[0.06] rounded-lg p-1">
-          {(["today", "7d", "30d", "all"] as const).map(p => (
-            <button key={p} onClick={() => setPeriod(p)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${period === p ? "bg-white/[0.08] text-white" : "text-white/30 hover:text-white/60"}`}>
-              {p === "today" ? "Hoje" : p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
-            </button>
-          ))}
-        </div>
+        <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
       </div>
 
       {/* KPIs */}

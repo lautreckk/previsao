@@ -29,18 +29,20 @@ function AdminLoginScreen({ onLogin }: { onLogin: () => void }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await adminLogin(email, password);
-    setLoading(false);
-    if (result.success) {
-      onLogin();
-    } else {
-      setError(result.error || "Erro ao autenticar");
-    }
+    setTimeout(() => {
+      const result = adminLogin(email, password);
+      setLoading(false);
+      if (result.success) {
+        onLogin();
+      } else {
+        setError(result.error || "Erro ao autenticar");
+      }
+    }, 800);
   };
 
   return (

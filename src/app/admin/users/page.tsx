@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { initializeStore, saveLedgerEntry } from "@/lib/engines/store";
 import { adminSetBalance, adminAddBalance, adminUpdateUser, adminGetUserPassword, adminDeleteUser } from "@/lib/UserContext";
 import { supabase } from "@/lib/supabase";
+import AdminDateFilter from "@/components/AdminDateFilter";
 import type { LedgerEntry } from "@/lib/engines/types";
 
 interface UserSummary {
@@ -21,7 +22,8 @@ export default function AdminUsers() {
   const [userBets, setUserBets] = useState<{ id: string; market_id: string; outcome_label: string; amount: number; payout_at_entry: number; final_payout: number; status: string; created_at: string; user_id: string }[]>([]);
   const [userLedger, setUserLedger] = useState<LedgerEntry[]>([]);
   const [search, setSearch] = useState("");
-  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all">("30d");
+  const [startDate, setStartDate] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [editMode, setEditMode] = useState<"view" | "edit_info" | "edit_balance" | "quick_balance">("view");
   const [editName, setEditName] = useState("");
@@ -38,16 +40,9 @@ export default function AdminUsers() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
-  const getPeriodStart = useCallback(() => {
-    const now = new Date();
-    if (period === "today") { now.setHours(0, 0, 0, 0); return now.toISOString(); }
-    if (period === "7d") return new Date(Date.now() - 7 * 86400000).toISOString();
-    if (period === "30d") return new Date(Date.now() - 30 * 86400000).toISOString();
-    return "2020-01-01T00:00:00Z";
-  }, [period]);
-
   const refresh = useCallback(async () => {
-    const periodStart = getPeriodStart();
+    const periodStart = new Date(startDate + "T00:00:00").toISOString();
+    const periodEnd = new Date(endDate + "T23:59:59").toISOString();
 
     // Fetch all users from Supabase (exclude bots)
     const { data: usersData } = await supabase
@@ -61,6 +56,7 @@ export default function AdminUsers() {
       .from("prediction_bets")
       .select("user_id, amount, payout_at_entry, final_payout, status")
       .gte("created_at", periodStart)
+      .lte("created_at", periodEnd)
       .limit(2000);
 
     const betStats: Record<string, { totalBets: number; totalWagered: number; totalWon: number; totalLost: number; pnl: number; pendingBets: number; pendingExposure: number }> = {};
@@ -79,7 +75,7 @@ export default function AdminUsers() {
     });
 
     setUsers(allUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-  }, [getPeriodStart]);
+  }, [startDate, endDate]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -219,13 +215,7 @@ export default function AdminUsers() {
           <p className="text-sm text-white/40 mt-0.5">{users.length} usuários registrados</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-[#12101A] border border-white/[0.06] rounded-lg p-1">
-            {(["today", "7d", "30d", "all"] as const).map(p => (
-              <button key={p} onClick={() => setPeriod(p)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${period === p ? "bg-white/[0.08] text-white" : "text-white/30 hover:text-white/60"}`}>
-                {p === "today" ? "Hoje" : p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
-              </button>
-            ))}
-          </div>
+          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
         <button onClick={() => {
           const csv = ["Nome,Email,Telefone,Saldo,Apostas,Volume,PnL,Pendente,Criado em"];
           users.forEach((u) => csv.push(`"${u.name}","${u.email}","${u.phone}",${u.balance.toFixed(2)},${u.totalBets},${u.totalWagered.toFixed(2)},${u.pnl.toFixed(2)},${u.pendingExposure.toFixed(2)},"${u.createdAt !== "—" ? new Date(u.createdAt).toLocaleDateString("pt-BR") : "—"}"`));
