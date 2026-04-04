@@ -171,7 +171,47 @@ export default function Home() {
           .order("resolved_at", { ascending: false })
           .limit(10);
 
-        const allDbRows = [...(openData || []), ...(resolvedData || [])];
+        // Fetch active camera markets and merge them as prediction-market-shaped objects
+        const { data: cameraData } = await supabase
+          .from("camera_markets")
+          .select("*")
+          .in("status", ["waiting", "open"]);
+
+        const cameraAsMarkets = (cameraData || []).map((cam: Record<string, unknown>) => ({
+          id: cam.id as string,
+          title: (cam.title as string) || "Rodovia ao Vivo",
+          short_description: `Contagem de veículos — ${cam.city || "SP"}`,
+          description: `Preveja se passarão mais ou menos de ${cam.current_threshold} veículos`,
+          category: "entertainment" as const,
+          status: (cam.phase === "betting" || cam.phase === "observation") ? "open" : "open",
+          stream_url: cam.stream_url as string,
+          banner_url: cam.thumbnail_url as string || "",
+          is_featured: true,
+          created_at: cam.created_at as string,
+          open_at: cam.created_at as string,
+          freeze_at: null,
+          close_at: new Date(Date.now() + 300_000).toISOString(), // always "closing soon" to stay on top
+          resolve_at: null,
+          resolved_at: null,
+          pool_total: 0,
+          distributable_pool: 0,
+          house_fee_percent: 0.05,
+          min_bet: 1,
+          max_bet: 10000,
+          max_payout: 100000,
+          max_liability: 500000,
+          outcomes: [
+            { key: "over", label: `Mais de ${cam.current_threshold}`, pool: 0 },
+            { key: "under", label: `Até ${cam.current_threshold}`, pool: 0 },
+          ],
+          tags: ["ao-vivo", "camera"],
+          source_config: { source_name: "camera", requires_manual_confirmation: false, requires_evidence_upload: false },
+          resolution_rule: { expression: "", variables: [], outcome_map: {}, description: "" },
+          language: "pt-BR",
+          country: "BR",
+        }));
+
+        const allDbRows = [...cameraAsMarkets, ...(openData || []), ...(resolvedData || [])];
 
         if (allDbRows.length > 0) {
           const seen = new Map<string, typeof allDbRows[0]>();
