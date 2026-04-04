@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { supabaseAdmin as supabase, checkAdminSecret } from "@/lib/supabase-server";
 
 // GET: List markets (public)
 export async function GET(request: NextRequest) {
@@ -140,14 +140,13 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE: Remove market (admin)
+// DELETE: Remove market (admin — auth via header, not query param)
 export async function DELETE(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get("id");
-  const secret = request.nextUrl.searchParams.get("secret");
-
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
+  if (!checkAdminSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const id = request.nextUrl.searchParams.get("id");
 
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });

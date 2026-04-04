@@ -362,7 +362,8 @@ export default function EventoPage() {
     const amount = parseFloat(betAmount);
     // Try Supabase API first (works for all mkt_ markets in DB)
     try {
-      const res = await fetch("/api/markets/bet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ market_id: market.id, outcome_key: selected.key, outcome_label: selected.label, amount, user_id: user.id }) });
+      const sessionToken = typeof window !== "undefined" ? localStorage.getItem("previsao_session_token") || "" : "";
+      const res = await fetch("/api/markets/bet", { method: "POST", headers: { "Content-Type": "application/json", ...(sessionToken ? { "x-session-token": sessionToken } : {}) }, body: JSON.stringify({ market_id: market.id, outcome_key: selected.key, outcome_label: selected.label, amount, user_id: user.id }) });
       const data = await res.json();
       if (res.ok && !data.error) {
         if (data.market) setMarket({ ...market, ...data.market, outcomes: data.market.outcomes || market.outcomes });

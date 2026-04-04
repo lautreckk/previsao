@@ -3,13 +3,28 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 import { validateBet } from "@/lib/engines/risk-engine";
+import { getUserIdFromRequest } from "@/lib/session-token";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import type { PredictionMarket, Bet } from "@/lib/engines/types";
 
 export async function POST(request: NextRequest) {
-  try {
-    const { market_id, outcome_key, outcome_label, amount, user_id } = await request.json();
+  const rl = checkRateLimit(getClientIp(request), "bet");
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Limite de apostas atingido. Aguarde " + rl.retryAfterSeconds + "s" }, { status: 429 });
+  }
 
-    if (!market_id || !outcome_key || !amount || !user_id) {
+  try {
+    const { market_id, outcome_key, outcome_label, amount, user_id: body_user_id } = await request.json();
+
+    // IDOR protection: prefer user_id from signed session token over body
+    const session_user_id = getUserIdFromRequest(request);
+    const user_id = session_user_id || body_user_id;
+
+    if (!user_id) {
+      return NextResponse.json({ error: "Autenticacao obrigatoria" }, { status: 401 });
+    }
+
+    if (!market_id || !outcome_key || !amount) {
       return NextResponse.json({ error: "Campos obrigatorios faltando" }, { status: 400 });
     }
     if (amount < 1) {

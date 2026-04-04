@@ -5,8 +5,10 @@ import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 
 function getWebhookUrl(request: NextRequest): string {
   const envUrl = process.env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
-  if (envUrl) return `${envUrl.replace(/\/$/, "")}/api/webhook`;
-  return `${request.nextUrl.origin}/api/webhook`;
+  const base = envUrl ? `${envUrl.replace(/\/$/, "")}/api/webhook` : `${request.nextUrl.origin}/api/webhook`;
+  // Append secret token so the webhook handler can validate origin
+  const token = process.env.WEBHOOK_SECRET || process.env.WORKER_SECRET || "";
+  return token ? `${base}?token=${token}` : base;
 }
 
 function generateQRImageUrl(pixCode: string): string {

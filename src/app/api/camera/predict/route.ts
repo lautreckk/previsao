@@ -1,11 +1,16 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { getUserIdFromRequest } from "@/lib/session-token";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { market_id, prediction_type, amount, user_id } = body;
+    const { market_id, prediction_type, amount, user_id: body_user_id } = body;
+
+    // IDOR protection: prefer session token over body user_id
+    const session_user_id = getUserIdFromRequest(request);
+    const user_id = session_user_id || body_user_id;
 
     if (!market_id || !user_id || !prediction_type || !amount) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });

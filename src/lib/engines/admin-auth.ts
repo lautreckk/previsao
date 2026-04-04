@@ -1,5 +1,6 @@
 // ============================================================
-// WINIFY - ADMIN AUTHENTICATION (server-side validated)
+// WINIFY - ADMIN AUTHENTICATION
+// Uses HttpOnly cookie (set by server) + localStorage for UI state only
 // ============================================================
 
 const ADMIN_SESSION_KEY = "winify_admin_session";
@@ -17,6 +18,7 @@ export async function adminLogin(email: string, password: string): Promise<{ suc
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin", // Ensures HttpOnly cookie is set
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
@@ -26,8 +28,16 @@ export async function adminLogin(email: string, password: string): Promise<{ suc
     }
 
     if (typeof window !== "undefined") {
-      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ email: data.admin.email, name: data.admin.name, role: data.admin.role, loginAt: Date.now() }));
-      localStorage.setItem(ADMIN_SECRET_KEY, data.token);
+      // Store UI session info (non-sensitive)
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
+        email: data.admin.email,
+        name: data.admin.name,
+        role: data.admin.role,
+        loginAt: Date.now(),
+      }));
+      // Store signed token for header-based auth (fallback for API calls)
+      // This is a time-limited HMAC token, NOT the raw ADMIN_SECRET
+      if (data.token) localStorage.setItem(ADMIN_SECRET_KEY, data.token);
     }
 
     return { success: true, admin: data.admin };
@@ -61,6 +71,8 @@ export function adminLogout() {
   if (typeof window !== "undefined") {
     localStorage.removeItem(ADMIN_SESSION_KEY);
     localStorage.removeItem(ADMIN_SECRET_KEY);
+    // Clear HttpOnly cookie via server endpoint
+    fetch("/api/admin/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
   }
 }
 

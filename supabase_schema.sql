@@ -64,10 +64,32 @@ ALTER TABLE bets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pix_transactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow all on users" ON users FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on bets" ON bets FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on ledger" ON ledger FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all on pix_transactions" ON pix_transactions FOR ALL USING (true) WITH CHECK (true);
+-- Revoke write access from anon on sensitive tables
+REVOKE INSERT, UPDATE, DELETE ON users FROM anon;
+REVOKE INSERT, UPDATE, DELETE ON bets FROM anon;
+REVOKE INSERT, UPDATE, DELETE ON ledger FROM anon;
+REVOKE ALL ON pix_transactions FROM anon;
+
+-- Revoke password column from anon — only service_role can read passwords
+REVOKE SELECT ON users FROM anon;
+GRANT SELECT (
+  id, name, email, cpf, phone, avatar_url, balance,
+  created_at, updated_at, is_public, is_bot, bio, level,
+  total_predictions, total_wins, total_losses, total_wagered,
+  total_returns, win_streak, best_streak, rank_position,
+  referred_by, affiliate_code
+) ON users TO anon;
+
+-- users: anon can READ (without password column)
+CREATE POLICY "anon_read_users" ON users FOR SELECT TO anon USING (true);
+
+-- bets: anon can READ only
+CREATE POLICY "anon_read_bets" ON bets FOR SELECT TO anon USING (true);
+
+-- ledger: anon can READ only
+CREATE POLICY "anon_read_ledger" ON ledger FOR SELECT TO anon USING (true);
+
+-- pix_transactions: NO anon access (service_role bypasses RLS)
 
 -- ─── INDEXES ───
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

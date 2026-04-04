@@ -29,7 +29,7 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": process.env.NEXT_PUBLIC_APP_URL || "https://previsao-tau.vercel.app",
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "CDN-Cache-Control": "no-store",
         "Vercel-CDN-Cache-Control": "no-store",

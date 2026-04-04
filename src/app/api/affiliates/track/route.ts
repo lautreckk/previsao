@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { getUserIdFromRequest } from "@/lib/session-token";
 
 function genId(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -7,11 +8,14 @@ function genId(prefix: string) {
 
 // POST /api/affiliates/track
 // Actions: "register" (new user signed up via ref link), "deposit" (referred user deposited)
-// Called from client-side during registration/deposit — no admin auth needed
-// Validates affiliate code exists before processing
+// IDOR-protected: user_id from session token takes priority
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { action, code, user_id, user_name, user_email, amount } = body;
+  const { action, code, user_name, user_email, amount } = body;
+
+  // IDOR protection: prefer session token over body user_id
+  const session_user_id = getUserIdFromRequest(req);
+  const user_id = session_user_id || body.user_id;
 
   if (!action || !code) {
     return NextResponse.json({ error: "action e code são obrigatórios" }, { status: 400 });

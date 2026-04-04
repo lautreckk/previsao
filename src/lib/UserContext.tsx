@@ -85,15 +85,50 @@ export function useUser() {
   return ctx;
 }
 
-// ---- ADMIN FUNCTIONS (Supabase) ----
+const SESSION_TOKEN_KEY = "previsao_session_token";
+
+/** Get session token from localStorage */
+function getSessionToken(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(SESSION_TOKEN_KEY) || "";
+}
+
+/** Standard headers with session token for authenticated API calls */
+function getAuthHeaders(): HeadersInit {
+  const token = getSessionToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { "x-session-token": token } : {}),
+  };
+}
+
+/** Admin headers (includes admin secret + session token) */
+function getAdminHeaders(): HeadersInit {
+  let secret = "";
+  if (typeof window !== "undefined") {
+    secret = localStorage.getItem("winify_admin_secret") || "";
+  }
+  return {
+    ...getAuthHeaders(),
+    ...(secret ? { "x-admin-secret": secret } : {}),
+  };
+}
+
+// ---- ADMIN FUNCTIONS (via API routes — server-side only) ----
 
 export async function getAllRegisteredUsersAsync(): Promise<(User & { password: string })[]> {
-  const { data } = await supabase.from("users").select("*").order("created_at", { ascending: false });
-  if (!data) return [];
-  return data.map((u: Record<string, unknown>) => ({
-    ...mapDbUser(u),
-    password: (u.password || "") as string,
-  }));
+  try {
+    const res = await fetch("/api/auth/admin/users", { headers: getAdminHeaders() });
+    if (!res.ok) return [];
+    const { users } = await res.json();
+    if (!users) return [];
+    return users.map((u: Record<string, unknown>) => ({
+      ...mapDbUser(u),
+      password: (u.password || "") as string,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 // Sync version that reads from cache for compatibility
@@ -107,39 +142,69 @@ async function _refreshUserCache() {
 }
 
 export async function adminSetBalance(userId: string, newBalance: number): Promise<boolean> {
-  const { error } = await supabase.from("users").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("id", userId);
-  if (!error) await _refreshUserCache();
-  return !error;
+  try {
+    const res = await fetch("/api/auth/admin/balance", {
+      method: "PUT",
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ userId, balance: newBalance }),
+    });
+    if (res.ok) await _refreshUserCache();
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function adminAddBalance(userId: string, amount: number): Promise<boolean> {
-  // Get current balance first
-  const { data } = await supabase.from("users").select("balance").eq("id", userId).single();
-  if (!data) return false;
-  const newBalance = Number(data.balance) + amount;
-  return adminSetBalance(userId, Math.max(0, newBalance));
+  try {
+    const res = await fetch("/api/auth/admin/balance", {
+      method: "PUT",
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ userId, delta: amount }),
+    });
+    if (res.ok) await _refreshUserCache();
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function adminUpdateUser(userId: string, data: { name?: string; email?: string; cpf?: string; password?: string }): Promise<boolean> {
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (data.name !== undefined) updates.name = data.name;
-  if (data.email !== undefined) updates.email = data.email.toLowerCase();
-  if (data.cpf !== undefined) updates.cpf = data.cpf;
-  if (data.password !== undefined && data.password.length >= 6) updates.password = data.password;
-  const { error } = await supabase.from("users").update(updates).eq("id", userId);
-  if (!error) await _refreshUserCache();
-  return !error;
+  try {
+    const res = await fetch("/api/auth/admin/users", {
+      method: "PUT",
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ userId, ...data }),
+    });
+    if (res.ok) await _refreshUserCache();
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function adminGetUserPassword(userId: string): Promise<string | null> {
-  const { data } = await supabase.from("users").select("password").eq("id", userId).single();
-  return data?.password || null;
+  try {
+    const users = await getAllRegisteredUsersAsync();
+    const user = users.find((u) => u.id === userId);
+    return user?.password || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function adminDeleteUser(userId: string): Promise<boolean> {
-  const { error } = await supabase.from("users").delete().eq("id", userId);
-  if (!error) await _refreshUserCache();
-  return !error;
+  try {
+    const res = await fetch("/api/auth/admin/users", {
+      method: "DELETE",
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ userId }),
+    });
+    if (res.ok) await _refreshUserCache();
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 // Map Supabase row to User object
@@ -180,7 +245,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [bets, setBets] = useState<Bet[]>([]);
 
-  // Restore session from localStorage (session key only, data from Supabase)
+  // Restore session from localStorage — reads via anon key (no password column exposed)
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -189,6 +254,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const sessionEmail = localStorage.getItem("previsao_session");
         if (!sessionEmail) return;
 
+        // anon key can still SELECT users (without password column)
         const { data, error } = await supabase
           .from("users")
           .select("*")
@@ -224,7 +290,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             }));
           }
         } else {
-          // User not found in Supabase but has session - clear stale session
           console.warn("Session email not found in DB, clearing:", sessionEmail);
           localStorage.removeItem("previsao_session");
         }
@@ -242,6 +307,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     const uid = userIdRef.current;
     if (!uid) return;
+    // anon key can still SELECT users (without password column)
     const { data } = await supabase.from("users").select("*").eq("id", uid).single();
     if (data) {
       setUser((prev) => {
@@ -251,7 +317,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Auto-refresh balance every 15 seconds (reads from Supabase, never from cache)
+  // Auto-refresh balance every 15 seconds (anon key can read balance column)
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
@@ -272,7 +338,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(iv);
   }, [user?.id]);
 
-  // Realtime: listen for bet status changes (pending → won/lost/refunded)
+  // Realtime: listen for bet status changes (pending -> won/lost/refunded)
   useEffect(() => {
     if (!user?.id) return;
     const uid = user.id;
@@ -287,7 +353,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const newStatus = updated.status as string;
           const betId = updated.id as string;
 
-          // Update local bets state
           setBets((prev) =>
             prev.map((b) =>
               b.id === betId
@@ -296,7 +361,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             )
           );
 
-          // Refresh balance when bet resolves
           if (newStatus === "won" || newStatus === "lost" || newStatus === "refunded") {
             supabase.from("users").select("balance, total_wins, total_losses, total_returns").eq("id", uid).single().then(({ data }) => {
               if (data) {
@@ -320,82 +384,95 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string, referralCode?: string): Promise<boolean> => {
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Check if exists - use maybeSingle to avoid error when not found
-    const { data: existing, error: checkErr } = await supabase.from("users").select("id").eq("email", normalizedEmail).maybeSingle();
-    if (existing) return false;
-
-    const newId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const insertData: Record<string, unknown> = { id: newId, name, email: normalizedEmail, cpf, password, balance: 0, phone: phone || "" };
-    if (referralCode) insertData.referred_by = referralCode;
-    const { error } = await supabase.from("users").insert(insertData);
-    if (error) { console.error("Register insert error:", error); return false; }
-
-    setUser({ ...NEW_USER_DEFAULTS, id: newId, name, email: normalizedEmail, cpf, phone: phone || "", avatar_url: "", balance: 0, createdAt: new Date().toISOString() } as User);
-    localStorage.setItem("previsao_session", normalizedEmail);
-    await _refreshUserCache();
-
-    // Track affiliate referral
-    if (referralCode) {
-      try {
-        await fetch("/api/affiliates/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "register", code: referralCode, user_id: newId, user_name: name, user_email: normalizedEmail }),
-        });
-      } catch { /* ignore tracking errors */ }
-    }
-
-    return true;
-  }, []);
-
+  // LOGIN — via server-side API route (password never exposed to client)
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const normalizedEmail = email.trim().toLowerCase();
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Try to find user
-    const { data: found } = await supabase.from("users").select("*").eq("email", normalizedEmail).single();
+      if (!res.ok) return false;
 
-    if (found) {
-      // User exists - check password
-      if (found.password !== password) return false;
-      setUser(mapDbUser(found));
-      localStorage.setItem("previsao_session", normalizedEmail);
+      const { user: userData, sessionToken } = await res.json();
+      if (!userData) return false;
+
+      setUser(mapDbUser(userData));
+      localStorage.setItem("previsao_session", userData.email);
+      if (sessionToken) localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
+      await _refreshUserCache();
       return true;
+    } catch {
+      return false;
     }
-
-    // User not found - auto-register
-    const newId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const { error } = await supabase.from("users").insert({
-      id: newId, name: normalizedEmail.split("@")[0], email: normalizedEmail, cpf: "", password, balance: 0,
-    });
-    if (error) return false;
-
-    setUser({ ...NEW_USER_DEFAULTS, id: newId, name: normalizedEmail.split("@")[0], email: normalizedEmail, cpf: "", phone: "", avatar_url: "", balance: 0, createdAt: new Date().toISOString() } as User);
-    localStorage.setItem("previsao_session", normalizedEmail);
-    await _refreshUserCache();
-    return true;
   }, []);
 
+  // REGISTER — via server-side API route
+  const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string, referralCode?: string): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, cpf, password, phone, referralCode }),
+      });
+
+      if (!res.ok) return false;
+
+      const { user: userData, sessionToken } = await res.json();
+      if (!userData) return false;
+
+      setUser({
+        ...NEW_USER_DEFAULTS,
+        ...mapDbUser(userData),
+      } as User);
+      localStorage.setItem("previsao_session", userData.email);
+      if (sessionToken) localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
+      await _refreshUserCache();
+
+      // Track affiliate referral
+      if (referralCode) {
+        try {
+          await fetch("/api/affiliates/track", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: "register", code: referralCode, user_id: userData.id, user_name: name, user_email: userData.email }),
+          });
+        } catch { /* ignore tracking errors */ }
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // TOGGLE PUBLIC PROFILE — via server-side API route
   const togglePublicProfile = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
     const newVal = !user.is_public;
-    const { error } = await supabase.from("users").update({ is_public: newVal, updated_at: new Date().toISOString() }).eq("id", user.id);
-    if (error) return false;
-    setUser((prev) => prev ? { ...prev, is_public: newVal } : prev);
-    return true;
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ userId: user.id, is_public: newVal }),
+      });
+      if (!res.ok) return false;
+      setUser((prev) => prev ? { ...prev, is_public: newVal } : prev);
+      return true;
+    } catch {
+      return false;
+    }
   }, [user]);
 
   const logout = useCallback(() => {
     setUser(null);
     setBets([]);
     localStorage.removeItem("previsao_session");
+    localStorage.removeItem(SESSION_TOKEN_KEY);
   }, []);
 
   const addBalance = useCallback((amount: number) => {
-    // Only update local React state. The server-side API routes handle DB updates.
-    // This avoids race conditions where the client overwrites the server's correct balance.
     setUser((prev) => {
       if (!prev) return prev;
       return { ...prev, balance: prev.balance + amount };
@@ -416,50 +493,51 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setBets((prev) => [...prev, bet]);
     addBalance(-betData.amount);
 
-    // Save bet to Supabase
-    supabase.from("bets").insert({
-      id: bet.id, user_id: user.id, market_id: betData.marketId,
-      outcome_key: betData.optionId, outcome_label: betData.optionName,
-      amount: betData.amount, payout_at_entry: betData.potentialWin,
-      final_payout: 0, status: "pending",
-    }).then();
-
     return true;
   }, [user, addBalance]);
 
+  // UPDATE PROFILE — via server-side API route
   const updateProfile = useCallback(async (data: { name?: string; email?: string; phone?: string; cpf?: string; bio?: string; avatar_url?: string }): Promise<boolean> => {
     if (!user) return false;
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (data.name !== undefined) updates.name = data.name;
-    if (data.email !== undefined) updates.email = data.email.toLowerCase();
-    if (data.phone !== undefined) updates.phone = data.phone;
-    if (data.cpf !== undefined) updates.cpf = data.cpf;
-    if (data.bio !== undefined) updates.bio = data.bio;
-    if (data.avatar_url !== undefined) updates.avatar_url = data.avatar_url;
-    const { error } = await supabase.from("users").update(updates).eq("id", user.id);
-    if (error) return false;
-    setUser((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.email !== undefined && { email: data.email.toLowerCase() }),
-        ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.cpf !== undefined && { cpf: data.cpf }),
-        ...(data.bio !== undefined && { bio: data.bio }),
-        ...(data.avatar_url !== undefined && { avatar_url: data.avatar_url }),
-      };
-    });
-    if (data.email) localStorage.setItem("previsao_session", data.email.toLowerCase());
-    return true;
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ userId: user.id, ...data }),
+      });
+      if (!res.ok) return false;
+      setUser((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.email !== undefined && { email: data.email.toLowerCase() }),
+          ...(data.phone !== undefined && { phone: data.phone }),
+          ...(data.cpf !== undefined && { cpf: data.cpf }),
+          ...(data.bio !== undefined && { bio: data.bio }),
+          ...(data.avatar_url !== undefined && { avatar_url: data.avatar_url }),
+        };
+      });
+      if (data.email) localStorage.setItem("previsao_session", data.email.toLowerCase());
+      return true;
+    } catch {
+      return false;
+    }
   }, [user]);
 
+  // CHANGE PASSWORD — via server-side API route (password never on client)
   const changePassword = useCallback(async (oldPassword: string, newPassword: string): Promise<boolean> => {
     if (!user) return false;
-    const { data } = await supabase.from("users").select("password").eq("id", user.id).single();
-    if (!data || data.password !== oldPassword) return false;
-    const { error } = await supabase.from("users").update({ password: newPassword, updated_at: new Date().toISOString() }).eq("id", user.id);
-    return !error;
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ userId: user.id, oldPassword, newPassword }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }, [user]);
 
   const uploadAvatar = useCallback(async (file: File): Promise<string | null> => {

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkAdminSecret } from "@/lib/supabase-server";
 
 const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
   "sao paulo": { lat: -23.5505, lon: -46.6333 },
@@ -30,10 +31,8 @@ function findCityCoords(title: string): { lat: number; lon: number } | null {
   return null;
 }
 
-export async function POST(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
-  if (secret !== process.env.ADMIN_SECRET) {
+export async function POST(req: NextRequest) {
+  if (!checkAdminSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

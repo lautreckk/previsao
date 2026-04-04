@@ -458,9 +458,10 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
     if (!user || !selectedType || !betAmount || Number(betAmount) < 1) return;
     setPlacing(true); setBetMsg(null);
     try {
+      const sessionToken = typeof window !== "undefined" ? localStorage.getItem("previsao_session_token") || "" : "";
       const res = await fetch("/api/camera/predict", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(sessionToken ? { "x-session-token": sessionToken } : {}) },
         body: JSON.stringify({ market_id: marketId, prediction_type: selectedType, amount: Number(betAmount), user_id: user.id }),
       });
       const data = await res.json();

@@ -38,9 +38,10 @@ export default function DepositoPage() {
       try {
         const { data: userData } = await (await import("@/lib/supabase")).supabase.from("users").select("referred_by").eq("id", user.id).single();
         if (userData?.referred_by) {
+          const sessionToken = localStorage.getItem("previsao_session_token") || "";
           await fetch("/api/affiliates/track", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...(sessionToken ? { "x-session-token": sessionToken } : {}) },
             body: JSON.stringify({ action: "deposit", code: userData.referred_by, user_id: user.id, user_email: user.email, amount: parseFloat(amount) }),
           });
         }

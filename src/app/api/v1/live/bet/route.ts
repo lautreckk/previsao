@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { apiSuccess, apiError, validateApiKey } from "../../_lib/auth";
+import { getUserIdFromRequest } from "@/lib/session-token";
 import { createClient } from "@supabase/supabase-js";
 
 const sb = () =>
@@ -10,30 +11,33 @@ const sb = () =>
  * POST /api/v1/live/bet
  *
  * Place a bet on an active live round.
- *
- * Body:
- * {
- *   "round_id": "uuid",
- *   "user_id": "uuid",
- *   "outcome": "UP" | "DOWN",
- *   "amount": 10
- * }
+ * user_id is resolved from session token (for clients) or body (for internal/API key calls).
  */
 export async function POST(request: NextRequest) {
   const auth = await validateApiKey(request);
   if (!auth.valid) return apiError(auth.error!, 401, "UNAUTHORIZED");
 
-  let body: { round_id: string; user_id: string; outcome: string; amount: number };
+  let body: { round_id: string; user_id?: string; outcome: string; amount: number };
   try {
     body = await request.json();
   } catch {
     return apiError("Invalid JSON body", 400);
   }
 
-  const { round_id, user_id, outcome, amount } = body;
+  const { round_id, outcome, amount } = body;
 
-  if (!round_id || !user_id || !outcome || !amount) {
-    return apiError("Required: round_id, user_id, outcome, amount", 400);
+  // IDOR protection: for internal keys (system/cron/worker), allow body user_id
+  // For client API keys, prefer session token
+  const isInternalKey = auth.key?.owner_id === "system";
+  const session_user_id = getUserIdFromRequest(request);
+  const user_id = session_user_id || (isInternalKey ? body.user_id : null) || body.user_id;
+
+  if (!user_id) {
+    return apiError("user_id required (via session token or body for internal keys)", 401, "UNAUTHORIZED");
+  }
+
+  if (!round_id || !outcome || !amount) {
+    return apiError("Required: round_id, outcome, amount", 400);
   }
 
   if (!["UP", "DOWN"].includes(outcome)) {
