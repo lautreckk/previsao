@@ -268,21 +268,7 @@ export function initializeStore() {
 
   // ===== APOSTAS URBANAS / COTIDIANO / CURIOSIDADES =====
 
-  // 1. Rodovia - Av. Curitiba, Goioere PR (camera ao vivo 24h)
-  const urban1 = createMarket(presetBinary(
-    "Rodovia (5 min): quantos veiculos vao passar na Av. Curitiba?",
-    "custom", "Contagem automatica via IA. Camera ao vivo 24h.",
-    { close_at: Date.now() + 5 * 60000, resolution_type: "automatic", source_type: "api",
-      source_name: "IA YOLO - Contagem automatica",
-      banner_url: "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800&q=80" }
-  ));
-  urban1.status = "open"; urban1.is_featured = true;
-  urban1.subcategory = "Av. Curitiba, Goioere - PR";
-  urban1.stream_url = "https://www.youtube.com/watch?v=ZWk3xR9mdtA";
-  urban1.stream_type = "youtube";
-  urban1.outcomes[0] = { ...urban1.outcomes[0], key: "MAIS", label: "Mais de 26", pool: 2900, color: "#10B981" };
-  urban1.outcomes[1] = { ...urban1.outcomes[1], key: "ATE", label: "Ate 26", pool: 7100, color: "#FF5252" };
-  seeds.push(urban1);
+  // 1. Rodovia - Av. Curitiba (REMOVIDO)
 
   // 2. Temperatura maxima em SP
   const urban2 = createMarket(presetMultiChoice(
