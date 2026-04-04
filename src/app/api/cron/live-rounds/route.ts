@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { updateUserStats } from "@/lib/update-user-stats";
 
 const sb = () =>
   createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -145,6 +146,7 @@ export async function GET(request: NextRequest) {
             for (const bet of bets) {
               const payout = (bet.amount as number) * payoutPerUnit;
               await supabase.from("live_bets").update({ status: "won", payout }).eq("id", bet.id);
+              updateUserStats(supabase, bet.user_id, true, payout);
               let credited = false;
               for (let attempt = 0; attempt < 3 && !credited; attempt++) {
                 const { error: rpcErr } = await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });
@@ -165,8 +167,13 @@ export async function GET(request: NextRequest) {
             }
           }
           const loser = winner === "UP" ? "DOWN" : "UP";
+          const { data: loserBets } = await supabase.from("live_bets").select("user_id")
+            .eq("round_id", current.id).eq("outcome", loser).eq("status", "pending");
           await supabase.from("live_bets").update({ status: "lost", payout: 0 })
             .eq("round_id", current.id).eq("outcome", loser).eq("status", "pending");
+          if (loserBets) {
+            for (const lb of loserBets) { updateUserStats(supabase, lb.user_id, false, 0); }
+          }
         }
 
         // Broadcast result

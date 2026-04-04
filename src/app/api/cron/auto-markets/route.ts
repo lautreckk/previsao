@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { generateAutoMarkets, resolveExpiredMarkets } from "../../v1/auto-markets/engine";
 
 /**
@@ -58,6 +59,30 @@ export async function GET(request: NextRequest) {
     results.tiers = tiers;
   } catch (err) {
     results.creation_error = String(err);
+  }
+
+  // Step 3: Recalculate rank_position based on profit (total_returns - total_wagered)
+  try {
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const { data: users } = await supabase
+      .from("users")
+      .select("id, total_returns, total_wagered, total_predictions")
+      .gt("total_predictions", 0)
+      .order("total_predictions", { ascending: false })
+      .limit(500);
+
+    if (users && users.length > 0) {
+      const sorted = users
+        .map((u) => ({ id: u.id, profit: Number(u.total_returns || 0) - Number(u.total_wagered || 0) }))
+        .sort((a, b) => b.profit - a.profit);
+
+      for (let i = 0; i < sorted.length; i++) {
+        await supabase.from("users").update({ rank_position: i + 1 }).eq("id", sorted[i].id);
+      }
+      results.ranking = { updated: sorted.length };
+    }
+  } catch (err) {
+    results.ranking_error = String(err);
   }
 
   return NextResponse.json({ ok: true, ...results, timestamp: new Date().toISOString() });

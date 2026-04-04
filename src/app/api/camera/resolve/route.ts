@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin as supabase, checkCronSecret, checkAdminSecret, unauthorized } from "@/lib/supabase-server";
+import { updateUserStats } from "@/lib/update-user-stats";
 
 export async function GET(request: NextRequest) {
   if (!checkCronSecret(request) && !checkAdminSecret(request)) {
@@ -59,6 +60,7 @@ export async function GET(request: NextRequest) {
           payout: isWinner ? payout : 0,
         }).eq("id", pred.id);
 
+        updateUserStats(supabase, pred.user_id, isWinner, payout);
         if (isWinner && payout > 0) {
           const { data: user } = await supabase.from("users").select("balance").eq("id", pred.user_id).maybeSingle();
           if (user) {

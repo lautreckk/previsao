@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { updateUserStats } from "@/lib/update-user-stats";
 
 const IS_DEV = process.env.NODE_ENV === "development";
 const PHASE_DURATION_MS = IS_DEV ? 30_000 : 150_000; // dev: 30s, prod: 2:30
@@ -204,6 +205,7 @@ export async function POST(request: NextRequest) {
             status: isWinner ? "won" : "lost",
             payout: isWinner ? payout : 0,
           }).eq("id", pred.id);
+          updateUserStats(supabase, pred.user_id, isWinner, payout);
 
           if (isWinner && payout > 0) {
             winnersCount++;
