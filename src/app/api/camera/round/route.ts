@@ -32,9 +32,11 @@ async function getLastRounds(marketId: string, limit: number) {
 }
 
 // Available DER-SP cameras — rotated each round
-// Camera rotation — SP008 is the most reliable day and night
 const CAMERAS = [
   { id: "SP008-KM095", highway: "SP-008 (Fernao Dias)", km: "095", city: "Braganca Paulista" },
+  { id: "SP055-KM110B", highway: "SP-055 (Santos Dumont)", km: "110B", city: "Sao Jose dos Campos" },
+  { id: "SP055-KM073", highway: "SP-055 (Santos Dumont)", km: "073", city: "Taubate" },
+  { id: "SP055-KM092", highway: "SP-055 (Santos Dumont)", km: "092", city: "Cacapava" },
 ];
 const HLS_BASE = "https://34.104.32.249.nip.io";
 
