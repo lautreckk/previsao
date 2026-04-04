@@ -279,6 +279,63 @@ body {
   animation: ticker-scroll 30s linear infinite;
 }
 
+/* Shake animation for losses */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Pulse green for wins */
+@keyframes pulse-win {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(128, 255, 0, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(128, 255, 0, 0); }
+}
+
+.animate-pulse-win {
+  animation: pulse-win 0.8s ease-out 2;
+}
+
+/* Slide up for toasts */
+@keyframes slide-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slide-out {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Scale pop for bet confirmation */
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pop {
+  animation: pop 0.3s ease-out;
+}
+
+/* Stagger fade-in for lists */
+@keyframes fade-in-stagger {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-stagger {
+  animation: fade-in-stagger 0.3s ease-out both;
+}
+
 .dark {
   --background: 0 0% 7%;
   --foreground: 0 0% 95%;

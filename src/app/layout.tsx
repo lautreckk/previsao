@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { UserProvider } from "@/lib/UserContext";
 import { ChatProvider } from "@/lib/ChatContext";
+import { ToastProvider } from "@/components/Toast";
 import TrackingPixels from "@/components/TrackingPixels";
 import "./globals.css";
 
@@ -35,8 +36,10 @@ export default function RootLayout({
       <body suppressHydrationWarning className="font-body antialiased overflow-x-hidden max-w-[100vw]">
         <UserProvider>
           <ChatProvider>
-            <TrackingPixels />
-            {children}
+            <ToastProvider>
+              <TrackingPixels />
+              {children}
+            </ToastProvider>
           </ChatProvider>
         </UserProvider>
       </body>
