@@ -231,6 +231,45 @@ export default function EventoPage() {
     }
   }, [user?.id, market?.id, fetchUserBets]);
 
+  // Load recent bets from DB so activity shows immediately on page load
+  useEffect(() => {
+    if (!market?.id) return;
+    supabase
+      .from("prediction_bets")
+      .select("id, user_id, outcome_key, outcome_label, amount, payout_at_entry, created_at")
+      .eq("market_id", market.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(15)
+      .then(async ({ data: bets }) => {
+        if (!bets || bets.length === 0) return;
+        // Fetch user names for these bets
+        const userIds = [...new Set(bets.map((b) => b.user_id))];
+        const { data: users } = await supabase
+          .from("users")
+          .select("id, name")
+          .in("id", userIds);
+        const nameMap: Record<string, string> = {};
+        users?.forEach((u) => { nameMap[u.id] = u.name; });
+        // Find outcome colors from market
+        const outcomeColors: Record<string, string> = {};
+        market.outcomes.forEach((o) => { outcomeColors[o.key] = o.color; });
+        const loaded: LiveBet[] = bets.map((b) => ({
+          id: b.id,
+          user_name: nameMap[b.user_id] || "Usuario",
+          user_id: b.user_id,
+          outcome_key: b.outcome_key,
+          outcome_label: b.outcome_label || b.outcome_key,
+          outcome_color: outcomeColors[b.outcome_key] || "#80FF00",
+          amount: Number(b.amount),
+          potential_win: +(Number(b.amount) * Number(b.payout_at_entry || 1.5)).toFixed(2),
+          ts: new Date(b.created_at).getTime(),
+        }));
+        setLiveBets(loaded);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market?.id]);
+
   // Derive live price symbol from market title
   const getLivePriceInfo = useCallback((m: PredictionMarket | null) => {
     if (!m) return null;
