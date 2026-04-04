@@ -1,11 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 
 // GET: List markets (public)
 export async function GET(request: NextRequest) {
@@ -49,7 +44,7 @@ export async function POST(request: NextRequest) {
     const { market, secret } = body;
 
     // Simple auth check
-    if (secret !== process.env.ADMIN_SECRET && secret !== "admin") {
+    if (!secret || secret !== process.env.ADMIN_SECRET) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -119,7 +114,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { id, updates, secret } = body;
 
-    if (secret !== process.env.ADMIN_SECRET && secret !== "admin") {
+    if (!secret || secret !== process.env.ADMIN_SECRET) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -150,7 +145,7 @@ export async function DELETE(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
   const secret = request.nextUrl.searchParams.get("secret");
 
-  if (secret !== process.env.ADMIN_SECRET && secret !== "admin") {
+  if (!secret || secret !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

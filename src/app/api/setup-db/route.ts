@@ -1,18 +1,11 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin as supabase, checkAdminSecret, unauthorized } from "@/lib/supabase-server";
 
-const supabaseUrl = "https://gqymalmbbtzdnpbneegg.supabase.co";
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-export async function GET() {
-  if (!serviceKey) {
-    return NextResponse.json({ error: "Service key not configured" }, { status: 500 });
+export async function GET(request: NextRequest) {
+  if (!checkAdminSecret(request)) {
+    return unauthorized();
   }
-
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    db: { schema: "public" },
-  });
 
   const results: string[] = [];
 

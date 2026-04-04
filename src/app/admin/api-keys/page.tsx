@@ -22,7 +22,7 @@ interface Stats {
   total_requests: number;
 }
 
-const ADMIN_SECRET = "admin";
+import { getAdminSecret } from "@/lib/engines/admin-auth";
 
 const inputCls =
   "w-full bg-white/[0.04] rounded-xl px-4 py-3 text-white/90 text-sm border border-white/[0.06] outline-none transition-all placeholder:text-white/20 focus:border-white/[0.14] focus:bg-white/[0.06] focus:ring-1 focus:ring-white/[0.08]";
@@ -49,7 +49,7 @@ export default function ApiKeysPage() {
   const fetchKeys = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/api-keys", {
-        headers: { "x-admin-secret": ADMIN_SECRET },
+        headers: { "x-admin-secret": getAdminSecret() },
       });
       const data = await res.json();
       setKeys(data.keys || []);
@@ -71,7 +71,7 @@ export default function ApiKeysPage() {
     try {
       const res = await fetch("/api/admin/api-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET },
+        headers: { "Content-Type": "application/json", "x-admin-secret": getAdminSecret() },
         body: JSON.stringify({
           name: formName.trim(),
           owner_id: formEmail.trim() || formName.trim().toLowerCase().replace(/\s+/g, "_"),
@@ -100,7 +100,7 @@ export default function ApiKeysPage() {
     try {
       await fetch("/api/admin/api-keys", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET },
+        headers: { "Content-Type": "application/json", "x-admin-secret": getAdminSecret() },
         body: JSON.stringify({ id, is_active: !currentActive }),
       });
       fetchKeys();
@@ -113,7 +113,7 @@ export default function ApiKeysPage() {
     try {
       await fetch("/api/admin/api-keys", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET },
+        headers: { "Content-Type": "application/json", "x-admin-secret": getAdminSecret() },
         body: JSON.stringify({ id }),
       });
       setDeleteConfirm(null);

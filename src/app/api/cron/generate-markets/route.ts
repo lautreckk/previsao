@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.CRON_SECRET}`,
       },
-      body: JSON.stringify({ secret: process.env.ADMIN_SECRET || "admin", count, categories }),
+      body: JSON.stringify({ secret: process.env.ADMIN_SECRET || "", count, categories }),
     });
 
     const data = await res.json();

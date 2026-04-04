@@ -1,13 +1,11 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin as supabase, checkCronSecret, checkAdminSecret, unauthorized } from "@/lib/supabase-server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
-
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!checkCronSecret(request) && !checkAdminSecret(request)) {
+    return unauthorized();
+  }
   try {
     const now = new Date().toISOString();
 

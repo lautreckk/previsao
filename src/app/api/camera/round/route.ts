@@ -1,11 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 
 const IS_DEV = process.env.NODE_ENV === "development";
 const PHASE_DURATION_MS = IS_DEV ? 30_000 : 150_000; // dev: 30s, prod: 2:30
@@ -62,7 +57,7 @@ export async function POST(request: NextRequest) {
   try {
     const { market_id, secret } = await request.json();
 
-    const validSecret = secret === process.env.WORKER_SECRET || secret === "auto";
+    const validSecret = !!process.env.WORKER_SECRET && secret === process.env.WORKER_SECRET;
     if (!validSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

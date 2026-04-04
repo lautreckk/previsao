@@ -1,18 +1,16 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin as admin, checkAdminSecret, unauthorized } from "@/lib/supabase-server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!checkAdminSecret(request)) {
+    return unauthorized();
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
   if (!url || !serviceKey) {
     return NextResponse.json({ error: "Missing SUPABASE_SERVICE_ROLE_KEY" }, { status: 500 });
   }
-
-  // Admin client with service role key (bypasses RLS)
-  const admin = createClient(url, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   const results: { step: string; ok: boolean; error?: string }[] = [];
 

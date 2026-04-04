@@ -1,10 +1,14 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
+import { checkAdminSecret, unauthorized } from "@/lib/supabase-server";
 
 // Run this endpoint once to create the prediction_markets table
 // GET /api/setup-markets
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!checkAdminSecret(request)) {
+    return unauthorized();
+  }
   const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
 
   if (!dbUrl) {

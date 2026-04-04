@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin, checkAdminSecret, unauthorized } from "@/lib/supabase-server";
 
 function normalize(text: string): string {
   return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -64,19 +64,22 @@ function findEntityImage(title: string): string | null {
   return null;
 }
 
-export async function POST(req: Request) {
+// GET - admin only
+export async function GET(req: NextRequest) {
+  if (!checkAdminSecret(req)) return unauthorized();
+  return runFixBanners(req);
+}
+
+// POST - admin only
+export async function POST(req: NextRequest) {
+  if (!checkAdminSecret(req)) return unauthorized();
+  return runFixBanners(req);
+}
+
+async function runFixBanners(req: Request) {
+  const supabase = supabaseAdmin;
+
   const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
-  if (secret !== process.env.ADMIN_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // Option: only fix specific category
   const category = searchParams.get("category"); // optional filter
 
   let query = supabase

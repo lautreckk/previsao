@@ -2,13 +2,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 import { resolveBannerUrl } from "@/lib/banner-resolver";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const AI_MODEL = process.env.AI_MODEL || "anthropic/claude-sonnet-4-5";
@@ -126,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     // Auth: cron secret or admin
     const cronSecret = request.headers.get("authorization")?.replace("Bearer ", "");
-    if (secret !== process.env.ADMIN_SECRET && secret !== "admin" && cronSecret !== process.env.CRON_SECRET) {
+    if ((!secret || secret !== process.env.ADMIN_SECRET) && cronSecret !== process.env.CRON_SECRET) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

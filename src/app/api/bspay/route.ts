@@ -1,12 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { generatePixQRCode, consultTransaction } from "@/lib/bspay";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxeW1hbG1iYnR6ZG5wYm5lZWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MjUzNDYsImV4cCI6MjA5MDIwMTM0Nn0.Mj_L0h3HGfG4X22Qb3f53oeipNXa91nIGW5-J_zl-kM"
-);
+import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 
 function getWebhookUrl(request: NextRequest): string {
   const envUrl = process.env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
@@ -147,12 +142,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "txId or extId required" }, { status: 400 });
   }
 
-  // 1. Check our DB first
-  let query = supabase.from("pix_transactions").select("*");
-  if (txId) query = query.eq("transaction_id", txId);
-  else if (extId) query = query.or(`external_id.eq.${extId},id.eq.${extId}`);
-
-  const { data } = await query.maybeSingle();
+  // 1. Check our DB first (use separate .eq() calls to avoid filter injection)
+  let data = null;
+  if (txId) {
+    const res = await supabase.from("pix_transactions").select("*").eq("transaction_id", txId).maybeSingle();
+    data = res.data;
+  } else if (extId) {
+    const res = await supabase.from("pix_transactions").select("*").eq("external_id", extId).maybeSingle();
+    if (!res.data) {
+      const res2 = await supabase.from("pix_transactions").select("*").eq("id", extId).maybeSingle();
+      data = res2.data;
+    } else {
+      data = res.data;
+    }
+  }
 
   // Already paid in DB
   if (data && data.status === "paid") {

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+import { supabaseAdmin as supabase, checkAdminSecret, unauthorized } from "@/lib/supabase-server";
 
 function genId(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -50,7 +45,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ affiliate, referrals: referrals || [], commissions: commissions || [] });
   }
 
-  // List all affiliates (admin)
+  // List all affiliates (admin) — requires auth
+  if (!checkAdminSecret(req)) {
+    return unauthorized();
+  }
+
   const { data, error } = await supabase
     .from("affiliates")
     .select("*")
@@ -60,8 +59,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data || []);
 }
 
-// POST /api/affiliates - create new affiliate
+// POST /api/affiliates - create new affiliate (admin)
 export async function POST(req: NextRequest) {
+  if (!checkAdminSecret(req)) return unauthorized();
   const body = await req.json();
   const { name, email, code, commission_percent, user_id, notes } = body;
 
@@ -95,8 +95,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ id, code: normalizedCode });
 }
 
-// PUT /api/affiliates - update affiliate
+// PUT /api/affiliates - update affiliate (admin)
 export async function PUT(req: NextRequest) {
+  if (!checkAdminSecret(req)) return unauthorized();
   const body = await req.json();
   const { id, ...updates } = body;
 
@@ -111,8 +112,9 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-// DELETE /api/affiliates - delete affiliate
+// DELETE /api/affiliates - delete affiliate (admin)
 export async function DELETE(req: NextRequest) {
+  if (!checkAdminSecret(req)) return unauthorized();
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID é obrigatório" }, { status: 400 });
 

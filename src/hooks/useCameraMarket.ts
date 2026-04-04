@@ -63,48 +63,53 @@ export function useCameraMarket(marketId: string) {
   }, []);
 
   const fetchMarket = useCallback(async () => {
-    // Try camera_markets first (cam_ prefix)
-    const { data } = await supabase
-      .from("camera_markets")
-      .select("*")
-      .eq("id", marketId)
-      .maybeSingle();
-    if (data) {
-      setMarket(data as CameraMarket);
-      setCurrentCount(data.current_count || 0);
-      setLoading(false);
-      return;
-    }
+    try {
+      // Try camera_markets first (cam_ prefix)
+      const { data } = await supabase
+        .from("camera_markets")
+        .select("*")
+        .eq("id", marketId)
+        .maybeSingle();
+      if (data) {
+        setMarket(data as CameraMarket);
+        setCurrentCount(data.current_count || 0);
+        setLoading(false);
+        return;
+      }
 
-    // Fallback: check prediction_markets for mkt_ markets with stream_url
-    const { data: pmData } = await supabase
-      .from("prediction_markets")
-      .select("*")
-      .eq("id", marketId)
-      .maybeSingle();
-    if (pmData && pmData.stream_url) {
-      // Adapt prediction_market to CameraMarket interface
-      const adapted: CameraMarket = {
-        id: pmData.id,
-        stream_url: pmData.stream_url,
-        stream_type: pmData.stream_type || "youtube",
-        city: pmData.subcategory || "",
-        title: pmData.title,
-        highway: pmData.short_description || "",
-        camera_id: pmData.id,
-        status: pmData.status === "open" ? "open" : "waiting",
-        current_count: 0,
-        round_duration_seconds: 300,
-        thumbnail_url: pmData.banner_url || "",
-        phase: "waiting",
-        phase_ends_at: null,
-        current_threshold: 0,
-        round_number: 0,
-      };
-      setMarket(adapted);
-      setCurrentCount(0);
+      // Fallback: check prediction_markets for mkt_ markets with stream_url
+      const { data: pmData } = await supabase
+        .from("prediction_markets")
+        .select("*")
+        .eq("id", marketId)
+        .maybeSingle();
+      if (pmData && pmData.stream_url) {
+        // Adapt prediction_market to CameraMarket interface
+        const adapted: CameraMarket = {
+          id: pmData.id,
+          stream_url: pmData.stream_url,
+          stream_type: pmData.stream_type || "youtube",
+          city: pmData.subcategory || "",
+          title: pmData.title,
+          highway: pmData.short_description || "",
+          camera_id: pmData.id,
+          status: pmData.status === "open" ? "open" : "waiting",
+          current_count: 0,
+          round_duration_seconds: 300,
+          thumbnail_url: pmData.banner_url || "",
+          phase: "waiting",
+          phase_ends_at: null,
+          current_threshold: 0,
+          round_number: 0,
+        };
+        setMarket(adapted);
+        setCurrentCount(0);
+      }
+    } catch (err) {
+      console.error("[useCameraMarket] Error fetching market data:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [marketId]);
 
   const fetchRound = useCallback(async () => {
@@ -239,7 +244,7 @@ export function useCameraMarket(marketId: string) {
             await fetch("/api/camera/round", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ market_id: marketId, secret: "auto" }),
+              body: JSON.stringify({ market_id: marketId, secret: process.env.NEXT_PUBLIC_WORKER_SECRET || "" }),
             });
           } catch {}
           setTimeout(() => { ticking = false; }, 5000);

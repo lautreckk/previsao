@@ -1,17 +1,12 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const sb = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 function checkAdmin(request: NextRequest): boolean {
   const auth = request.headers.get("authorization")?.replace("Bearer ", "");
   const secret = request.headers.get("x-admin-secret");
-  const adminSecret = process.env.ADMIN_SECRET || "admin";
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret) return false;
   return auth === adminSecret || secret === adminSecret;
 }
 
@@ -32,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = sb();
+  const supabase = supabaseAdmin;
   const { data, error } = await supabase
     .from("api_keys")
     .select("*")
@@ -83,7 +78,7 @@ export async function POST(request: NextRequest) {
 
   const apiKey = generateApiKey();
 
-  const supabase = sb();
+  const supabase = supabaseAdmin;
   const { data, error } = await supabase
     .from("api_keys")
     .insert({
@@ -143,7 +138,7 @@ export async function PATCH(request: NextRequest) {
   if (body.name !== undefined) update.name = body.name;
   if (body.permissions !== undefined) update.permissions = body.permissions;
 
-  const supabase = sb();
+  const supabase = supabaseAdmin;
   const { data, error } = await supabase
     .from("api_keys")
     .update(update)
@@ -180,7 +175,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
-  const supabase = sb();
+  const supabase = supabaseAdmin;
   const { error } = await supabase.from("api_keys").delete().eq("id", body.id);
 
   if (error) {

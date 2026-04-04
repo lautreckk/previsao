@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 
 function genId(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -12,6 +7,8 @@ function genId(prefix: string) {
 
 // POST /api/affiliates/track
 // Actions: "register" (new user signed up via ref link), "deposit" (referred user deposited)
+// Called from client-side during registration/deposit — no admin auth needed
+// Validates affiliate code exists before processing
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { action, code, user_id, user_name, user_email, amount } = body;

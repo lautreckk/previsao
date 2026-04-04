@@ -1,14 +1,20 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxeW1hbG1iYnR6ZG5wYm5lZWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MjUzNDYsImV4cCI6MjA5MDIwMTM0Nn0.Mj_L0h3HGfG4X22Qb3f53oeipNXa91nIGW5-J_zl-kM"
-);
+function checkAdmin(request: NextRequest): boolean {
+  const auth = request.headers.get("authorization")?.replace("Bearer ", "");
+  const secret = request.headers.get("x-admin-secret");
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret) return false;
+  return auth === adminSecret || secret === adminSecret;
+}
 
 // POST: Confirm a specific pending PIX deposit and credit user balance
 export async function POST(request: NextRequest) {
+  if (!checkAdmin(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { pixId } = body;
@@ -103,7 +109,11 @@ export async function POST(request: NextRequest) {
 }
 
 // PUT: Bulk confirm all pending PIX transactions
-export async function PUT() {
+export async function PUT(request: NextRequest) {
+  if (!checkAdmin(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { data: pending } = await supabase
       .from("pix_transactions")

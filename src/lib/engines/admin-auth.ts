@@ -1,9 +1,9 @@
 // ============================================================
-// WINIFY - ADMIN AUTHENTICATION
+// WINIFY - ADMIN AUTHENTICATION (server-side validated)
 // ============================================================
 
-const ADMIN_KEY = "winify_admin_session";
-const ADMIN_USERS_KEY = "winify_admin_users";
+const ADMIN_SESSION_KEY = "winify_admin_session";
+const ADMIN_SECRET_KEY = "winify_admin_secret";
 
 export interface AdminCredential {
   email: string;
@@ -12,34 +12,38 @@ export interface AdminCredential {
   role: string;
 }
 
-// Default admin - change in production
-const DEFAULT_ADMINS: AdminCredential[] = [
-  { email: "admin@winify.com", password: "winify2026", name: "Admin Master", role: "super_admin" },
-];
+export async function adminLogin(email: string, password: string): Promise<{ success: boolean; admin?: Omit<AdminCredential, "password">; error?: string }> {
+  try {
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
 
-function getAdminUsers(): AdminCredential[] {
-  return DEFAULT_ADMINS;
-}
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || "Credenciais invalidas" };
+    }
 
-export function adminLogin(email: string, password: string): { success: boolean; admin?: AdminCredential; error?: string } {
-  const admins = getAdminUsers();
-  const found = admins.find((a) => a.email === email && a.password === password);
-  if (!found) return { success: false, error: "Credenciais invalidas" };
+    if (typeof window !== "undefined") {
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ email: data.admin.email, name: data.admin.name, role: data.admin.role, loginAt: Date.now() }));
+      localStorage.setItem(ADMIN_SECRET_KEY, data.token);
+    }
 
-  if (typeof window !== "undefined") {
-    localStorage.setItem(ADMIN_KEY, JSON.stringify({ email: found.email, name: found.name, role: found.role, loginAt: Date.now() }));
+    return { success: true, admin: data.admin };
+  } catch {
+    return { success: false, error: "Erro de conexao" };
   }
-  return { success: true, admin: found };
 }
 
 export function getAdminSession(): { email: string; name: string; role: string; loginAt: number } | null {
   if (typeof window === "undefined") return null;
   try {
-    const session = JSON.parse(localStorage.getItem(ADMIN_KEY) || "null");
+    const session = JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY) || "null");
     if (!session) return null;
     // Session expires after 8 hours
     if (Date.now() - session.loginAt > 8 * 60 * 60 * 1000) {
-      localStorage.removeItem(ADMIN_KEY);
+      adminLogout();
       return null;
     }
     return session;
@@ -48,9 +52,15 @@ export function getAdminSession(): { email: string; name: string; role: string; 
   }
 }
 
+export function getAdminSecret(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(ADMIN_SECRET_KEY) || "";
+}
+
 export function adminLogout() {
   if (typeof window !== "undefined") {
-    localStorage.removeItem(ADMIN_KEY);
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    localStorage.removeItem(ADMIN_SECRET_KEY);
   }
 }
 

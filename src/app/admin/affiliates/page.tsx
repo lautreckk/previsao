@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { getAdminSecret } from "@/lib/engines/admin-auth";
 
 interface Affiliate {
   id: string;
@@ -66,7 +67,7 @@ export default function AffiliatesPage() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    try { const r = await fetch("/api/affiliates"); const d = await r.json(); if (Array.isArray(d)) setAffiliates(d); } catch {}
+    try { const r = await fetch("/api/affiliates", { headers: { "x-admin-secret": getAdminSecret() } }); const d = await r.json(); if (Array.isArray(d)) setAffiliates(d); } catch {}
     setLoading(false);
   }, []);
 
@@ -74,7 +75,7 @@ export default function AffiliatesPage() {
 
   const openDetail = async (aff: Affiliate) => {
     setSelected(aff); setView("detail");
-    try { const r = await fetch(`/api/affiliates?id=${aff.id}`); const d = await r.json(); setReferrals(d.referrals || []); setCommissions(d.commissions || []); } catch {}
+    try { const r = await fetch(`/api/affiliates?id=${aff.id}`, { headers: { "x-admin-secret": getAdminSecret() } }); const d = await r.json(); setReferrals(d.referrals || []); setCommissions(d.commissions || []); } catch {}
   };
 
   const handleCreate = async () => {
@@ -84,7 +85,7 @@ export default function AffiliatesPage() {
     if (formCode.length < 3) { setFormError("Código mínimo 3 caracteres"); return; }
     setFormLoading(true);
     try {
-      const r = await fetch("/api/affiliates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: formName.trim(), email: formEmail.trim().toLowerCase(), code: formCode.toLowerCase().replace(/[^a-z0-9_-]/g, ""), commission_percent: parseFloat(formCommission) || 10, notes: formNotes }) });
+      const r = await fetch("/api/affiliates", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-secret": getAdminSecret() }, body: JSON.stringify({ name: formName.trim(), email: formEmail.trim().toLowerCase(), code: formCode.toLowerCase().replace(/[^a-z0-9_-]/g, ""), commission_percent: parseFloat(formCommission) || 10, notes: formNotes }) });
       const d = await r.json();
       if (!r.ok) { setFormError(d.error || "Erro"); setFormLoading(false); return; }
       setFormName(""); setFormEmail(""); setFormCode(""); setFormCommission("10"); setFormNotes(""); setView("list"); fetchAll();
@@ -94,14 +95,14 @@ export default function AffiliatesPage() {
 
   const toggleStatus = async (aff: Affiliate) => {
     const s = aff.status === "active" ? "paused" : "active";
-    await fetch("/api/affiliates", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: aff.id, status: s }) });
+    await fetch("/api/affiliates", { method: "PUT", headers: { "Content-Type": "application/json", "x-admin-secret": getAdminSecret() }, body: JSON.stringify({ id: aff.id, status: s }) });
     fetchAll();
     if (selected?.id === aff.id) setSelected({ ...aff, status: s });
   };
 
   const deleteAff = async (id: string) => {
     if (!confirm("Excluir este afiliado e todos os dados?")) return;
-    await fetch(`/api/affiliates?id=${id}`, { method: "DELETE" });
+    await fetch(`/api/affiliates?id=${id}`, { method: "DELETE", headers: { "x-admin-secret": getAdminSecret() } });
     setView("list"); fetchAll();
   };
 

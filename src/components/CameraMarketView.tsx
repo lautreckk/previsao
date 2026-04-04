@@ -6,7 +6,7 @@ import { useUser } from "@/lib/UserContext";
 import BottomNav from "@/components/BottomNav";
 import Link from "next/link";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
 /* ─── Money sound when count increments ─── */
 let moneyAudio: HTMLAudioElement | null = null;
@@ -631,7 +631,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                       await fetch("/api/camera/round", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ market_id: marketId, secret: "auto" }),
+                        body: JSON.stringify({ market_id: marketId, secret: process.env.NEXT_PUBLIC_WORKER_SECRET || "" }),
                       });
                     } catch {}
                   }}
@@ -651,7 +651,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     await fetch("/api/camera/round", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ market_id: marketId, secret: "auto" }),
+                      body: JSON.stringify({ market_id: marketId, secret: process.env.NEXT_PUBLIC_WORKER_SECRET || "" }),
                     });
                   } catch {}
                 }}
