@@ -8,7 +8,8 @@ import SidebarNav from "@/components/SidebarNav";
 import CategoryTabs from "@/components/CategoryTabs";
 import LiveCard from "@/components/LiveCard";
 // BettingSlip removed for cleaner layout
-// Chat panel removed for cleaner layout
+import ChatPanelDesktop from "@/components/ChatPanelDesktop";
+import LiveChat from "@/components/LiveChat";
 import MobileNavNew from "@/components/MobileNavNew";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import { initializeStore, getMarkets, tickAllMarkets } from "@/lib/engines/store";
@@ -127,6 +128,8 @@ export default function Home() {
   const searchRef = useRef<HTMLDivElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [ageVerified, setAgeVerified] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   // Check age verification from localStorage
   useEffect(() => {
@@ -377,7 +380,7 @@ export default function Home() {
         <SidebarNav activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
         {/* Main */}
-        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden">
+        <main className={`flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden transition-all ${chatOpen ? "xl:mr-72" : "xl:mr-8"}`}>
           {/* Banner */}
           <div className="rounded-xl overflow-hidden mb-4">
             <img src="https://ik.imagekit.io/b4wareuuf/images/banner_s_n.png" alt="Banner" className="w-full h-36 sm:h-48 lg:h-56 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
@@ -428,7 +431,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.04] bg-[#080c14] lg:ml-44">
+      <footer className={`border-t border-white/[0.04] bg-[#080c14] lg:ml-44 transition-all ${chatOpen ? "xl:mr-72" : "xl:mr-8"}`}>
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             <div className="col-span-2 sm:col-span-4 lg:col-span-1 mb-4 lg:mb-0">
@@ -466,7 +469,13 @@ export default function Home() {
         </div>
       </footer>
 
-      <MobileNavNew />
+      {/* Chat — desktop sidebar */}
+      <ChatPanelDesktop isOpen={chatOpen} onToggle={() => setChatOpen(!chatOpen)} />
+
+      {/* Chat — mobile modal */}
+      <LiveChat isOpen={mobileChatOpen} onClose={() => setMobileChatOpen(false)} />
+
+      <MobileNavNew onChatOpen={() => setMobileChatOpen(true)} />
     </div>
   );
 }

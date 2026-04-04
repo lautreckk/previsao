@@ -1,11 +1,15 @@
 "use client";
 
-import { Home, TrendingUp, User, Wallet, BookOpen } from "lucide-react";
+import { Home, TrendingUp, User, Wallet, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
 
-export default function MobileNavNew() {
+interface MobileNavNewProps {
+  onChatOpen?: () => void;
+}
+
+export default function MobileNavNew({ onChatOpen }: MobileNavNewProps) {
   const pathname = usePathname();
   const { user } = useUser();
 
@@ -13,7 +17,7 @@ export default function MobileNavNew() {
     { href: "/", icon: Home, label: "Mercados" },
     { href: "/saldos", icon: TrendingUp, label: "Apostas" },
     { href: "/deposito", icon: Wallet, label: "Depositar", center: true },
-    { href: "/ranking", icon: BookOpen, label: "Ranking" },
+    { href: "#chat", icon: MessageCircle, label: "Chat", action: onChatOpen },
     { href: user ? "/perfil" : "/login", icon: User, label: user ? "Perfil" : "Entrar" },
   ];
 
@@ -32,6 +36,15 @@ export default function MobileNavNew() {
                 </div>
                 <span className="text-[9px] font-bold text-white mt-1">{item.label}</span>
               </Link>
+            );
+          }
+
+          if ("action" in item && item.action) {
+            return (
+              <button key={item.href} onClick={item.action} className="flex flex-col items-center justify-center gap-0.5 px-2 py-1 transition-colors text-white/30">
+                <Ic size={20} strokeWidth={1.5} />
+                <span className="text-[9px] font-medium">{item.label}</span>
+              </button>
             );
           }
 

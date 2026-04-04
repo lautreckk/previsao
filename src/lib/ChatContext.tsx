@@ -274,6 +274,31 @@ export function ChatProvider({ children, marketId = null }: ChatProviderProps) {
     })();
   }, [fetchBatch, marketId]);
 
+  // Supabase Realtime: listen for new messages from other users
+  useEffect(() => {
+    const channel = supabase
+      .channel("chat-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload) => {
+          const row = payload.new as { username?: string; message?: string; avatar_url?: string; user_id?: string; market_id?: string | null; created_at?: string };
+          // Only show messages for same scope (global or same market)
+          const msgMarket = row.market_id || null;
+          if (marketId !== msgMarket) return;
+          // Avoid duplicating own messages (already added locally)
+          const ts = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+          const isDuplicate = messages.some((m) => Math.abs(m.ts - ts) < 2000 && m.user === (row.username || ""));
+          if (isDuplicate) return;
+          addMessage(row.username || "@user", row.message || "", row.avatar_url || undefined, row.user_id || undefined);
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketId, addMessage]);
+
   // Cleanup reply timers on unmount
   useEffect(() => {
     return () => {
