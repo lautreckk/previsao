@@ -215,7 +215,7 @@ export default function AdminUsers() {
           <p className="text-sm text-white/40 mt-0.5">{users.length} usuários registrados</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
+          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} onFilter={refresh} />
         <button onClick={() => {
           const csv = ["Nome,Email,Telefone,Saldo,Apostas,Volume,PnL,Pendente,Criado em"];
           users.forEach((u) => csv.push(`"${u.name}","${u.email}","${u.phone}",${u.balance.toFixed(2)},${u.totalBets},${u.totalWagered.toFixed(2)},${u.pnl.toFixed(2)},${u.pendingExposure.toFixed(2)},"${u.createdAt !== "—" ? new Date(u.createdAt).toLocaleDateString("pt-BR") : "—"}"`));
@@ -533,7 +533,7 @@ export default function AdminUsers() {
                   <td className="px-4 py-3.5 text-right text-white/60 text-[13px]">{u.totalBets}</td>
                   <td className="px-4 py-3.5 text-right font-mono text-white/50 text-[13px]">R$ {u.totalWagered.toFixed(0)}</td>
                   <td className={`px-4 py-3.5 text-right font-mono font-semibold text-[13px] ${u.pnl >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>{u.pnl >= 0 ? "+" : ""}R$ {u.pnl.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-right text-[11px] text-white/25">{u.createdAt !== "—" ? new Date(u.createdAt).toLocaleDateString("pt-BR") : "—"}</td>
+                  <td className="px-4 py-3.5 text-right text-[11px] text-white/25">{u.createdAt !== "—" ? new Date(u.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                       <button onClick={(e) => handleQuickBalance(u.id, 100, e)} className="h-7 px-2.5 rounded-full bg-[#10b981]/8 text-[10px] font-semibold text-[#10b981] hover:bg-[#10b981]/15 active:scale-[0.95] transition-all">+100</button>
@@ -583,12 +583,14 @@ export default function AdminUsers() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 text-[11px] text-white/35 mb-3">
+            <div className="flex items-center gap-3 text-[11px] text-white/35 mb-3 flex-wrap">
               <span>{u.totalBets} apostas</span>
               <span className="w-px h-3 bg-white/10" />
               <span>R$ {u.totalWagered.toFixed(0)} vol</span>
               <span className="w-px h-3 bg-white/10" />
               <span className={u.pnl >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}>{u.pnl >= 0 ? "+" : ""}R$ {u.pnl.toFixed(2)}</span>
+              <span className="w-px h-3 bg-white/10" />
+              <span>{u.createdAt !== "—" ? new Date(u.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
             </div>
 
             <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>

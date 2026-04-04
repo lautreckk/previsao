@@ -51,7 +51,7 @@ export default function AdminFinance() {
           <h2 className="font-bold text-2xl tracking-tight">Financeiro</h2>
           <p className="text-sm text-white/40 mt-0.5">Transações, apostas e receitas</p>
         </div>
-        <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
+        <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} onFilter={fetchData} />
       </div>
 
       {/* KPIs */}

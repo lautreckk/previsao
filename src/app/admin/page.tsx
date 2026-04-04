@@ -103,7 +103,7 @@ export default function AdminDashboard() {
           <p className="text-sm text-white/40 mt-0.5 capitalize">{dateStr}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
+          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} onFilter={fetchAll} />
           <div className="flex items-center gap-1.5 px-3 py-1.5">
             <div className="w-2 h-2 rounded-full bg-[#80FF00] animate-pulse" />
             <span className="text-xs text-white/40">Ao vivo</span>

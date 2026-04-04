@@ -107,7 +107,7 @@ export default function AdminPix() {
           <p className="text-xs text-white/40 mt-0.5">Gestao de depositos e confirmacoes</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} />
+          <AdminDateFilter startDate={startDate} endDate={endDate} onChangeStart={setStartDate} onChangeEnd={setEndDate} onFilter={refresh} />
           <button onClick={refresh} className="text-xs text-white/50 hover:text-white/80 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03]">
             <span className="material-symbols-outlined text-sm">refresh</span>
           </button>
