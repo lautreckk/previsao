@@ -44,6 +44,10 @@ export default function AdminDashboard() {
   const [recentBets, setRecentBets] = useState<(SupaBet & { user_name?: string; user_email?: string })[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [todayDeposits, setTodayDeposits] = useState(0);
+  const [totalVolume, setTotalVolume] = useState(0);
+  const [totalFee, setTotalFee] = useState(0);
+  const [totalBetsCount, setTotalBetsCount] = useState(0);
+  const [openMarketsCount, setOpenMarketsCount] = useState(0);
 
   useEffect(() => {
     initializeStore();
@@ -72,33 +76,39 @@ export default function AdminDashboard() {
         usersData.forEach((u: SupaUser) => { usersMap[u.id] = u; });
       }
 
-      // Fetch won bets (recent 20)
+      // Fetch won bets (recent 20) — try prediction_bets first, fallback to bets
       const { data: wonData } = await supabase
-        .from("bets")
+        .from("prediction_bets")
         .select("*")
         .eq("status", "won")
         .order("created_at", { ascending: false })
         .limit(20);
-      if (wonData) {
+      if (wonData && wonData.length > 0) {
         setWonBets(wonData.map((b: SupaBet) => ({
           ...b,
           user_name: usersMap[b.user_id]?.name || "\u2014",
           user_email: usersMap[b.user_id]?.email || "\u2014",
         })));
+      } else {
+        const { data: wonFallback } = await supabase.from("bets").select("*").eq("status", "won").order("created_at", { ascending: false }).limit(20);
+        if (wonFallback) setWonBets(wonFallback.map((b: SupaBet) => ({ ...b, user_name: usersMap[b.user_id]?.name || "\u2014", user_email: usersMap[b.user_id]?.email || "\u2014" })));
       }
 
-      // Fetch all recent bets (last 30)
+      // Fetch all recent bets (last 30) — try prediction_bets first
       const { data: betsData } = await supabase
-        .from("bets")
+        .from("prediction_bets")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(30);
-      if (betsData) {
+      if (betsData && betsData.length > 0) {
         setRecentBets(betsData.map((b: SupaBet) => ({
           ...b,
           user_name: usersMap[b.user_id]?.name || "\u2014",
           user_email: usersMap[b.user_id]?.email || "\u2014",
         })));
+      } else {
+        const { data: betsFallback } = await supabase.from("bets").select("*").order("created_at", { ascending: false }).limit(30);
+        if (betsFallback) setRecentBets(betsFallback.map((b: SupaBet) => ({ ...b, user_name: usersMap[b.user_id]?.name || "\u2014", user_email: usersMap[b.user_id]?.email || "\u2014" })));
       }
 
       // Today's deposits
@@ -112,6 +122,26 @@ export default function AdminDashboard() {
       if (depData) {
         setTodayDeposits(depData.reduce((s: number, d: { amount: number }) => s + Number(d.amount), 0));
       }
+
+      // Real volume & fee from prediction_bets
+      const { data: allBetsForVolume } = await supabase
+        .from("prediction_bets")
+        .select("amount, status")
+        .limit(1000);
+      if (allBetsForVolume) {
+        const vol = allBetsForVolume.reduce((s: number, b: { amount: number }) => s + Number(b.amount), 0);
+        setTotalVolume(vol);
+        setTotalFee(vol * 0.05); // 5% house fee
+        setTotalBetsCount(allBetsForVolume.length);
+      }
+
+      // Open markets count from Supabase
+      const { data: openMkts } = await supabase
+        .from("prediction_markets")
+        .select("id")
+        .eq("status", "open")
+        .gt("close_at", new Date().toISOString());
+      if (openMkts) setOpenMarketsCount(openMkts.length);
     };
 
     fetchData();
@@ -135,14 +165,20 @@ export default function AdminDashboard() {
     return d.toDateString() === today.toDateString();
   }).length;
 
+  const volume = totalVolume || stats.volumeToday;
+  const fee = totalFee || stats.feeToday;
+  const exposure = stats.totalExposure;
+  const openMkts = openMarketsCount || stats.openMarkets;
+  const betsCount = totalBetsCount || stats.totalBetsToday;
+
   const kpis = [
-    { label: "Volume Hoje", value: `R$ ${stats.volumeToday.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "trending_up", color: "#10b981" },
-    { label: "Receita (Fee)", value: `R$ ${stats.feeToday.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "payments", color: "#f59e0b" },
-    { label: "Depositos Hoje", value: `R$ ${todayDeposits.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "account_balance", color: "#6366f1" },
-    { label: "Exposicao Aberta", value: `R$ ${stats.totalExposure.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "shield", color: stats.totalExposure > 100000 ? "#ef4444" : "#10b981" },
-    { label: "Mercados Abertos", value: String(stats.openMarkets), icon: "storefront", color: "#6366f1" },
-    { label: "Apostas Hoje", value: String(stats.totalBetsToday), icon: "confirmation_number", color: "#10b981" },
-    { label: "Ganhadores Hoje", value: String(winnersToday), icon: "emoji_events", color: "#f59e0b" },
+    { label: "Volume", value: `R$ ${volume.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "trending_up", color: "#10b981" },
+    { label: "Receita (Fee)", value: `R$ ${fee.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "payments", color: "#f59e0b" },
+    { label: "Depositos", value: `R$ ${todayDeposits.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "account_balance", color: "#6366f1" },
+    { label: "Exposicao Aberta", value: `R$ ${exposure.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, icon: "shield", color: exposure > 100000 ? "#ef4444" : "#10b981" },
+    { label: "Mercados Abertos", value: String(openMkts), icon: "storefront", color: "#6366f1" },
+    { label: "Apostas", value: String(betsCount), icon: "confirmation_number", color: "#10b981" },
+    { label: "Ganhadores", value: String(winnersToday), icon: "emoji_events", color: "#f59e0b" },
     { label: "Usuarios", value: String(userCount || stats.totalUsers), icon: "group", color: "#6366f1" },
     { label: "PIX Pendentes", value: String(pendingPix), icon: "hourglass_top", color: pendingPix > 0 ? "#f59e0b" : "#10b981" },
     { label: "Alertas", value: String(stats.activeAlerts), icon: "notification_important", color: stats.activeAlerts > 0 ? "#ef4444" : "#10b981" },
