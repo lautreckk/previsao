@@ -8,6 +8,53 @@ import Link from "next/link";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
 
+/* ─── Money sound when count increments ─── */
+let moneyAudio: HTMLAudioElement | null = null;
+function playBeep() {
+  try {
+    if (!moneyAudio) {
+      moneyAudio = new Audio("/sounds/money.mp3");
+      moneyAudio.volume = 0.3;
+    }
+    // Clone to allow overlapping plays
+    const sound = moneyAudio.cloneNode() as HTMLAudioElement;
+    sound.volume = 0.3;
+    sound.play().catch(() => {});
+  } catch {}
+}
+
+/* ─── Animated Count (odometer style) ─── */
+function AnimatedCount({ value, onIncrement }: { value: number; onIncrement?: () => void }) {
+  const [display, setDisplay] = useState(value);
+  const [flash, setFlash] = useState(false);
+  const prevRef = useRef(value);
+
+  useEffect(() => {
+    if (value === display) return;
+    const increased = value > prevRef.current;
+    prevRef.current = value;
+    if (increased) onIncrement?.();
+    setFlash(true);
+    const diff = value - display;
+    const steps = Math.min(Math.abs(diff), 10);
+    const stepTime = 150 / steps;
+    let current = display;
+    const iv = setInterval(() => {
+      current += diff > 0 ? 1 : -1;
+      setDisplay(current);
+      if (current === value) clearInterval(iv);
+    }, stepTime);
+    const flashTimer = setTimeout(() => setFlash(false), 300);
+    return () => { clearInterval(iv); clearTimeout(flashTimer); };
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <span className={`transition-all duration-200 ${flash ? "scale-110 text-white" : "scale-100"}`}>
+      {display}
+    </span>
+  );
+}
+
 /* ─── Countdown Timer ─── */
 function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
   const [timeLeft, setTimeLeft] = useState("--:--");
@@ -33,147 +80,110 @@ function CountdownTimer({ endsAt, label }: { endsAt: string; label?: string }) {
   );
 }
 
-/* ─── Hybrid Stream: HLS live → fallback to worker frame ─── */
-function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl: string; count: number; cameraId: string }) {
+/* ─── Live Stream: HLS from our server (annotated video with boxes) ─── */
+function LiveStream({ marketId, count }: { marketId: string; count: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [mode, setMode] = useState<"loading" | "hls" | "frame">("loading");
-  const [frameTs, setFrameTs] = useState(Date.now());
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
+  const hlsRef = useRef<any>(null);
+  const [connected, setConnected] = useState(false);
+  const [buffering, setBuffering] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const prevCountRef = useRef(count);
 
-  // Use our proxy URL instead of direct camera URL (avoids CORS/SSL, more stable)
-  const proxyUrl = `/api/camera/stream?cam=${cameraId}`;
+  // Sound effect when count increases
+  useEffect(() => {
+    if (count > prevCountRef.current && !muted) {
+      playBeep();
+    }
+    prevCountRef.current = count;
+  }, [count, muted]);
 
-  // Try HLS first, fallback to frame after 10s or on error
+  // HLS from our MediaMTX server (proxied through Next.js API for HTTPS)
+  const hlsUrl = `/api/camera/stream/${marketId}/index.m3u8`;
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let hls: any = null;
-    const fallbackTimer = setTimeout(() => {
-      setMode((m) => m === "loading" ? "frame" : m);
-    }, 4000);
+    let cancelled = false;
 
-    async function setup() {
-      if (!video) return;
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = proxyUrl;
-        video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
-      } else {
-        const { default: Hls } = await import("hls.js");
-        if (Hls.isSupported()) {
-          const h = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            liveSyncDurationCount: 2,
-            liveMaxLatencyDurationCount: 4,
-            maxBufferLength: 10,
-            maxMaxBufferLength: 20,
-            fragLoadingTimeOut: 8000,
-            manifestLoadingTimeOut: 8000,
-            levelLoadingTimeOut: 8000,
-          });
-          h.loadSource(proxyUrl);
-          h.attachMedia(video);
-          h.on(Hls.Events.MANIFEST_PARSED, () => {
-            video.play().then(() => { setMode("hls"); clearTimeout(fallbackTimer); }).catch(() => setMode("frame"));
-          });
-          h.on(Hls.Events.ERROR, (_event: unknown, data: { fatal: boolean; type: string }) => {
-            if (data.fatal) {
-              // Try to recover once before giving up
-              setTimeout(() => { h.loadSource(proxyUrl); h.startLoad(); }, 2000);
-              setTimeout(() => { if (modeRef.current !== "hls") setMode("frame"); }, 8000);
+    // Track actual playback start (not just manifest parsed)
+    const onPlaying = () => { if (!cancelled) { setConnected(true); setBuffering(false); } };
+    const onWaiting = () => { if (!cancelled) setBuffering(true); };
+    const onCanPlay = () => { if (!cancelled) setBuffering(false); };
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("canplay", onCanPlay);
+
+    async function setupHLS() {
+      const { default: Hls } = await import("hls.js");
+      if (cancelled) return;
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          liveSyncDurationCount: 4,
+          liveMaxLatencyDurationCount: 8,
+          enableWorker: true,
+          lowLatencyMode: false,
+          backBufferLength: 10,
+          maxBufferLength: 20,
+          maxMaxBufferLength: 30,
+        });
+        hlsRef.current = hls;
+        hls.loadSource(hlsUrl);
+        hls.attachMedia(video!);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video?.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (_: any, data: any) => {
+          if (data.fatal) {
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              setTimeout(() => { if (!cancelled) hls.startLoad(); }, 3000);
+            } else {
+              hls.destroy();
+              setTimeout(() => { if (!cancelled) setupHLS(); }, 5000);
             }
-          });
-          hls = h;
-        } else {
-          setMode("frame");
-        }
+          }
+        });
+      } else if (video!.canPlayType("application/vnd.apple.mpegurl")) {
+        video!.src = hlsUrl;
+        video!.addEventListener("loadedmetadata", () => { video?.play().catch(() => {}); });
       }
     }
-
-    setup();
-    return () => { hls?.destroy(); clearTimeout(fallbackTimer); };
-  }, [proxyUrl]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Refresh frame every 2s in frame mode
-  useEffect(() => {
-    if (mode !== "frame") return;
-    const iv = setInterval(() => setFrameTs(Date.now()), 2000);
-    return () => clearInterval(iv);
-  }, [mode]);
-
-  // Periodically retry HLS if stuck in frame mode (every 30s)
-  useEffect(() => {
-    if (mode !== "frame") return;
-    const video = videoRef.current;
-    if (!video) return;
-    const retryIv = setInterval(async () => {
-      try {
-        const res = await fetch(proxyUrl, { method: "HEAD" });
-        if (res.ok && video.canPlayType("application/vnd.apple.mpegurl")) {
-          video.src = proxyUrl;
-          video.play().then(() => setMode("hls")).catch(() => {});
-        } else if (res.ok) {
-          const { default: Hls } = await import("hls.js");
-          if (Hls.isSupported()) {
-            const h = new Hls({ enableWorker: true, lowLatencyMode: true, liveSyncDurationCount: 2, liveMaxLatencyDurationCount: 4, maxBufferLength: 10 });
-            h.loadSource(proxyUrl);
-            h.attachMedia(video);
-            h.on(Hls.Events.MANIFEST_PARSED, () => {
-              video.play().then(() => setMode("hls")).catch(() => { h.destroy(); });
-            });
-            h.on(Hls.Events.ERROR, (_e: unknown, d: { fatal: boolean }) => { if (d.fatal) h.destroy(); });
-          }
-        }
-      } catch {}
-    }, 30000);
-    return () => clearInterval(retryIv);
-  }, [mode, proxyUrl]);
-
-  const frameUrl = `${SUPABASE_URL}/storage/v1/object/public/camera-frames/${marketId}/latest.jpg?t=${frameTs}`;
+    setupHLS();
+    return () => {
+      cancelled = true;
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("canplay", onCanPlay);
+    };
+  }, [hlsUrl]);
 
   return (
-    <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-      {/* HLS video (hidden in frame mode) */}
+    <div className="relative w-full" style={{ paddingBottom: "80%" }}>
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className={`absolute inset-0 w-full h-full object-contain rounded-lg bg-black ${mode === "frame" ? "hidden" : ""}`}
+        className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
       />
 
-      {/* Worker frame fallback */}
-      {mode === "frame" && (
-        <img
-          src={frameUrl}
-          alt="Camera ao vivo"
-          className="absolute inset-0 w-full h-full object-contain rounded-lg bg-black"
-          onError={() => {}}
-        />
-      )}
-
-      {/* Counting zone indicator — subtle, only in HLS mode (frame mode has OpenCV annotations) */}
-      {mode === "hls" && (
-        <div className="absolute inset-0 pointer-events-none z-[5] rounded-lg overflow-hidden">
-          <div className="absolute left-[10%] right-[25%]" style={{ top: "55%" }}>
-            <div className="w-full border-t-2 border-dashed border-[#00FF00]/50" style={{ boxShadow: "0 0 4px #00FF00" }} />
-            <div className="absolute -top-5 left-0 bg-black/60 px-2 py-0.5 rounded">
-              <span className="text-[9px] font-bold text-[#00FF00]/70 uppercase tracking-wider">ZONA DE CONTAGEM</span>
-            </div>
+      {/* Loading — until video actually plays */}
+      {!connected && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
+          <div className="text-center">
+            <div className="w-10 h-10 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-xs text-white/70 font-bold">Carregando camera...</p>
+            <p className="text-[10px] text-white/40 mt-1">Processando IA em tempo real</p>
           </div>
         </div>
       )}
 
-      {/* Loading spinner */}
-      {mode === "loading" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black rounded-lg z-[6]">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-[10px] text-white/50">Conectando camera...</p>
-          </div>
+      {/* Buffering indicator (when connected but rebuffering) */}
+      {connected && buffering && (
+        <div className="absolute inset-0 flex items-center justify-center z-[6] pointer-events-none">
+          <div className="w-8 h-8 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
@@ -183,18 +193,15 @@ function LiveStream({ marketId, count, cameraId }: { marketId: string; streamUrl
         <span className="text-[10px] font-black uppercase tracking-widest text-white">AO VIVO</span>
       </div>
 
-      {/* Mode indicator */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#80FF00]/20">
-        <span className="text-[10px] font-bold text-[#80FF00] uppercase tracking-widest">
-          {mode === "hls" ? "STREAM AO VIVO" : mode === "frame" ? "IA YOLO" : "..."}
-        </span>
-      </div>
 
-      {/* Count overlay */}
-      <div className="absolute bottom-3 left-3 z-10 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 border border-[#80FF00]/30">
-        <p className="text-[8px] uppercase tracking-widest text-white/50 font-bold">Contagem Atual</p>
-        <p className="text-3xl font-black text-[#80FF00] tabular-nums leading-none">{count}</p>
-      </div>
+      {/* Mute/unmute button */}
+      <button
+        onClick={() => setMuted((m) => !m)}
+        className="absolute bottom-3 right-3 z-10 bg-black/70 backdrop-blur-md px-3 py-2 rounded-full text-white/70 hover:text-white transition-colors"
+        title={muted ? "Ativar som" : "Silenciar"}
+      >
+        <span className="material-symbols-outlined text-sm">{muted ? "volume_off" : "volume_up"}</span>
+      </button>
     </div>
   );
 }
@@ -431,6 +438,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
   const [placing, setPlacing] = useState(false);
   const [betMsg, setBetMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [tab, setTab] = useState<"posicoes" | "aberto" | "encerradas">("posicoes");
+  const [mobilePanel, setMobilePanel] = useState<"camera" | "posicoes" | "chat">("camera");
   const [myPredictions, setMyPredictions] = useState<
     { id: string; prediction_type: string; threshold: number; amount_brl: number; odds_at_entry: number; payout: number; status: string }[]
   >([]);
@@ -480,11 +488,32 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
 
   return (
     <div className="h-screen bg-[#080d1a] text-white overflow-hidden">
-      {/* ─── DESKTOP: 3-column layout like Palpitano ─── */}
-      <div className="flex flex-col lg:flex-row h-screen">
+      {/* ─── MOBILE: Panel switcher tabs ─── */}
+      <div className="lg:hidden flex border-b border-white/[0.04] bg-[#0D0B14] sticky top-0 z-20">
+        {([
+          { key: "camera" as const, icon: "videocam", label: "Camera" },
+          { key: "posicoes" as const, icon: "receipt_long", label: "Posicoes" },
+          { key: "chat" as const, icon: "forum", label: "Chat" },
+        ]).map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setMobilePanel(p.key)}
+            className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider transition-colors ${
+              mobilePanel === p.key
+                ? "text-[#80FF00] border-b-2 border-[#80FF00]"
+                : "text-white/40"
+            }`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>{p.icon}</span>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-41px-70px)] lg:h-screen">
 
         {/* ─── LEFT COLUMN: Stream + Betting ─── */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto ${mobilePanel !== "camera" ? "hidden lg:flex" : ""}`}>
 
           {/* Top bar: Title + Timer */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14]">
@@ -515,11 +544,10 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             )}
           </header>
 
-          {/* Counter + Phase label */}
+          {/* Phase label — count is shown IN the video by the worker */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0a1222]">
             <div className="flex items-center gap-3">
-              <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Contagem atual:</span>
-              <span className="text-2xl font-black text-[#80FF00] tabular-nums">{currentCount}</span>
+              <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Rodada {market.round_number}</span>
             </div>
             <div>
               {isBetting && (
@@ -542,7 +570,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
 
           {/* Live HLS stream */}
           <div className="px-4 pt-3">
-            <LiveStream marketId={marketId} streamUrl={market.stream_url} count={currentCount} cameraId={market.camera_id || marketId} />
+            <LiveStream marketId={marketId} count={currentCount} />
           </div>
 
           {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}
@@ -636,7 +664,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
         </div>
 
         {/* ─── MIDDLE COLUMN: Positions + Bet form ─── */}
-        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0a1222] overflow-hidden">
+        <div className={`w-full lg:w-[340px] lg:border-l border-white/[0.04] flex flex-col bg-[#0a1222] overflow-hidden ${mobilePanel !== "posicoes" ? "hidden lg:flex" : ""}`}>
           {/* Tabs */}
           {selectedType ? (
             /* Bet form when type is selected */
@@ -770,7 +798,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
         </div>
 
         {/* ─── RIGHT COLUMN: Chat ao Vivo ─── */}
-        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden">
+        <div className={`w-full lg:w-[340px] lg:border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden ${mobilePanel !== "chat" ? "hidden lg:flex" : ""}`}>
           <InlineChat />
         </div>
       </div>
