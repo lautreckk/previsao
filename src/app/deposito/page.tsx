@@ -21,7 +21,7 @@ export default function DepositoPage() {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const confirmedRef = useRef(false);
   const balanceBeforeRef = useRef(0);
-  const presetAmounts = [10, 25, 50, 100, 250, 500];
+  const presetAmounts = [15, 25, 50, 100, 250, 500];
 
   const confirmPayment = useCallback(async () => {
     confirmedRef.current = true;
@@ -110,7 +110,7 @@ export default function DepositoPage() {
   }
 
   const handleGeneratePix = async () => {
-    if (!amount || parseFloat(amount) < 1) return;
+    if (!amount || parseFloat(amount) < 15) return;
     setLoading(true); setErrorMsg(""); confirmedRef.current = false;
     balanceBeforeRef.current = user.balance; // Save balance before deposit
     try {
@@ -169,8 +169,8 @@ export default function DepositoPage() {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg font-bold">R$</span>
                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" min="1" className="w-full bg-surface-container-lowest rounded-2xl pl-12 pr-4 py-4 text-white text-2xl font-black outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-white/5" />
               </div>
-              <p className="text-xs text-on-surface-variant mb-4">Valor minimo: R$ 1,00</p>
-              <button onClick={handleGeneratePix} disabled={loading || !amount || parseFloat(amount) < 1} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base disabled:opacity-40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider glow-green">
+              <p className="text-xs text-on-surface-variant mb-4">Valor minimo: R$ 15,00</p>
+              <button onClick={handleGeneratePix} disabled={loading || !amount || parseFloat(amount) < 15} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base disabled:opacity-40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider glow-green">
                 {loading ? (<><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Gerando PIX...</>) : (<><span className="material-symbols-outlined text-sm">pix</span>Gerar PIX</>)}
               </button>
             </div>

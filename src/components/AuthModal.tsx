@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
 import { trackLead, trackPageView } from "@/lib/pixel";
+import { validateCPF } from "@/lib/cpf";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -70,6 +71,7 @@ export default function AuthModal({ isOpen, onClose, initialTab = "login" }: Aut
     if (!regEmail.includes("@") || !regEmail.includes(".")) { setError("Digite um e-mail valido"); return; }
     if (!regPhone || regPhone.replace(/\D/g, "").length < 10) { setError("Digite um telefone valido"); return; }
     if (regCpf.replace(/\D/g, "").length !== 11) { setError("Digite um CPF valido"); return; }
+    if (!validateCPF(regCpf)) { setError("CPF inválido"); return; }
     setStep(2);
   };
 

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/lib/UserContext";
 import { trackLead, trackPageView } from "@/lib/pixel";
+import { validateCPF } from "@/lib/cpf";
 
 function CriarContaInner() {
   const router = useRouter();
@@ -46,6 +47,7 @@ function CriarContaInner() {
     if (!email.includes("@") || !email.includes(".")) { setError("Digite um e-mail valido"); return; }
     if (!phone || phone.replace(/\D/g, "").length < 10) { setError("Digite um telefone valido"); return; }
     if (cpf.replace(/\D/g, "").length !== 11) { setError("Digite um CPF valido"); return; }
+    if (!validateCPF(cpf)) { setError("CPF inválido"); return; }
     setStep(2);
   };
 

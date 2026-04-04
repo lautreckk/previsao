@@ -99,13 +99,18 @@ export async function POST(request: NextRequest) {
     const newWagered = (Number(userData.total_wagered) || 0) + amount;
     // Recalculate level
     const level = newPredictions >= 500 ? 8 : newPredictions >= 350 ? 7 : newPredictions >= 200 ? 6 : newPredictions >= 100 ? 5 : newPredictions >= 50 ? 4 : newPredictions >= 30 ? 3 : newPredictions >= 10 ? 2 : 1;
-    await supabase.from("users").update({
+    const { error: balanceErr } = await supabase.from("users").update({
       balance: newBalance,
       total_predictions: newPredictions,
       total_wagered: newWagered,
       level,
       updated_at: new Date().toISOString(),
     }).eq("id", user_id);
+
+    if (balanceErr) {
+      console.error("[markets/bet] Balance update error:", balanceErr);
+      return NextResponse.json({ error: "Erro ao atualizar saldo" }, { status: 500 });
+    }
 
     // Fetch current price as entry_price (for chart marker)
     let entryPrice: number | null = null;
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     // Create bet
     const betId = `bet_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    await supabase.from("prediction_bets").insert({
+    const { error: betErr } = await supabase.from("prediction_bets").insert({
       id: betId,
       user_id,
       market_id,
@@ -145,6 +150,18 @@ export async function POST(request: NextRequest) {
       entry_price: entryPrice,
       status: "pending",
     });
+
+    if (betErr) {
+      console.error("[markets/bet] Bet insert error:", betErr);
+      // Rollback balance deduction
+      await supabase.from("users").update({
+        balance: Number(userData.balance),
+        total_predictions: Number(userData.total_predictions) || 0,
+        total_wagered: Number(userData.total_wagered) || 0,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user_id);
+      return NextResponse.json({ error: "Erro ao registrar aposta" }, { status: 500 });
+    }
 
     // Update market pools
     const userAlreadyBetOnOutcome = (userBetsRaw || []).some(
@@ -169,7 +186,7 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    await supabase
+    const { error: poolErr } = await supabase
       .from("prediction_markets")
       .update({
         outcomes: updatedOutcomes,
@@ -177,6 +194,11 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", market_id);
+
+    if (poolErr) {
+      console.error("[markets/bet] Pool update error:", poolErr);
+      // Non-fatal: bet was placed, pool update failed — log but continue
+    }
 
     // Ledger entry
     await supabase.from("ledger").insert({

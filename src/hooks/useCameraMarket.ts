@@ -46,7 +46,6 @@ export function useCameraMarket(marketId: string) {
   const [currentCount, setCurrentCount] = useState(0);
   const [odds, setOdds] = useState<Odds>({ over: 0, under: 0 });
   const [loading, setLoading] = useState(true);
-  const [detectionBoxes, setDetectionBoxes] = useState<Array<{ x1: number; y1: number; x2: number; y2: number; c: number }>>([]);
   const [lastResult, setLastResult] = useState<{
     final_count: number;
     threshold: number;
@@ -137,12 +136,10 @@ export function useCameraMarket(marketId: string) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "camera_markets", filter: `id=eq.${marketId}` },
         (payload) => {
-          const updated = payload.new as any;
+          const updated = payload.new as CameraMarket;
+          // Update count immediately from DB change (fastest path)
           if (updated.current_count !== undefined) {
             setCurrentCount(updated.current_count);
-          }
-          if (updated.detection_boxes && Array.isArray(updated.detection_boxes)) {
-            setDetectionBoxes(updated.detection_boxes);
           }
           setMarket((prev) => (prev ? { ...prev, ...updated } : null));
         }
@@ -198,14 +195,7 @@ export function useCameraMarket(marketId: string) {
         );
       })
       .on("broadcast", { event: "count.sync" }, ({ payload }) => {
-        console.log("[RT] count.sync", payload.count, "boxes:", payload.boxes?.length || 0);
-        if (payload.count !== undefined) setCurrentCount(payload.count);
-        if (payload.boxes) setDetectionBoxes(payload.boxes);
-      })
-      .on("broadcast", { event: "detections" }, ({ payload }) => {
-        console.log("[RT] detections", payload.count, "boxes:", payload.boxes?.length || 0);
-        if (payload.count !== undefined) setCurrentCount(payload.count);
-        if (payload.boxes) setDetectionBoxes(payload.boxes);
+        setCurrentCount(payload.count);
       })
       .on("broadcast", { event: "round.resolved" }, ({ payload }) => {
         setLastResult({
@@ -236,13 +226,9 @@ export function useCameraMarket(marketId: string) {
         .eq("id", marketId)
         .maybeSingle();
       if (data) {
-        // Only update state if values actually changed (avoid unnecessary re-renders)
-        setCurrentCount((prev) => data.current_count !== prev ? (data.current_count || 0) : prev);
-        setMarket((prev) => {
-          if (!prev) return null;
-          const changed = prev.phase !== data.phase || prev.round_number !== data.round_number || prev.status !== data.status;
-          return changed ? { ...prev, ...data } : prev;
-        });
+        // Sync count as fallback (postgres_changes is primary)
+        setCurrentCount(data.current_count || 0);
+        setMarket((prev) => (prev ? { ...prev, ...data } : null));
 
         // Auto-tick: if phase expired or waiting, call round endpoint to advance
         const expired = data.phase_ends_at && new Date(data.phase_ends_at).getTime() < Date.now();
@@ -268,7 +254,6 @@ export function useCameraMarket(marketId: string) {
     market,
     currentRound,
     currentCount,
-    detectionBoxes,
     odds,
     loading,
     lastResult,
