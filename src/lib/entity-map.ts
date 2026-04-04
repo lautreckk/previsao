@@ -306,21 +306,21 @@ export const ENTITY_MAP: EntityEntry[] = [
     name: "Bitcoin",
     aliases: ["bitcoin", "btc"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/220px-Bitcoin.svg.png",
+      "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png",
     type: "crypto",
   },
   {
     name: "Ethereum",
     aliases: ["ethereum", "eth"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/220px-Ethereum-icon-purple.svg.png",
+      "https://assets.coingecko.com/coins/images/279/standard/ethereum.png",
     type: "crypto",
   },
   {
     name: "Solana",
     aliases: ["solana", "sol"],
     image_url:
-      "https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/Solana_logo.png/220px-Solana_logo.png",
+      "https://assets.coingecko.com/coins/images/4128/standard/solana.png",
     type: "crypto",
   },
 
