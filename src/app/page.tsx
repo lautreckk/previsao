@@ -171,13 +171,11 @@ export default function Home() {
           .order("resolved_at", { ascending: false })
           .limit(10);
 
-        // Fetch active camera markets — only show cameras with active workers (updated in last 2 min)
-        const twoMinAgo = new Date(Date.now() - 120_000).toISOString();
+        // Fetch all active camera markets
         const { data: cameraData } = await supabase
           .from("camera_markets")
           .select("*")
-          .in("status", ["waiting", "open"])
-          .gte("updated_at", twoMinAgo);
+          .in("status", ["waiting", "open"]);
 
         // Fetch camera round pools for odds
         const camIds = (cameraData || []).map((c: Record<string, unknown>) => `cr_${c.id}_${c.round_number}`);
