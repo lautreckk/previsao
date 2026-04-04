@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getBets, getLedger, initializeStore, saveLedgerEntry } from "@/lib/engines/store";
-import { getAllRegisteredUsers, getAllRegisteredUsersAsync, adminSetBalance, adminAddBalance, adminUpdateUser, adminGetUserPassword, adminDeleteUser } from "@/lib/UserContext";
-import type { Bet, LedgerEntry } from "@/lib/engines/types";
+import { useEffect, useState, useCallback } from "react";
+import { initializeStore, saveLedgerEntry } from "@/lib/engines/store";
+import { adminSetBalance, adminAddBalance, adminUpdateUser, adminGetUserPassword, adminDeleteUser } from "@/lib/UserContext";
+import { supabase } from "@/lib/supabase";
+import type { LedgerEntry } from "@/lib/engines/types";
 
 interface UserSummary {
   id: string; name: string; email: string; phone: string; balance: number; createdAt: string;
@@ -17,9 +18,10 @@ const labelCls = "text-[11px] text-white/40 font-medium block mb-1.5";
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [userBets, setUserBets] = useState<Bet[]>([]);
+  const [userBets, setUserBets] = useState<{ id: string; market_id: string; outcome_label: string; amount: number; payout_at_entry: number; final_payout: number; status: string; created_at: string; user_id: string }[]>([]);
   const [userLedger, setUserLedger] = useState<LedgerEntry[]>([]);
   const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all">("30d");
 
   const [editMode, setEditMode] = useState<"view" | "edit_info" | "edit_balance" | "quick_balance">("view");
   const [editName, setEditName] = useState("");
@@ -36,53 +38,70 @@ export default function AdminUsers() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
-  const refresh = async () => {
-    initializeStore();
-    const registeredUsers = await getAllRegisteredUsersAsync();
-    const bets = getBets();
+  const getPeriodStart = useCallback(() => {
+    const now = new Date();
+    if (period === "today") { now.setHours(0, 0, 0, 0); return now.toISOString(); }
+    if (period === "7d") return new Date(Date.now() - 7 * 86400000).toISOString();
+    if (period === "30d") return new Date(Date.now() - 30 * 86400000).toISOString();
+    return "2020-01-01T00:00:00Z";
+  }, [period]);
+
+  const refresh = useCallback(async () => {
+    const periodStart = getPeriodStart();
+
+    // Fetch all users from Supabase (exclude bots)
+    const { data: usersData } = await supabase
+      .from("users")
+      .select("id, name, email, phone, balance, created_at, is_bot")
+      .eq("is_bot", false)
+      .order("created_at", { ascending: false });
+
+    // Fetch bets from Supabase
+    const { data: betsData } = await supabase
+      .from("prediction_bets")
+      .select("user_id, amount, payout_at_entry, final_payout, status")
+      .gte("created_at", periodStart)
+      .limit(2000);
 
     const betStats: Record<string, { totalBets: number; totalWagered: number; totalWon: number; totalLost: number; pnl: number; pendingBets: number; pendingExposure: number }> = {};
-    bets.forEach((b) => {
+    (betsData || []).forEach((b: { user_id: string; amount: number; payout_at_entry: number; final_payout: number; status: string }) => {
       if (!betStats[b.user_id]) betStats[b.user_id] = { totalBets: 0, totalWagered: 0, totalWon: 0, totalLost: 0, pnl: 0, pendingBets: 0, pendingExposure: 0 };
       const s = betStats[b.user_id];
-      s.totalBets++; s.totalWagered += b.amount;
-      if (b.status === "won") { s.totalWon += b.final_payout; s.pnl += b.final_payout - b.amount; }
-      if (b.status === "lost") { s.totalLost += b.amount; s.pnl -= b.amount; }
-      if (b.status === "pending") { s.pendingBets++; s.pendingExposure += b.amount; }
+      s.totalBets++; s.totalWagered += Number(b.amount);
+      if (b.status === "won") { s.totalWon += Number(b.final_payout || 0); s.pnl += Number(b.final_payout || 0) - Number(b.amount); }
+      if (b.status === "lost") { s.totalLost += Number(b.amount); s.pnl -= Number(b.amount); }
+      if (b.status === "pending") { s.pendingBets++; s.pendingExposure += Number(b.amount); }
     });
 
-    const allUsers: UserSummary[] = registeredUsers.map((u) => {
+    const allUsers: UserSummary[] = (usersData || []).map((u: { id: string; name: string; email: string; phone: string; balance: number; created_at: string }) => {
       const stats = betStats[u.id] || { totalBets: 0, totalWagered: 0, totalWon: 0, totalLost: 0, pnl: 0, pendingBets: 0, pendingExposure: 0 };
-      return { id: u.id, name: u.name, email: u.email, phone: (u as Record<string,unknown>).phone as string || "", balance: u.balance, createdAt: u.createdAt, ...stats };
+      return { id: u.id, name: u.name, email: u.email, phone: u.phone || "", balance: Number(u.balance), createdAt: u.created_at, ...stats };
     });
 
-    const registeredIds = new Set(registeredUsers.map((u) => u.id));
-    Object.entries(betStats).forEach(([userId, stats]) => {
-      if (!registeredIds.has(userId)) allUsers.push({ id: userId, name: userId.slice(0, 16), email: "—", phone: "", balance: 0, createdAt: "—", ...stats });
-    });
+    setUsers(allUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  }, [getPeriodStart]);
 
-    setUsers(allUsers.sort((a, b) => {
-      if (a.totalBets !== b.totalBets) return b.totalBets - a.totalBets;
-      return (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0);
-    }));
-  };
-
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const handleSelectUser = async (userId: string) => {
     setSelectedUser(userId);
     setEditMode("view");
-    setUserBets(getBets().filter((b) => b.user_id === userId));
-    setUserLedger(getLedger().filter((l) => l.user_id === userId));
-    const cached = await getAllRegisteredUsersAsync();
-    const u = cached.find((x) => x.id === userId);
-    if (u) {
-      setEditName(u.name); setEditEmail(u.email); setEditCpf(u.cpf);
-      const pw = await adminGetUserPassword(userId);
-      setCurrentPassword(pw || "");
+
+    // Fetch user bets from Supabase
+    const { data: bData } = await supabase.from("prediction_bets").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
+    setUserBets((bData || []) as typeof userBets);
+
+    // Fetch user ledger from Supabase
+    const { data: lData } = await supabase.from("ledger").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
+    setUserLedger((lData || []) as LedgerEntry[]);
+
+    // Fetch user details
+    const { data: uData } = await supabase.from("users").select("*").eq("id", userId).maybeSingle();
+    if (uData) {
+      setEditName(uData.name); setEditEmail(uData.email); setEditCpf(uData.cpf || "");
+      setCurrentPassword(uData.password || "");
     }
     setEditPassword(""); setBalanceAmount(""); setBalanceReason(""); setShowPassword(false);
-    // Trigger animation
     requestAnimationFrame(() => setModalVisible(true));
   };
 
@@ -194,11 +213,19 @@ export default function AdminUsers() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-white">Usuarios</h2>
-          <p className="text-sm text-white/40 mt-0.5">{users.length} usuarios registrados</p>
+          <h2 className="text-2xl font-bold tracking-tight text-white">Usuários</h2>
+          <p className="text-sm text-white/40 mt-0.5">{users.length} usuários registrados</p>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-[#12101A] border border-white/[0.06] rounded-lg p-1">
+            {(["today", "7d", "30d", "all"] as const).map(p => (
+              <button key={p} onClick={() => setPeriod(p)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${period === p ? "bg-white/[0.08] text-white" : "text-white/30 hover:text-white/60"}`}>
+                {p === "today" ? "Hoje" : p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
+              </button>
+            ))}
+          </div>
         <button onClick={() => {
           const csv = ["Nome,Email,Telefone,Saldo,Apostas,Volume,PnL,Pendente,Criado em"];
           users.forEach((u) => csv.push(`"${u.name}","${u.email}","${u.phone}",${u.balance.toFixed(2)},${u.totalBets},${u.totalWagered.toFixed(2)},${u.pnl.toFixed(2)},${u.pendingExposure.toFixed(2)},"${u.createdAt !== "—" ? new Date(u.createdAt).toLocaleDateString("pt-BR") : "—"}"`));
@@ -210,6 +237,7 @@ export default function AdminUsers() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
           Exportar CSV
         </button>
+        </div>
       </div>
 
       {/* Search */}
