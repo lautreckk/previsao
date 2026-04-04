@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
             status: isWinner ? "won" : "lost",
             payout: isWinner ? payout : 0,
           }).eq("id", pred.id);
-          updateUserStats(supabase, pred.user_id, isWinner, payout);
+          updateUserStats(supabase, pred.user_id, isWinner, payout, Number(pred.amount_brl));
 
           if (isWinner && payout > 0) {
             winnersCount++;

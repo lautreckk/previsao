@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
             for (const bet of bets) {
               const payout = (bet.amount as number) * payoutPerUnit;
               await supabase.from("live_bets").update({ status: "won", payout }).eq("id", bet.id);
-              updateUserStats(supabase, bet.user_id, true, payout);
+              updateUserStats(supabase, bet.user_id, true, payout, bet.amount as number);
               let credited = false;
               for (let attempt = 0; attempt < 3 && !credited; attempt++) {
                 const { error: rpcErr } = await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });

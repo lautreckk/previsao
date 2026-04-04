@@ -912,8 +912,8 @@ async function resolveOneMarket(supabase: any, market: any): Promise<Record<stri
       const isWinner = bet.outcome_key.toUpperCase() === winningKey?.toUpperCase();
       const payout = isWinner ? bet.amount * payoutPerUnit : 0;
       await supabase.from("prediction_bets").update({ status: isWinner ? "won" : "lost", final_payout: payout }).eq("id", bet.id);
-      // Update user stats (wins/losses/streaks) — non-blocking
-      updateUserStats(supabase, bet.user_id, isWinner, payout);
+      // Update user stats (wins/losses/streaks/cashback) — non-blocking
+      updateUserStats(supabase, bet.user_id, isWinner, payout, bet.amount);
       if (isWinner && payout > 0) {
         // Credit balance with retry on failure
         let credited = false;
@@ -1007,7 +1007,7 @@ export async function processMarketJobs(): Promise<{
               const isWinner = pred.prediction_type === result;
               const payout = isWinner ? Number(pred.amount_brl) * payoutMultiplier : 0;
               await supabase.from("camera_predictions").update({ status: isWinner ? "won" : "lost", payout: isWinner ? payout : 0 }).eq("id", pred.id);
-              updateUserStats(supabase, pred.user_id, isWinner, payout);
+              updateUserStats(supabase, pred.user_id, isWinner, payout, Number(pred.amount_brl));
               if (isWinner && payout > 0) {
                 let credited = false;
                 for (let attempt = 0; attempt < 3 && !credited; attempt++) {

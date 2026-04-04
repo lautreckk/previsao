@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
           payout: isWinner ? payout : 0,
         }).eq("id", pred.id);
 
-        updateUserStats(supabase, pred.user_id, isWinner, payout);
+        updateUserStats(supabase, pred.user_id, isWinner, payout, Number(pred.amount_brl));
         if (isWinner && payout > 0) {
           const { data: user } = await supabase.from("users").select("balance").eq("id", pred.user_id).maybeSingle();
           if (user) {
