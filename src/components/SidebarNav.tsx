@@ -11,7 +11,7 @@ interface SidebarNavProps {
 }
 
 const liveItems = [
-  { label: "Rodovia", live: true, href: "/camera/cam_highway" },
+  { label: "Rodovia", live: true, href: "/camera" },
 ];
 
 const cryptoItems = [
