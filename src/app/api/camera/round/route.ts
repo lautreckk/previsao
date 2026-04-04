@@ -48,12 +48,13 @@ function getNextCamera(currentCameraId: string | null): typeof CAMERAS[0] {
 }
 
 function calculateThreshold(history: { final_count: number }[]): number {
+  const validHistory = history.filter((r) => (r.final_count || 0) > 0);
   const avg =
-    history.length > 0
-      ? Math.round(history.reduce((s, r) => s + (r.final_count || 0), 0) / history.length)
+    validHistory.length > 0
+      ? Math.round(validHistory.reduce((s, r) => s + r.final_count, 0) / validHistory.length)
       : 50;
   const variation = Math.max(Math.floor(avg * 0.1), 1);
-  return avg + Math.floor(Math.random() * variation * 2) - variation;
+  return Math.max(1, avg + Math.floor(Math.random() * variation * 2) - variation);
 }
 
 export async function POST(request: NextRequest) {
@@ -90,10 +91,6 @@ export async function POST(request: NextRequest) {
       const roundId = `cr_${market_id}_${newRoundNumber}`;
       const phaseEnd = new Date(now.getTime() + PHASE_DURATION_MS);
 
-      // Rotate to next camera
-      const nextCam = getNextCamera(market.camera_id);
-      const newStreamUrl = `${HLS_BASE}/${nextCam.id}/stream.m3u8`;
-
       await supabase.from("camera_rounds").insert({
         id: roundId,
         market_id,
@@ -107,6 +104,7 @@ export async function POST(request: NextRequest) {
         total_pool: 0,
       });
 
+      // Keep existing camera_id, title, etc — each market has a fixed camera
       await supabase
         .from("camera_markets")
         .update({
@@ -116,11 +114,6 @@ export async function POST(request: NextRequest) {
           round_number: newRoundNumber,
           current_count: 0,
           status: "open",
-          camera_id: nextCam.id,
-          stream_url: newStreamUrl,
-          highway: nextCam.highway,
-          city: nextCam.city,
-          title: `${nextCam.highway} KM ${nextCam.km}`,
           updated_at: now.toISOString(),
         })
         .eq("id", market_id);
@@ -131,9 +124,9 @@ export async function POST(request: NextRequest) {
         threshold,
         phase: "betting",
         phase_ends_at: phaseEnd.toISOString(),
-        camera_id: nextCam.id,
-        highway: nextCam.highway,
-        city: nextCam.city,
+        camera_id: market.camera_id,
+        highway: market.highway,
+        city: market.city,
       });
 
       return NextResponse.json({
