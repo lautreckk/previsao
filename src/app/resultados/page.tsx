@@ -132,6 +132,20 @@ export default function ResultadosPage() {
 
   useEffect(() => { fetchMarkets(); }, [fetchMarkets]);
 
+  // Realtime: auto-refresh when new markets are resolved
+  useEffect(() => {
+    const channel = supabase
+      .channel("resultados-realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "prediction_markets", filter: "status=eq.resolved" },
+        () => { fetchMarkets(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchMarkets]);
+
   if (!user) {
     return (
       <div className="min-h-screen bg-[#080510] text-white flex items-center justify-center">

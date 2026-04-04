@@ -202,20 +202,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         if (data) {
           setUser(mapDbUser(data));
-          // Load user bets
+          // Load user bets from prediction_bets
           const { data: betData } = await supabase
-            .from("bets")
-            .select("*")
+            .from("prediction_bets")
+            .select("*, prediction_markets(title)")
             .eq("user_id", data.id)
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .limit(100);
           if (betData) {
-            setBets(betData.map((b: Record<string, unknown>) => ({
-              id: b.id as string, marketId: b.market_id as string, marketTitle: b.outcome_label as string,
-              optionId: b.outcome_key as string, optionName: b.outcome_label as string,
-              amount: Number(b.amount), odds: 0, potentialWin: Number(b.payout_at_entry),
-              status: b.status as "pending" | "won" | "lost",
-              createdAt: String(b.created_at),
-            })));
+            setBets(betData.map((b: Record<string, unknown>) => {
+              const market = b.prediction_markets as Record<string, unknown> | null;
+              return {
+                id: b.id as string, marketId: b.market_id as string,
+                marketTitle: (market?.title as string) || (b.outcome_label as string),
+                optionId: b.outcome_key as string, optionName: b.outcome_label as string,
+                amount: Number(b.amount), odds: Number(b.odds) || 0,
+                potentialWin: Number(b.final_payout) || Number(b.amount) * (Number(b.odds) || 1),
+                status: b.status as "pending" | "won" | "lost",
+                createdAt: String(b.created_at),
+              };
+            }));
           }
         } else {
           // User not found in Supabase but has session - clear stale session
@@ -264,6 +270,54 @@ export function UserProvider({ children }: { children: ReactNode }) {
       });
     }, 15000);
     return () => clearInterval(iv);
+  }, [user?.id]);
+
+  // Realtime: listen for bet status changes (pending → won/lost/refunded)
+  useEffect(() => {
+    if (!user?.id) return;
+    const uid = user.id;
+
+    const channel = supabase
+      .channel(`user-bets-${uid}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "prediction_bets", filter: `user_id=eq.${uid}` },
+        (payload) => {
+          const updated = payload.new as Record<string, unknown>;
+          const newStatus = updated.status as string;
+          const betId = updated.id as string;
+
+          // Update local bets state
+          setBets((prev) =>
+            prev.map((b) =>
+              b.id === betId
+                ? { ...b, status: newStatus as "pending" | "won" | "lost", potentialWin: Number(updated.final_payout) || b.potentialWin }
+                : b
+            )
+          );
+
+          // Refresh balance when bet resolves
+          if (newStatus === "won" || newStatus === "lost" || newStatus === "refunded") {
+            supabase.from("users").select("balance, total_wins, total_losses, total_returns").eq("id", uid).single().then(({ data }) => {
+              if (data) {
+                setUser((prev) => {
+                  if (!prev || prev.id !== uid) return prev;
+                  return {
+                    ...prev,
+                    balance: Number(data.balance) || prev.balance,
+                    total_wins: Number(data.total_wins) || prev.total_wins,
+                    total_losses: Number(data.total_losses) || prev.total_losses,
+                    total_returns: Number(data.total_returns) || prev.total_returns,
+                  };
+                });
+              }
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string, referralCode?: string): Promise<boolean> => {

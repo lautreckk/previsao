@@ -5,11 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateAutoMarkets, resolveExpiredMarkets } from "../../v1/auto-markets/engine";
 
 /**
- * Cron: Auto-create and auto-resolve real markets
+ * Cron: Generate new markets + fallback resolution
  *
  * Schedule: every 10 minutes
- * 1. Resolve expired markets (fetch real data, pay winners)
- * 2. Create new markets based on time of day
+ * 1. Fallback: resolve any markets missed by the job dispatcher (safety net)
+ * 2. Create new markets based on time of day (+ schedule jobs for close/resolve)
+ *
+ * Primary resolution now happens via processMarketJobs() in the 1-min cron.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");

@@ -241,21 +241,30 @@ export default function EventoPage() {
     const local = getMarket(id);
     if (local) { setMarket(local); trackViewContent({ marketName: local.title, category: local.category }); } else {
       supabase.from("prediction_markets").select("*").eq("id", id).single().then(({ data }) => {
-        if (data) setMarket({
-          ...data,
-          created_at: new Date(data.created_at).getTime(), open_at: new Date(data.open_at).getTime(),
-          freeze_at: data.freeze_at ? new Date(data.freeze_at).getTime() : 0, close_at: new Date(data.close_at).getTime(),
-          resolve_at: data.resolve_at ? new Date(data.resolve_at).getTime() : 0,
-          resolved_at: data.resolved_at ? new Date(data.resolved_at).getTime() : undefined,
-          pool_total: Number(data.pool_total) || 0, distributable_pool: Number(data.distributable_pool) || 0,
-          house_fee_percent: Number(data.house_fee_percent) || 0.05, min_bet: Number(data.min_bet) || 1,
-          max_bet: Number(data.max_bet) || 10000, max_payout: Number(data.max_payout) || 100000,
-          max_liability: Number(data.max_liability) || 500000, volume: Number(data.pool_total) || 0,
-          tags: data.tags || [], outcomes: data.outcomes || [],
-          source_config: data.source_config || { source_name: "", requires_manual_confirmation: false, requires_evidence_upload: false },
-          resolution_rule: data.resolution_rule || { expression: "", variables: [], outcome_map: {}, description: "" },
-          language: data.language || "pt-BR", country: data.country || "BR",
-        });
+        if (data) {
+          const now = Date.now();
+          const closeAt = new Date(data.close_at).getTime();
+          const freezeAt = data.freeze_at ? new Date(data.freeze_at).getTime() : 0;
+          // Fix status client-side if backend hasn't updated yet
+          let status = data.status;
+          if (status === "open" && freezeAt && now >= freezeAt) status = "frozen";
+          if ((status === "open" || status === "frozen") && now >= closeAt) status = "closed";
+          setMarket({
+            ...data, status,
+            created_at: new Date(data.created_at).getTime(), open_at: new Date(data.open_at).getTime(),
+            freeze_at: freezeAt, close_at: closeAt,
+            resolve_at: data.resolve_at ? new Date(data.resolve_at).getTime() : 0,
+            resolved_at: data.resolved_at ? new Date(data.resolved_at).getTime() : undefined,
+            pool_total: Number(data.pool_total) || 0, distributable_pool: Number(data.distributable_pool) || 0,
+            house_fee_percent: Number(data.house_fee_percent) || 0.05, min_bet: Number(data.min_bet) || 1,
+            max_bet: Number(data.max_bet) || 10000, max_payout: Number(data.max_payout) || 100000,
+            max_liability: Number(data.max_liability) || 500000, volume: Number(data.pool_total) || 0,
+            tags: data.tags || [], outcomes: data.outcomes || [],
+            source_config: data.source_config || { source_name: "", requires_manual_confirmation: false, requires_evidence_upload: false },
+            resolution_rule: data.resolution_rule || { expression: "", variables: [], outcome_map: {}, description: "" },
+            language: data.language || "pt-BR", country: data.country || "BR",
+          });
+        }
       });
     }
     const iv = setInterval(() => { const m2 = getMarket(id); if (m2) setMarket(m2); }, 3000);

@@ -184,5 +184,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, results, timestamp: new Date().toISOString() });
+  // Process scheduled market jobs (close + resolve prediction & camera markets)
+  let jobResults: Record<string, unknown> = {};
+  try {
+    const { processMarketJobs } = await import("../../v1/auto-markets/engine");
+    jobResults = await processMarketJobs();
+  } catch (err) {
+    jobResults = { error: String(err) };
+  }
+
+  return NextResponse.json({ ok: true, results, jobs: jobResults, timestamp: new Date().toISOString() });
 }

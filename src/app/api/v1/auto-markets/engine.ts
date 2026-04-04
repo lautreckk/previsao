@@ -707,6 +707,14 @@ export async function generateAutoMarkets(tiers?: ("curto" | "medio" | "longo")[
         errors.push(`insert_${tmpl.id}: ${error.message}`);
       } else {
         created.push(data);
+        // Schedule jobs: close (stop bets) + resolve (pay winners)
+        const resolveAt = new Date(closeAt.getTime() + 60000);
+        await supabase.from("market_jobs").insert([
+          { market_id: id, market_type: "prediction", job_type: "close", execute_at: closeAt.toISOString() },
+          { market_id: id, market_type: "prediction", job_type: "resolve", execute_at: resolveAt.toISOString() },
+        ]).then(({ error: jobErr }) => {
+          if (jobErr) errors.push(`jobs_${id}: ${jobErr.message}`);
+        });
       }
     } catch (err) {
       errors.push(`create_${tmpl.id}: ${err}`);
@@ -716,7 +724,7 @@ export async function generateAutoMarkets(tiers?: ("curto" | "medio" | "longo")[
   return { created: created.length, markets: created, errors };
 }
 
-// ---- Auto-Resolve: Resolve markets that have closed ----
+// ---- Auto-Resolve: Fallback resolution for markets missed by job dispatcher ----
 
 export async function resolveExpiredMarkets(): Promise<{
   resolved: number;
@@ -726,208 +734,282 @@ export async function resolveExpiredMarkets(): Promise<{
   const supabase = sb();
   const errors: string[] = [];
   const results: Record<string, unknown>[] = [];
+  const nowISO = new Date().toISOString();
 
-  // Find markets that are past close_at and still "open"
-  const { data: expired } = await supabase
+  // Step 1: Transition stale open/frozen markets to closed
+  const { data: staleOpen } = await supabase
     .from("prediction_markets")
-    .select("*")
-    .eq("status", "open")
-    .eq("resolution_type", "automatic")
-    .neq("resolution_method", "manual")
-    .lt("close_at", new Date().toISOString())
-    .limit(20);
+    .select("id")
+    .in("status", ["open", "frozen"])
+    .lt("close_at", nowISO)
+    .limit(50);
 
-  if (!expired || expired.length === 0) {
-    return { resolved: 0, results: [], errors: [] };
+  if (staleOpen && staleOpen.length > 0) {
+    for (const m of staleOpen) {
+      await supabase.from("prediction_markets").update({ status: "closed" }).eq("id", m.id);
+    }
   }
 
-  for (const market of expired) {
+  // Step 2: Resolve automatic closed markets
+  const { data: autoExpired } = await supabase
+    .from("prediction_markets")
+    .select("*")
+    .eq("status", "closed")
+    .eq("resolution_type", "automatic")
+    .lt("close_at", nowISO)
+    .limit(30);
+
+  // Step 3: Move manual markets to awaiting_resolution
+  const { data: manualExpired } = await supabase
+    .from("prediction_markets")
+    .select("id, title")
+    .eq("status", "closed")
+    .in("resolution_type", ["manual", "semi_automatic"])
+    .lt("close_at", nowISO)
+    .limit(30);
+
+  if (manualExpired && manualExpired.length > 0) {
+    for (const m of manualExpired) {
+      await supabase.from("prediction_markets").update({ status: "awaiting_resolution" }).eq("id", m.id);
+      results.push({ market_id: m.id, title: m.title, action: "awaiting_resolution" });
+    }
+  }
+
+  if (!autoExpired || autoExpired.length === 0) {
+    return { resolved: results.length, results, errors };
+  }
+
+  for (const market of autoExpired) {
     try {
-      const config = market.source_config?.custom_params;
-      if (!config) {
-        errors.push(`${market.id}: no resolution_config`);
-        continue;
-      }
-
-      // Resolve directly (no HTTP self-call — avoids VERCEL_URL issues)
-      let winningKey: string | null = null;
-      let resolveReason = "";
-      const resolveSourceData: Record<string, unknown> = {};
-
-      try {
-        if (config.market_type === "crypto_up_down" || config.market_type === "forex_up_down") {
-          const openPrice = config.params?.open_price as number;
-          if (!openPrice) throw new Error("no open_price");
-          // Fetch current price
-          let closePrice = 0;
-          const sym = (config.params?.symbol as string) || "";
-          const cgIds: Record<string, string> = { BTC: "bitcoin", ETH: "ethereum", SOL: "solana", BNB: "binancecoin" };
-          const cgId = cgIds[sym];
-          if (cgId) {
-            try {
-              const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`);
-              if (r.ok) { const j = await r.json(); closePrice = j[cgId]?.usd || 0; }
-            } catch { /* */ }
-          }
-          if (!closePrice) {
-            try {
-              const r = await fetch(`https://api.coinbase.com/v2/prices/${sym}-USD/spot`);
-              if (r.ok) { const j = await r.json(); closePrice = parseFloat(j.data?.amount || "0"); }
-            } catch { /* */ }
-          }
-          if (closePrice > 0) {
-            const diff = closePrice - openPrice;
-            winningKey = diff > 0 ? "UP" : diff < 0 ? "DOWN" : null;
-            resolveReason = `${sym}: ${openPrice} → ${closePrice} (${diff > 0 ? "+" : ""}${diff.toFixed(2)})`;
-            Object.assign(resolveSourceData, { open_price: openPrice, close_price: closePrice, diff });
-          }
-        } else if (config.market_type === "weather_threshold") {
-          const owKey = process.env.OPENWEATHER_API_KEY;
-          const cityId = config.params?.city_id as number;
-          const threshold = config.params?.threshold as number;
-          const operator = (config.params?.operator as string) || ">=";
-          const metric = (config.params?.metric as string) || "temperature";
-          if (owKey && cityId) {
-            const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?id=${cityId}&appid=${owKey}&units=metric`);
-            if (r.ok) {
-              const w = await r.json();
-              const metricMap: Record<string, number> = { temperature: w.main?.temp, temp_max: w.main?.temp_max, humidity: w.main?.humidity };
-              const value = metricMap[metric] ?? 0;
-              const ops: Record<string, (a: number, b: number) => boolean> = { ">": (a,b)=>a>b, "<": (a,b)=>a<b, ">=": (a,b)=>a>=b, "<=": (a,b)=>a<=b };
-              const result = (ops[operator] || ops[">="])(value, threshold);
-              winningKey = result ? "YES" : "NO";
-              resolveReason = `${metric}=${value} ${operator} ${threshold} => ${winningKey}`;
-              Object.assign(resolveSourceData, { metric, value, threshold, operator });
-            }
-          }
-        } else if (config.market_type === "stock_performance") {
-          const symbols = config.params?.symbols as string[];
-          if (symbols?.length) {
-            const token = process.env.BRAPI_TOKEN || "";
-            const url = token ? `https://brapi.dev/api/quote/${symbols.join(",")}?token=${token}` : `https://brapi.dev/api/quote/${symbols.join(",")}`;
-            const r = await fetch(url);
-            if (r.ok) {
-              const j = await r.json();
-              const sorted = [...(j.results || [])].sort((a: Record<string,number>, b: Record<string,number>) => (b.regularMarketChangePercent||0) - (a.regularMarketChangePercent||0));
-              if (sorted[0]) {
-                winningKey = (sorted[0].symbol as string).toUpperCase();
-                resolveReason = `${winningKey} liderou com ${(sorted[0].regularMarketChangePercent as number)?.toFixed(2)}%`;
-              }
-            }
-          }
-        } else {
-          resolveReason = `Unknown market_type: ${config.market_type}`;
-        }
-      } catch (resolveErr) {
-        errors.push(`resolve_${market.id}: ${resolveErr}`);
-        continue;
-      }
-
-      if (!winningKey) {
-        // Anulado — refund all
-        await supabase.from("prediction_markets").update({ status: "cancelled" }).eq("id", market.id);
-        // Refund bets
-        const { data: bets } = await supabase
-          .from("prediction_bets")
-          .select("*")
-          .eq("market_id", market.id)
-          .eq("status", "pending");
-
-        if (bets) {
-          for (const bet of bets) {
-            await supabase.from("prediction_bets").update({ status: "refunded", final_payout: bet.amount }).eq("id", bet.id);
-            await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: bet.amount });
-          }
-        }
-        results.push({ market_id: market.id, action: "cancelled", reason: resolveReason });
-        continue;
-      }
-
-      // Calculate payouts
-      const outcomes = market.outcomes || [];
-      const poolTotal = outcomes.reduce((s: number, o: { pool: number }) => s + (o.pool || 0), 0);
-      const winnerPool = outcomes.find((o: { key: string }) => o.key.toUpperCase() === winningKey?.toUpperCase())?.pool || 0;
-      const houseFee = poolTotal * (market.house_fee_percent || 0.05);
-      const distributable = poolTotal - houseFee;
-      const payoutPerUnit = winnerPool > 0 ? distributable / winnerPool : 0;
-
-      // Update market with evidence
-      await supabase.from("prediction_markets").update({
-        status: "resolved",
-        winning_outcome_key: winningKey,
-        resolved_at: new Date().toISOString(),
-        resolved_by: "auto_engine",
-        resolution_evidence: JSON.stringify({
-          reason: resolveReason,
-          source_data: resolveSourceData,
-          resolved_at: new Date().toISOString(),
-        }),
-      }).eq("id", market.id);
-
-      // Pay winners
-      const { data: bets } = await supabase
-        .from("prediction_bets")
-        .select("*")
-        .eq("market_id", market.id)
-        .eq("status", "pending");
-
-      if (bets) {
-        for (const bet of bets) {
-          const isWinner = bet.outcome_key.toUpperCase() === winningKey?.toUpperCase();
-          const payout = isWinner ? bet.amount * payoutPerUnit : 0;
-
-          await supabase.from("prediction_bets").update({
-            status: isWinner ? "won" : "lost",
-            final_payout: payout,
-          }).eq("id", bet.id);
-
-          if (isWinner && payout > 0) {
-            await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });
-            await supabase.from("ledger").insert({
-              user_id: bet.user_id,
-              type: "bet_won",
-              amount: payout,
-              balance_after: 0,
-              reference_id: bet.id,
-              description: `Auto: ${market.title} — ${bet.outcome_label} (${payoutPerUnit.toFixed(2)}x)`,
-            });
-          }
-        }
-      }
-
-      // Broadcast market resolved via Supabase Realtime
-      try {
-        const broadcastChannel = supabase.channel(`market-${market.id}`);
-        await broadcastChannel.send({
-          type: "broadcast",
-          event: "market.resolved",
-          payload: {
-            marketId: market.id,
-            winningKey,
-            payoutPerUnit,
-            title: market.title,
-            _ts: Date.now(),
-          },
-        });
-        await supabase.removeChannel(broadcastChannel);
-      } catch (broadcastErr) {
-        // Non-blocking: log but don't fail the resolution
-        console.error("[auto-markets] Broadcast error:", broadcastErr);
-      }
-
-      results.push({
-        market_id: market.id,
-        title: market.title,
-        action: "resolved",
-        winning_key: winningKey,
-        payout_per_unit: payoutPerUnit,
-        total_bets: bets?.length || 0,
-        source_data: resolveSourceData,
-      });
+      const resolveResult = await resolveOneMarket(supabase, market);
+      results.push(resolveResult);
     } catch (err) {
       errors.push(`resolve_${market.id}: ${err}`);
     }
   }
 
   return { resolved: results.length, results, errors };
+}
+
+// ---- Resolve a single market by fetching real data ----
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveOneMarket(supabase: any, market: any): Promise<Record<string, unknown>> {
+  const config = market.source_config?.custom_params;
+  if (!config) throw new Error("no resolution_config");
+
+  let winningKey: string | null = null;
+  let resolveReason = "";
+  const resolveSourceData: Record<string, unknown> = {};
+
+  if (config.market_type === "crypto_up_down" || config.market_type === "forex_up_down") {
+    const openPrice = config.params?.open_price as number;
+    if (!openPrice) throw new Error("no open_price");
+    let closePrice = 0;
+    const sym = (config.params?.symbol as string) || "";
+    const binanceSym = (config.params?.binance_symbol as string) || "";
+    const cgIds: Record<string, string> = { BTC: "bitcoin", ETH: "ethereum", SOL: "solana", BNB: "binancecoin" };
+    const cgId = cgIds[sym];
+    if (cgId) {
+      try { const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`); if (r.ok) { const j = await r.json(); closePrice = j[cgId]?.usd || 0; } } catch { /* */ }
+    }
+    if (!closePrice && sym) {
+      try { const r = await fetch(`https://api.coinbase.com/v2/prices/${sym}-USD/spot`); if (r.ok) { const j = await r.json(); closePrice = parseFloat(j.data?.amount || "0"); } } catch { /* */ }
+    }
+    if (!closePrice && binanceSym?.includes("BRL")) {
+      try { const r = await fetch(`https://economia.awesomeapi.com.br/json/last/USD-BRL`); if (r.ok) { const j = await r.json(); closePrice = parseFloat(j.USDBRL?.bid || "0"); } } catch { /* */ }
+    }
+    if (closePrice > 0) {
+      const diff = closePrice - openPrice;
+      winningKey = diff > 0 ? "UP" : diff < 0 ? "DOWN" : null;
+      resolveReason = `${sym || binanceSym}: ${openPrice} → ${closePrice} (${diff > 0 ? "+" : ""}${diff.toFixed(4)})`;
+      Object.assign(resolveSourceData, { open_price: openPrice, close_price: closePrice, diff });
+    }
+  } else if (config.market_type === "weather_threshold") {
+    const owKey = process.env.OPENWEATHER_API_KEY;
+    const cityId = config.params?.city_id as number;
+    const threshold = config.params?.threshold as number;
+    const operator = (config.params?.operator as string) || ">=";
+    const metric = (config.params?.metric as string) || "temperature";
+    if (owKey && cityId) {
+      const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?id=${cityId}&appid=${owKey}&units=metric`);
+      if (r.ok) {
+        const w = await r.json();
+        const metricMap: Record<string, number> = { temperature: w.main?.temp, temp_max: w.main?.temp_max, humidity: w.main?.humidity };
+        const value = metricMap[metric] ?? 0;
+        const ops: Record<string, (a: number, b: number) => boolean> = { ">": (a,b)=>a>b, "<": (a,b)=>a<b, ">=": (a,b)=>a>=b, "<=": (a,b)=>a<=b };
+        const result = (ops[operator] || ops[">="])(value, threshold);
+        winningKey = result ? "YES" : "NO";
+        resolveReason = `${metric}=${value.toFixed(1)} ${operator} ${threshold} => ${winningKey}`;
+        Object.assign(resolveSourceData, { metric, value, threshold, operator });
+      }
+    }
+  } else if (config.market_type === "stock_performance") {
+    const symbols = config.params?.symbols as string[];
+    if (symbols?.length) {
+      const token = process.env.BRAPI_TOKEN || "";
+      const url = token ? `https://brapi.dev/api/quote/${symbols.join(",")}?token=${token}` : `https://brapi.dev/api/quote/${symbols.join(",")}`;
+      const r = await fetch(url);
+      if (r.ok) {
+        const j = await r.json();
+        if (symbols.length === 1) {
+          const stock = j.results?.[0];
+          if (stock) { winningKey = stock.regularMarketChangePercent > 0 ? "UP" : "DOWN"; resolveReason = `${stock.symbol}: ${stock.regularMarketChangePercent > 0 ? "+" : ""}${stock.regularMarketChangePercent?.toFixed(2)}%`; }
+        } else {
+          const sorted = [...(j.results || [])].sort((a: Record<string,number>, b: Record<string,number>) => (b.regularMarketChangePercent||0) - (a.regularMarketChangePercent||0));
+          if (sorted[0]) { winningKey = (sorted[0].symbol as string).toUpperCase(); resolveReason = `${winningKey} liderou com ${(sorted[0].regularMarketChangePercent as number)?.toFixed(2)}%`; }
+        }
+      }
+    }
+  } else if (config.market_type === "sport_event") {
+    const matchId = config.params?.match_id;
+    const key = process.env.FOOTBALL_DATA_KEY;
+    if (key && matchId) {
+      const r = await fetch(`https://api.football-data.org/v4/matches/${matchId}`, { headers: { "X-Auth-Token": key } });
+      if (r.ok) {
+        const match = await r.json();
+        if (match.status === "FINISHED") {
+          const hg = match.score?.fullTime?.home ?? 0;
+          const ag = match.score?.fullTime?.away ?? 0;
+          if (config.params?.stat === "result") { winningKey = hg > ag ? "HOME" : hg < ag ? "AWAY" : "DRAW"; resolveReason = `${config.params?.home_team} ${hg} x ${ag} ${config.params?.away_team}`; }
+          else if (config.params?.stat === "total_goals") { const th = parseInt(((config.params?.condition as string) || ">8").replace(/[^0-9]/g, "")); winningKey = hg + ag > th ? "YES" : "NO"; resolveReason = `Total gols: ${hg + ag} (threshold: ${th})`; }
+          Object.assign(resolveSourceData, { home_goals: hg, away_goals: ag });
+        }
+      }
+    }
+  }
+
+  if (!winningKey) {
+    await supabase.from("prediction_markets").update({ status: "cancelled" }).eq("id", market.id);
+    const { data: bets } = await supabase.from("prediction_bets").select("*").eq("market_id", market.id).eq("status", "pending");
+    if (bets) {
+      for (const bet of bets) {
+        await supabase.from("prediction_bets").update({ status: "refunded", final_payout: bet.amount }).eq("id", bet.id);
+        await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: bet.amount });
+      }
+    }
+    return { market_id: market.id, action: "cancelled", reason: resolveReason };
+  }
+
+  // Calculate payouts
+  const outcomes = market.outcomes || [];
+  const poolTotal = outcomes.reduce((s: number, o: { pool: number }) => s + (o.pool || 0), 0);
+  const winnerPool = outcomes.find((o: { key: string }) => o.key.toUpperCase() === winningKey?.toUpperCase())?.pool || 0;
+  const houseFee = poolTotal * (market.house_fee_percent || 0.05);
+  const distributable = poolTotal - houseFee;
+  const payoutPerUnit = winnerPool > 0 ? distributable / winnerPool : 0;
+
+  await supabase.from("prediction_markets").update({
+    status: "resolved", winning_outcome_key: winningKey,
+    resolved_at: new Date().toISOString(), resolved_by: "auto_engine",
+    resolution_evidence: JSON.stringify({ reason: resolveReason, source_data: resolveSourceData, resolved_at: new Date().toISOString() }),
+  }).eq("id", market.id);
+
+  const { data: bets } = await supabase.from("prediction_bets").select("*").eq("market_id", market.id).eq("status", "pending");
+  if (bets) {
+    for (const bet of bets) {
+      const isWinner = bet.outcome_key.toUpperCase() === winningKey?.toUpperCase();
+      const payout = isWinner ? bet.amount * payoutPerUnit : 0;
+      await supabase.from("prediction_bets").update({ status: isWinner ? "won" : "lost", final_payout: payout }).eq("id", bet.id);
+      if (isWinner && payout > 0) {
+        await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });
+        await supabase.from("ledger").insert({ user_id: bet.user_id, type: "bet_won", amount: payout, balance_after: 0, reference_id: bet.id, description: `Auto: ${market.title} — ${bet.outcome_label} (${payoutPerUnit.toFixed(2)}x)` });
+      }
+    }
+  }
+
+  try {
+    const ch = supabase.channel(`market-${market.id}`);
+    await ch.send({ type: "broadcast", event: "market.resolved", payload: { marketId: market.id, winningKey, payoutPerUnit, title: market.title, _ts: Date.now() } });
+    await supabase.removeChannel(ch);
+  } catch { /* non-blocking */ }
+
+  return { market_id: market.id, title: market.title, action: "resolved", winning_key: winningKey, payout_per_unit: payoutPerUnit, total_bets: bets?.length || 0 };
+}
+
+// ---- Job Dispatcher: process scheduled market jobs ----
+
+export async function processMarketJobs(): Promise<{
+  processed: number;
+  results: Record<string, unknown>[];
+  errors: string[];
+}> {
+  const supabase = sb();
+  const errors: string[] = [];
+  const results: Record<string, unknown>[] = [];
+  const nowISO = new Date().toISOString();
+
+  const { data: jobs } = await supabase
+    .from("market_jobs")
+    .select("*")
+    .eq("status", "pending")
+    .lte("execute_at", nowISO)
+    .order("execute_at", { ascending: true })
+    .limit(20);
+
+  if (!jobs || jobs.length === 0) {
+    return { processed: 0, results: [], errors: [] };
+  }
+
+  for (const job of jobs) {
+    await supabase.from("market_jobs").update({ status: "processing", attempts: job.attempts + 1 }).eq("id", job.id);
+
+    try {
+      if (job.market_type === "prediction") {
+        const { data: market } = await supabase.from("prediction_markets").select("*").eq("id", job.market_id).single();
+        if (!market) throw new Error(`Market ${job.market_id} not found`);
+
+        if (job.job_type === "close") {
+          if (["open", "frozen"].includes(market.status)) {
+            await supabase.from("prediction_markets").update({ status: "closed" }).eq("id", market.id);
+            try { const ch = supabase.channel(`market-${market.id}`); await ch.send({ type: "broadcast", event: "market.closed", payload: { marketId: market.id, title: market.title, _ts: Date.now() } }); await supabase.removeChannel(ch); } catch { /* */ }
+          }
+        } else if (job.job_type === "resolve") {
+          if (["resolved", "cancelled"].includes(market.status)) { /* already done */ }
+          else if (market.resolution_type === "manual" || market.resolution_type === "semi_automatic") {
+            if (["open", "frozen"].includes(market.status)) await supabase.from("prediction_markets").update({ status: "closed" }).eq("id", market.id);
+            await supabase.from("prediction_markets").update({ status: "awaiting_resolution" }).eq("id", market.id);
+          } else {
+            if (["open", "frozen"].includes(market.status)) await supabase.from("prediction_markets").update({ status: "closed" }).eq("id", market.id);
+            await resolveOneMarket(supabase, { ...market, status: "closed" });
+          }
+        }
+      } else if (job.market_type === "camera" && job.job_type === "resolve") {
+        const { data: round } = await supabase.from("camera_rounds").select("*").eq("id", job.market_id).single();
+        if (round && !round.resolved_at) {
+          const finalCount = round.final_count || 0;
+          const threshold = round.threshold || 0;
+          const result = finalCount > threshold ? "over" : "under";
+          const { data: predictions } = await supabase.from("camera_predictions").select("*").eq("round_id", round.id).eq("status", "open");
+          if (!predictions || predictions.length === 0) {
+            await supabase.from("camera_rounds").update({ resolved_at: nowISO }).eq("id", round.id);
+          } else {
+            const totalPool = Number(round.total_pool) || predictions.reduce((sum: number, p: { amount_brl: number }) => sum + Number(p.amount_brl), 0);
+            const winningPool = predictions.filter((p: { prediction_type: string }) => p.prediction_type === result).reduce((sum: number, p: { amount_brl: number }) => sum + Number(p.amount_brl), 0);
+            const distributable = totalPool * 0.95;
+            const payoutMultiplier = winningPool > 0 ? distributable / winningPool : 0;
+            for (const pred of predictions) {
+              const isWinner = pred.prediction_type === result;
+              const payout = isWinner ? Number(pred.amount_brl) * payoutMultiplier : 0;
+              await supabase.from("camera_predictions").update({ status: isWinner ? "won" : "lost", payout: isWinner ? payout : 0 }).eq("id", pred.id);
+              if (isWinner && payout > 0) {
+                await supabase.rpc("increment_balance", { user_id_param: pred.user_id, amount_param: payout });
+              }
+            }
+            await supabase.from("camera_rounds").update({ resolved_at: nowISO, final_count: finalCount }).eq("id", round.id);
+          }
+        }
+      }
+
+      await supabase.from("market_jobs").update({ status: "done", completed_at: nowISO }).eq("id", job.id);
+      results.push({ job_id: job.id, market_id: job.market_id, job_type: job.job_type, action: "done" });
+    } catch (err) {
+      const errMsg = String(err);
+      const newStatus = job.attempts + 1 >= 3 ? "failed" : "pending";
+      await supabase.from("market_jobs").update({ status: newStatus, last_error: errMsg }).eq("id", job.id);
+      errors.push(`job_${job.id}: ${errMsg}`);
+    }
+  }
+
+  return { processed: results.length, results, errors };
 }
