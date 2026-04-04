@@ -177,7 +177,24 @@ export default function Home() {
           .select("*")
           .in("status", ["waiting", "open"]);
 
-        const cameraAsMarkets = (cameraData || []).map((cam: Record<string, unknown>) => ({
+        // Fetch camera round pools for odds
+        const camIds = (cameraData || []).map((c: Record<string, unknown>) => `cr_${c.id}_${c.round_number}`);
+        const { data: camRounds } = camIds.length > 0
+          ? await supabase.from("camera_rounds").select("id, pool_over, pool_under, total_pool").in("id", camIds)
+          : { data: [] };
+        const camRoundMap: Record<string, { pool_over: number; pool_under: number; total_pool: number }> = {};
+        (camRounds || []).forEach((r: Record<string, unknown>) => {
+          camRoundMap[r.id as string] = {
+            pool_over: Number(r.pool_over) || 0,
+            pool_under: Number(r.pool_under) || 0,
+            total_pool: Number(r.total_pool) || 0,
+          };
+        });
+
+        const cameraAsMarkets = (cameraData || []).map((cam: Record<string, unknown>) => {
+          const roundId = `cr_${cam.id}_${cam.round_number}`;
+          const pools = camRoundMap[roundId] || { pool_over: 0, pool_under: 0, total_pool: 0 };
+          return {
           id: cam.id as string,
           title: (cam.title as string) || "Rodovia ao Vivo",
           short_description: `Contagem de veículos — ${cam.city || "SP"}`,
@@ -190,26 +207,27 @@ export default function Home() {
           created_at: cam.created_at as string,
           open_at: cam.created_at as string,
           freeze_at: null,
-          close_at: new Date(Date.now() + 300_000).toISOString(), // always "closing soon" to stay on top
+          close_at: new Date(Date.now() + 300_000).toISOString(),
           resolve_at: null,
           resolved_at: null,
-          pool_total: 0,
-          distributable_pool: 0,
+          pool_total: pools.total_pool,
+          distributable_pool: pools.total_pool * 0.95,
           house_fee_percent: 0.05,
           min_bet: 1,
           max_bet: 10000,
           max_payout: 100000,
           max_liability: 500000,
           outcomes: [
-            { key: "over", label: `Mais de ${cam.current_threshold}`, pool: 0 },
-            { key: "under", label: `Até ${cam.current_threshold}`, pool: 0 },
+            { key: "over", label: `Mais de ${cam.current_threshold}`, pool: pools.pool_over },
+            { key: "under", label: `Até ${cam.current_threshold}`, pool: pools.pool_under },
           ],
           tags: ["ao-vivo", "camera"],
           source_config: { source_name: "camera", requires_manual_confirmation: false, requires_evidence_upload: false },
           resolution_rule: { expression: "", variables: [], outcome_map: {}, description: "" },
           language: "pt-BR",
           country: "BR",
-        }));
+        };
+        });
 
         const allDbRows = [...cameraAsMarkets, ...(openData || []), ...(resolvedData || [])];
 
