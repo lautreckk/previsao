@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         .limit(200),
     ]);
 
-    const markets = marketsRes.data || [];
+    const allMarkets = marketsRes.data || [];
     const bots = botsRes.data || [];
 
     if (bots.length === 0) {
@@ -59,7 +59,11 @@ export async function GET(request: NextRequest) {
     let totalBets = 0;
     let errors = 0;
 
-    // 2. Process prediction markets — 1 bet per market, batched
+    // 2. Pick random subset of 30 markets (round-robin across ticks)
+    const shuffled = [...allMarkets].sort(() => Math.random() - 0.5);
+    const markets = shuffled.slice(0, 30);
+
+    // Process prediction markets — 1 bet per market, batched
     const betInserts: Record<string, unknown>[] = [];
     const marketUpdates: { id: string; outcomes: unknown[]; pool_total: number; fee: number }[] = [];
     const botBalanceUpdates: Map<string, number> = new Map();
