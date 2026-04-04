@@ -112,9 +112,12 @@ export async function GET(request: NextRequest) {
         created_at: new Date().toISOString(),
       });
 
-      const updatedOutcomes = outcomes.map((o: { key: string; pool?: number }) =>
-        o.key === outcome.key ? { ...o, pool: (Number(o.pool) || 0) + amount } : o
-      );
+      // Update pool and recalculate payout_per_unit for ALL outcomes
+      const updatedOutcomes = outcomes.map((o: { key: string; pool?: number }) => {
+        const newPool = o.key === outcome.key ? (Number(o.pool) || 0) + amount : (Number(o.pool) || 0);
+        const ppu = newPool > 0 ? (newTotal * (1 - fee)) / newPool : 0;
+        return { ...o, pool: newPool, payout_per_unit: Math.round(ppu * 100) / 100 };
+      });
       market.outcomes = updatedOutcomes;
       market.pool_total = newTotal;
       marketUpdates.push({ id: market.id, outcomes: updatedOutcomes, pool_total: newTotal, fee });
