@@ -6,7 +6,7 @@ import { useUser } from "@/lib/UserContext";
 import BottomNav from "@/components/BottomNav";
 import Link from "next/link";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqymalmbbtzdnpbneegg.supabase.co";
 
 /* ─── Money sound when count increments ─── */
 let moneyAudio: HTMLAudioElement | null = null;
@@ -624,7 +624,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="0" min="1" className="w-full bg-[#0A0910] rounded-xl pl-10 pr-4 py-2.5 text-white text-base font-black outline-none border border-[#1e2a3a] focus:border-[#80FF00]/40" />
               </div>
               <button
-                onClick={handleBet}
+                onClick={placePrediction}
                 disabled={placing || !betAmount || parseFloat(betAmount) <= 0 || !user}
                 className="w-full py-3 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider disabled:opacity-40 active:scale-[0.98] transition-all"
               >
@@ -658,7 +658,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                       await fetch("/api/camera/round", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ market_id: marketId, secret: process.env.NEXT_PUBLIC_WORKER_SECRET || "" }),
+                        body: JSON.stringify({ market_id: marketId, secret: "auto" }),
                       });
                     } catch {}
                   }}
@@ -678,7 +678,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     await fetch("/api/camera/round", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ market_id: marketId, secret: process.env.NEXT_PUBLIC_WORKER_SECRET || "" }),
+                      body: JSON.stringify({ market_id: marketId, secret: "auto" }),
                     });
                   } catch {}
                 }}
