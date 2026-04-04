@@ -12,19 +12,28 @@ interface PixTx {
 export default function AdminPix() {
   const [txs, setTxs] = useState<PixTx[]>([]);
   const [filter, setFilter] = useState<string>("all");
+  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all">("30d");
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [bulkConfirming, setBulkConfirming] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
+  const getPeriodStart = () => {
+    const now = new Date();
+    if (period === "today") { now.setHours(0, 0, 0, 0); return now.toISOString(); }
+    if (period === "7d") return new Date(Date.now() - 7 * 86400000).toISOString();
+    if (period === "30d") return new Date(Date.now() - 30 * 86400000).toISOString();
+    return "2020-01-01T00:00:00Z";
+  };
+
   const refresh = async () => {
     setLoading(true);
-    const { data } = await supabase.from("pix_transactions").select("*").order("created_at", { ascending: false }).limit(200);
+    const { data } = await supabase.from("pix_transactions").select("*").gte("created_at", getPeriodStart()).order("created_at", { ascending: false }).limit(500);
     setTxs((data as PixTx[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); const iv = setInterval(refresh, 10000); return () => clearInterval(iv); }, []);
+  useEffect(() => { refresh(); const iv = setInterval(refresh, 10000); return () => clearInterval(iv); }, [period]);
 
   const showMsg = (text: string, type: "success" | "error") => {
     setMessage({ text, type });
@@ -101,19 +110,16 @@ export default function AdminPix() {
           </h2>
           <p className="text-xs text-white/40 mt-0.5">Gestao de depositos e confirmacoes</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs text-white/30">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            Auto 10s
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-[#12101A] border border-white/[0.06] rounded-lg p-1">
+            {(["today", "7d", "30d", "all"] as const).map(p => (
+              <button key={p} onClick={() => setPeriod(p)} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${period === p ? "bg-white/[0.08] text-white" : "text-white/30 hover:text-white/60"}`}>
+                {p === "today" ? "Hoje" : p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "Tudo"}
+              </button>
+            ))}
           </div>
-          <button
-            onClick={refresh}
-            className="text-xs text-white/50 hover:text-white/80 transition-colors font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/[0.06] hover:border-white/[0.12] bg-white/[0.03]"
-          >
-            <span className="material-symbols-outlined text-sm">refresh</span>Atualizar
+          <button onClick={refresh} className="text-xs text-white/50 hover:text-white/80 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03]">
+            <span className="material-symbols-outlined text-sm">refresh</span>
           </button>
         </div>
       </div>
