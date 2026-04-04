@@ -975,7 +975,9 @@ export default function EventoPage() {
                               {bet.entry_price && (
                                 <div className="flex justify-between col-span-2 pt-1.5 border-t border-white/[0.06]">
                                   <span className="text-white/30">Entrada</span>
-                                  <span className="font-bold text-white font-mono">R$ {bet.entry_price.toFixed(4)}</span>
+                                  <span className="font-bold text-white font-mono">
+                                    {bet.entry_price > 1000 ? `US$ ${bet.entry_price.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `R$ ${bet.entry_price.toFixed(4)}`}
+                                  </span>
                                 </div>
                               )}
                             </div>

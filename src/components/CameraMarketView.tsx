@@ -642,7 +642,9 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
   const [betAmount, setBetAmount] = useState("");
   const [placing, setPlacing] = useState(false);
   const [betMsg, setBetMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
-  const [tab, setTab] = useState<"posicoes" | "aberto" | "encerradas">("posicoes");
+  const [tab, setTab] = useState<"posicoes" | "aberto" | "encerradas" | "todas">("posicoes");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [allPositions, setAllPositions] = useState<any[]>([]);
   const [mobilePanel, setMobilePanel] = useState<"camera" | "posicoes" | "chat">("camera");
   const [myPredictions, setMyPredictions] = useState<
     { id: string; prediction_type: string; threshold: number; amount_brl: number; odds_at_entry: number; payout: number; status: string }[]
@@ -658,6 +660,57 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
     const iv = setInterval(load, 10000);
     return () => clearInterval(iv);
   }, [user, marketId]);
+
+  // Fetch all user positions across all markets (for "Todas" tab)
+  useEffect(() => {
+    if (!user || tab !== "todas") return;
+    (async () => {
+      const { supabase } = await import("@/lib/supabase");
+      // Camera predictions
+      const { data: camPreds } = await supabase
+        .from("camera_predictions")
+        .select("id, market_id, prediction_type, threshold, amount_brl, odds_at_entry, payout, status, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      // Regular market bets
+      const { data: mktBets } = await supabase
+        .from("prediction_bets")
+        .select("id, market_id, outcome_key, outcome_label, amount, payout_at_entry, status, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      // Fetch market titles
+      const allMarketIds = [...new Set([...(camPreds || []).map((p) => p.market_id), ...(mktBets || []).map((b) => b.market_id)])];
+      const { data: camMarkets } = allMarketIds.length > 0
+        ? await supabase.from("camera_markets").select("id, title").in("id", allMarketIds)
+        : { data: [] };
+      const { data: predMarkets } = allMarketIds.length > 0
+        ? await supabase.from("prediction_markets").select("id, title").in("id", allMarketIds)
+        : { data: [] };
+      const titleMap: Record<string, string> = {};
+      (camMarkets || []).forEach((m) => { titleMap[m.id] = m.title; });
+      (predMarkets || []).forEach((m) => { titleMap[m.id] = m.title; });
+
+      const combined = [
+        ...(camPreds || []).map((p) => ({
+          id: p.id, type: "camera" as const, market_id: p.market_id, market_title: titleMap[p.market_id] || p.market_id,
+          label: p.prediction_type === "over" ? `Mais de ${p.threshold}` : `Menos de ${p.threshold}`,
+          isOver: p.prediction_type === "over",
+          amount: Number(p.amount_brl), odds: Number(p.odds_at_entry), payout: Number(p.payout || 0),
+          status: p.status, created_at: p.created_at,
+        })),
+        ...(mktBets || []).map((b) => ({
+          id: b.id, type: "market" as const, market_id: b.market_id, market_title: titleMap[b.market_id] || b.market_id,
+          label: b.outcome_label || b.outcome_key,
+          isOver: b.outcome_key === "UP" || b.outcome_key === "YES" || b.outcome_key === "Sim" || b.outcome_key === "Sim, passa",
+          amount: Number(b.amount), odds: Number(b.payout_at_entry), payout: 0,
+          status: b.status === "pending" ? "open" : b.status, created_at: b.created_at,
+        })),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setAllPositions(combined);
+    })();
+  }, [user, tab]);
 
   const placePrediction = useCallback(async () => {
     if (!user || !selectedType || !betAmount || Number(betAmount) < 1) return;
@@ -966,14 +1019,107 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             /* Positions tabs */
             <>
               <div className="flex border-b border-white/[0.04]">
-                {(["posicoes", "aberto", "encerradas"] as const).map((t) => (
+                {(["posicoes", "aberto", "encerradas", "todas"] as const).map((t) => (
                   <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest ${tab === t ? "text-[#80FF00] border-b-2 border-[#80FF00]" : "text-white/50"}`}>
-                    {t === "posicoes" ? "Posicoes" : t === "aberto" ? "Em aberto" : "Encerradas"}
+                    {t === "posicoes" ? "Posicoes" : t === "aberto" ? "Em aberto" : t === "encerradas" ? "Encerradas" : "Todas"}
                   </button>
                 ))}
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 {(() => {
+                  // "Todas" tab — shows positions from ALL markets
+                  if (tab === "todas") {
+                    if (!user) {
+                      return (
+                        <div className="text-center py-8">
+                          <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-6">
+                            <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
+                              <span className="material-symbols-outlined text-white/30 text-2xl">lock</span>
+                            </div>
+                            <p className="text-sm text-white font-bold mb-1">Faca login para ver suas posicoes</p>
+                            <Link href="/login" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Entrar</Link>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (allPositions.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-6">
+                            <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
+                              <span className="material-symbols-outlined text-white/30 text-2xl">list_alt</span>
+                            </div>
+                            <p className="text-sm text-white font-bold mb-1">Nenhuma posicao em nenhum mercado</p>
+                            <p className="text-xs text-white/30">Suas apostas em todos os mercados aparecerao aqui.</p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    const totalInv = allPositions.reduce((s, p) => s + p.amount, 0);
+                    const totalPot = allPositions.reduce((s, p) => s + p.amount * p.odds, 0);
+                    return (
+                      <div className="space-y-3">
+                        <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Investido</span>
+                            <p className="text-sm font-black text-white font-mono">R$ {totalInv.toFixed(2)}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Potencial</span>
+                            <p className="text-sm font-black text-[#80FF00] font-mono">R$ {totalPot.toFixed(2)}</p>
+                          </div>
+                        </div>
+                        {allPositions.map((p) => {
+                          const isWon = p.status === "won";
+                          const isLost = p.status === "lost";
+                          const isPending = p.status === "open" || p.status === "pending";
+                          const color = p.isOver ? "#80FF00" : "#FF5252";
+                          const potentialReturn = p.amount * p.odds;
+                          return (
+                            <div key={p.id} className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 transition-all hover:border-white/[0.12]">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: color + "15" }}>
+                                    <span className="text-xs font-black" style={{ color }}>{p.isOver ? "▲" : "▼"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-bold text-white">{p.label}</span>
+                                    <span className="block text-[10px] text-[#80FF00] truncate max-w-[160px]">{p.market_title}</span>
+                                    <span className="block text-[10px] text-white/30">
+                                      {new Date(p.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                  isWon ? "bg-[#80FF00]/10 text-[#80FF00]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#80FF00]/10 text-[#80FF00]"
+                                }`}>
+                                  <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#80FF00]" : isLost ? "bg-[#FF5252]" : "bg-[#80FF00] animate-pulse"}`} />
+                                  {isWon ? "Ganhou" : isLost ? "Perdeu" : "Em aberto"}
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-white/30">Valor</span>
+                                  <span className="font-bold text-white font-mono">R$ {p.amount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-white/30">Odds</span>
+                                  <span className="font-bold text-white font-mono">{p.odds.toFixed(2)}x</span>
+                                </div>
+                                <div className="flex justify-between col-span-2">
+                                  <span className="text-white/30">Potencial</span>
+                                  <span className={`font-bold font-mono ${isPending ? "text-[#80FF00]" : isWon ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
+                                    {isLost ? `- R$ ${p.amount.toFixed(2)}` : `R$ ${potentialReturn.toFixed(2)}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
                   const filteredPreds = tab === "posicoes"
                     ? myPredictions
                     : tab === "aberto"
