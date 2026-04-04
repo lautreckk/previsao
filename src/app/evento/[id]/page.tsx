@@ -16,7 +16,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import type { PredictionMarket } from "@/lib/engines/types";
-import { createBotEngine, type LiveBet } from "@/lib/bot-engine";
+import type { LiveBet } from "@/lib/bot-engine";
 import { getBotAvatarUrl, getRandomBetMessage } from "@/lib/bot-avatars";
 import { trackViewContent, trackAddToCart } from "@/lib/pixel";
 
@@ -132,8 +132,6 @@ export default function EventoPage() {
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [betToast, setBetToast] = useState<LiveBet | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const botEngineRef = useRef<ReturnType<typeof createBotEngine> | null>(null);
-
   // Stable ref for chat so addLiveBet doesn't change identity
   const chatLocalRef = useRef(addLocalMessage);
   chatLocalRef.current = addLocalMessage;
@@ -231,42 +229,67 @@ export default function EventoPage() {
     }
   }, [user?.id, market?.id, fetchUserBets]);
 
-  // Load recent bets from DB so activity shows immediately on page load
+  // Load recent bets from DB + poll every 10s for new cron bets
+  const lastBetTsRef = useRef<string | null>(null);
   useEffect(() => {
     if (!market?.id) return;
-    supabase
-      .from("prediction_bets")
-      .select("id, user_id, outcome_key, outcome_label, amount, payout_at_entry, created_at")
-      .eq("market_id", market.id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(15)
-      .then(async ({ data: bets }) => {
-        if (!bets || bets.length === 0) return;
-        // Fetch user names for these bets
-        const userIds = [...new Set(bets.map((b) => b.user_id))];
-        const { data: users } = await supabase
-          .from("users")
-          .select("id, name")
-          .in("id", userIds);
-        const nameMap: Record<string, string> = {};
-        users?.forEach((u) => { nameMap[u.id] = u.name; });
-        // Find outcome colors from market
-        const outcomeColors: Record<string, string> = {};
-        market.outcomes.forEach((o) => { outcomeColors[o.key] = o.color; });
-        const loaded: LiveBet[] = bets.map((b) => ({
-          id: b.id,
-          user_name: nameMap[b.user_id] || "Usuario",
-          user_id: b.user_id,
-          outcome_key: b.outcome_key,
-          outcome_label: b.outcome_label || b.outcome_key,
-          outcome_color: outcomeColors[b.outcome_key] || "#80FF00",
-          amount: Number(b.amount),
-          potential_win: +(Number(b.amount) * Number(b.payout_at_entry || 1.5)).toFixed(2),
-          ts: new Date(b.created_at).getTime(),
-        }));
+
+    async function fetchRecentBets(sinceTs?: string) {
+      let query = supabase
+        .from("prediction_bets")
+        .select("id, user_id, outcome_key, outcome_label, amount, payout_at_entry, created_at")
+        .eq("market_id", market!.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (sinceTs) {
+        query = query.gt("created_at", sinceTs);
+      }
+      const { data: bets } = await query;
+      if (!bets || bets.length === 0) return;
+
+      // Track latest timestamp for next poll
+      if (bets[0]?.created_at) lastBetTsRef.current = bets[0].created_at;
+
+      const userIds = [...new Set(bets.map((b) => b.user_id))];
+      const { data: users } = await supabase.from("users").select("id, name").in("id", userIds);
+      const nameMap: Record<string, string> = {};
+      users?.forEach((u) => { nameMap[u.id] = u.name; });
+
+      const outcomeColors: Record<string, string> = {};
+      market!.outcomes.forEach((o) => { outcomeColors[o.key] = o.color; });
+
+      const loaded: LiveBet[] = bets.map((b) => ({
+        id: b.id,
+        user_name: nameMap[b.user_id] || "Usuario",
+        user_id: b.user_id,
+        outcome_key: b.outcome_key,
+        outcome_label: b.outcome_label || b.outcome_key,
+        outcome_color: outcomeColors[b.outcome_key] || "#80FF00",
+        amount: Number(b.amount),
+        potential_win: +(Number(b.amount) * Number(b.payout_at_entry || 1.5)).toFixed(2),
+        ts: new Date(b.created_at).getTime(),
+      }));
+
+      if (sinceTs) {
+        // Append new bets with toast
+        for (const bet of loaded.reverse()) {
+          addLiveBet(bet);
+        }
+      } else {
         setLiveBets(loaded);
-      });
+      }
+    }
+
+    // Initial load
+    fetchRecentBets();
+
+    // Poll every 10s for new bets from cron
+    const iv = setInterval(() => {
+      fetchRecentBets(lastBetTsRef.current || new Date(Date.now() - 15000).toISOString());
+    }, 10000);
+
+    return () => clearInterval(iv);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [market?.id]);
 
@@ -367,22 +390,21 @@ export default function EventoPage() {
     return () => { supabase.removeChannel(channel); };
   }, [market?.id, addLiveBet]);
 
-  // Bot engine: auto-bet with bots when market is truly open (not past close_at)
+  // Poll market data for odds updates from cron bets
   useEffect(() => {
     if (!market?.id || market.status !== "open") return;
-    if (new Date(market.close_at).getTime() <= Date.now()) return;
-    const engine = createBotEngine(market.id, addLiveBet);
-    botEngineRef.current = engine;
-    engine.start(market.outcomes);
-    return () => { engine.stop(); botEngineRef.current = null; };
-  }, [market?.id, market?.status, market?.close_at, addLiveBet]);
-
-  // Update bot engine with fresh outcomes
-  useEffect(() => {
-    if (botEngineRef.current && market?.outcomes) {
-      botEngineRef.current.updateOutcomes(market.outcomes);
-    }
-  }, [market?.outcomes]);
+    const iv = setInterval(async () => {
+      const { data } = await supabase
+        .from("prediction_markets")
+        .select("outcomes, pool_total")
+        .eq("id", market.id)
+        .single();
+      if (data) {
+        setMarket((prev) => prev ? { ...prev, outcomes: data.outcomes || prev.outcomes, pool_total: Number(data.pool_total) || prev.pool_total } : prev);
+      }
+    }, 15000);
+    return () => clearInterval(iv);
+  }, [market?.id, market?.status]);
 
   if (!market) return (
     <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white">
