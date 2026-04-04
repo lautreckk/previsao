@@ -7,7 +7,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxeW1hbG1iYnR6ZG5wYm5lZWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MjUzNDYsImV4cCI6MjA5MDIwMTM0Nn0.Mj_L0h3HGfG4X22Qb3f53oeipNXa91nIGW5-J_zl-kM"
 );
 
-// Fire-and-forget broadcast — subscribe first, then send, then clean up
 function broadcast(marketId: string, event: string, payload: Record<string, unknown>) {
   const channelName = `cars-stream-${marketId}`;
   const channel = supabase.channel(channelName);
@@ -21,9 +20,6 @@ function broadcast(marketId: string, event: string, payload: Record<string, unkn
     }
   });
 }
-
-// Store latest count per market (in-memory cache for serverless)
-const countCache = new Map<string, number>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,30 +41,46 @@ export async function POST(request: NextRequest) {
         time: timestamp || Date.now(),
         type: "vehicle",
       });
-
       return NextResponse.json({ ok: true, event: "vehicle.detected", vehicle_id });
     }
 
     // Type 2: Count sync (periodic bulk update)
+    // FIX: Only accept counts during "betting" phase
     if (count !== undefined) {
-      countCache.set(market_id, count);
+      const { data: market } = await supabase
+        .from("camera_markets")
+        .select("phase")
+        .eq("id", market_id)
+        .maybeSingle();
 
-      // Update database
+      // Only update count during betting phase — ignore during observation/waiting
+      if (market?.phase !== "betting") {
+        return NextResponse.json({
+          ok: false,
+          ignored: true,
+          reason: `Phase is '${market?.phase}', only accepting counts during 'betting'`,
+          phase: market?.phase,
+        });
+      }
+
       await supabase
         .from("camera_markets")
         .update({ current_count: count, updated_at: timestamp || new Date().toISOString() })
         .eq("id", market_id);
 
       broadcast(market_id, "count.sync", { count, timestamp });
-
       return NextResponse.json({ ok: true, count });
     }
 
-    // Type 3: Round reset
+    // Type 3: Round reset — FIX: also update database, not just cache
     if (event_type === "round.reset") {
-      countCache.set(market_id, 0);
-      broadcast(market_id, "round.reset", {});
-      return NextResponse.json({ ok: true, event: "round.reset" });
+      await supabase
+        .from("camera_markets")
+        .update({ current_count: 0, updated_at: new Date().toISOString() })
+        .eq("id", market_id);
+
+      broadcast(market_id, "round.reset", { count: 0 });
+      return NextResponse.json({ ok: true, event: "round.reset", count: 0 });
     }
 
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -78,21 +90,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Polling fallback for count
+// GET: Polling fallback — always read from DB (no in-memory cache in serverless)
 export async function GET(request: NextRequest) {
   const marketId = request.nextUrl.searchParams.get("market_id");
   if (!marketId) return NextResponse.json({ error: "market_id required" }, { status: 400 });
 
-  const cached = countCache.get(marketId);
-  if (cached !== undefined) {
-    return NextResponse.json({ count: cached, source: "cache" });
-  }
-
   const { data } = await supabase
     .from("camera_markets")
-    .select("current_count")
+    .select("current_count, phase")
     .eq("id", marketId)
     .maybeSingle();
 
-  return NextResponse.json({ count: data?.current_count || 0, source: "db" });
+  return NextResponse.json({ count: data?.current_count || 0, phase: data?.phase || "unknown", source: "db" });
 }
