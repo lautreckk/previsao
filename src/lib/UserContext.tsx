@@ -269,15 +269,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (name: string, email: string, cpf: string, password: string, phone?: string, referralCode?: string): Promise<boolean> => {
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Check if exists
-    const { data: existing } = await supabase.from("users").select("id").eq("email", normalizedEmail).single();
+    // Check if exists - use maybeSingle to avoid error when not found
+    const { data: existing, error: checkErr } = await supabase.from("users").select("id").eq("email", normalizedEmail).maybeSingle();
     if (existing) return false;
 
     const newId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const { error } = await supabase.from("users").insert({
-      id: newId, name, email: normalizedEmail, cpf, password, balance: 0, phone: phone || "", referred_by: referralCode || "",
-    });
-    if (error) return false;
+    const insertData: Record<string, unknown> = { id: newId, name, email: normalizedEmail, cpf, password, balance: 0, phone: phone || "" };
+    if (referralCode) insertData.referred_by = referralCode;
+    const { error } = await supabase.from("users").insert(insertData);
+    if (error) { console.error("Register insert error:", error); return false; }
 
     setUser({ ...NEW_USER_DEFAULTS, id: newId, name, email: normalizedEmail, cpf, phone: phone || "", avatar_url: "", balance: 0, createdAt: new Date().toISOString() } as User);
     localStorage.setItem("previsao_session", normalizedEmail);

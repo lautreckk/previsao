@@ -510,7 +510,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
         ))}
       </div>
 
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-41px-70px)] lg:h-screen">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-41px)] pb-16 lg:pb-0 lg:h-screen">
 
         {/* ─── LEFT COLUMN: Stream + Betting ─── */}
         <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto ${mobilePanel !== "camera" ? "hidden lg:flex" : ""}`}>
@@ -606,6 +606,33 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
               </button>
             </div>
           </div>
+
+          {/* Mobile inline bet form — appears in camera tab when type selected */}
+          {selectedType && (
+            <div className="lg:hidden px-4 pb-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white/70">{selectedType === "over" ? "Mais de" : "Até"} {threshold} — {selectedType === "over" ? odds.over.toFixed(2) : odds.under.toFixed(2)}x</span>
+                <button onClick={() => setSelectedType(null)} className="text-white/40 text-xs">Cancelar</button>
+              </div>
+              <div className="flex gap-2">
+                {[5, 10, 50, 100].map((v) => (
+                  <button key={v} onClick={() => setBetAmount(String(v))} className={`flex-1 py-2 rounded-lg text-xs font-bold ${betAmount === String(v) ? "bg-[#80FF00]/20 text-[#80FF00] border border-[#80FF00]/40" : "bg-[#12101A] text-white/50 border border-[#1e2a3a]"}`}>R$ {v}</button>
+                ))}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm font-bold">R$</span>
+                <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="0" min="1" className="w-full bg-[#0A0910] rounded-xl pl-10 pr-4 py-2.5 text-white text-base font-black outline-none border border-[#1e2a3a] focus:border-[#80FF00]/40" />
+              </div>
+              <button
+                onClick={handleBet}
+                disabled={placing || !betAmount || parseFloat(betAmount) <= 0 || !user}
+                className="w-full py-3 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider disabled:opacity-40 active:scale-[0.98] transition-all"
+              >
+                {placing ? "Enviando..." : !user ? "Faça login" : `Apostar R$ ${betAmount || "0"}`}
+              </button>
+              {betMsg && <div className={`rounded-lg p-2 text-xs font-bold text-center ${betMsg.type === "success" ? "bg-[#80FF00]/10 text-[#80FF00]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>{betMsg.text}</div>}
+            </div>
+          )}
 
           {/* Round history */}
           <RoundHistory marketId={marketId} />
