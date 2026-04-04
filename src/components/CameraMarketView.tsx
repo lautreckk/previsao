@@ -110,28 +110,41 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
     const onPlaying = () => { if (!cancelled) { setConnected(true); setBuffering(false); } };
     const onWaiting = () => { if (!cancelled) setBuffering(true); };
     const onCanPlay = () => { if (!cancelled) setBuffering(false); };
+    const onTimeUpdate = () => { if (!cancelled && video.currentTime > 0) { setConnected(true); setBuffering(false); } };
     video.addEventListener("playing", onPlaying);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("timeupdate", onTimeUpdate);
 
     async function setupHLS() {
       const { default: Hls } = await import("hls.js");
       if (cancelled) return;
       if (Hls.isSupported()) {
         const hls = new Hls({
-          liveSyncDurationCount: 4,
-          liveMaxLatencyDurationCount: 8,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 10,
           enableWorker: true,
           lowLatencyMode: false,
           backBufferLength: 10,
-          maxBufferLength: 20,
-          maxMaxBufferLength: 30,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          startPosition: -1,
+          nudgeMaxRetry: 10,
+          maxFragLookUpTolerance: 0.5,
+          fragLoadingMaxRetry: 6,
+          fragLoadingRetryDelay: 1000,
+          manifestLoadingMaxRetry: 6,
+          levelLoadingMaxRetry: 6,
         });
         hlsRef.current = hls;
         hls.loadSource(hlsUrl);
         hls.attachMedia(video!);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video?.play().catch(() => {});
+        });
+        // When buffer is appended, try to play in case autoplay was blocked
+        hls.on(Hls.Events.FRAG_BUFFERED, () => {
+          if (video && video.paused) video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
           if (data.fatal) {
@@ -156,6 +169,7 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
       video.removeEventListener("playing", onPlaying);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("timeupdate", onTimeUpdate);
     };
   }, [hlsUrl]);
 
@@ -959,65 +973,115 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 ))}
               </div>
               <div className="flex-1 overflow-y-auto p-4">
-                {tab === "posicoes" && (
-                  <div className="text-center text-white/50 py-8">
-                    {!user && (
-                      <>
-                        <p className="text-sm">Faca login para visualizar suas posicoes.</p>
-                        <Link href="/login" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Entrar</Link>
-                      </>
-                    )}
-                    {user && myPredictions.length === 0 && <p className="text-xs mt-2">Nenhuma previsao feita ainda.</p>}
-                    {user && myPredictions.length > 0 && (
-                      <div className="space-y-2 mt-4 text-left">
-                        {myPredictions.slice(0, 10).map((p) => (
-                          <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                                {p.prediction_type === "over" ? "MAIS" : "MENOS"} {p.threshold}
-                              </span>
-                              <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : p.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>
-                                {p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : p.status === "lost" ? "PERDEU" : `@${Number(p.odds_at_entry).toFixed(2)}x`}
-                              </span>
-                            </div>
-                            <span className="text-xs font-bold">R$ {Number(p.amount_brl).toFixed(2)}</span>
+                {(() => {
+                  const filteredPreds = tab === "posicoes"
+                    ? myPredictions
+                    : tab === "aberto"
+                    ? openPredictions
+                    : closedPredictions;
+
+                  if (!user) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-6">
+                          <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
+                            <span className="material-symbols-outlined text-white/30 text-2xl">lock</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {tab === "aberto" && (
-                  <div className="space-y-2">
-                    {openPredictions.length === 0 && <p className="text-center text-white/50 text-sm py-8">Nenhuma previsao em aberto.</p>}
-                    {openPredictions.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                          {p.prediction_type === "over" ? "MAIS" : "MENOS"} {p.threshold} @{Number(p.odds_at_entry).toFixed(2)}x
-                        </span>
-                        <span className="text-xs font-bold text-[#FFC700]">R$ {Number(p.amount_brl).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {tab === "encerradas" && (
-                  <div className="space-y-2">
-                    {closedPredictions.length === 0 && <p className="text-center text-white/50 text-sm py-8">Nenhuma previsao encerrada.</p>}
-                    {closedPredictions.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                            {p.prediction_type === "over" ? "MAIS" : "MENOS"} {p.threshold}
-                          </span>
-                          <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
-                            {p.status === "won" ? "GANHOU" : "PERDEU"}
-                          </span>
+                          <p className="text-sm text-white font-bold mb-1">Faca login para ver suas posicoes</p>
+                          <Link href="/login" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Entrar</Link>
                         </div>
-                        <span className="text-xs font-bold">{p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : `R$ ${Number(p.amount_brl).toFixed(2)}`}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  }
+
+                  if (filteredPreds.length === 0) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-6">
+                          <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
+                            <span className="material-symbols-outlined text-white/30 text-2xl">
+                              {tab === "posicoes" ? "touch_app" : tab === "aberto" ? "hourglass_empty" : "check_circle"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-white font-bold mb-1">
+                            {tab === "posicoes" ? "Nenhuma posicao ainda" : tab === "aberto" ? "Nenhuma aposta em aberto" : "Nenhuma aposta encerrada"}
+                          </p>
+                          <p className="text-xs text-white/30">Selecione um resultado ao lado para fazer sua previsao.</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const totalInvested = filteredPreds.reduce((s, p) => s + Number(p.amount_brl), 0);
+                  const totalPotential = filteredPreds.reduce((s, p) => s + Number(p.amount_brl) * Number(p.odds_at_entry), 0);
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Summary bar */}
+                      <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Investido</span>
+                          <p className="text-sm font-black text-white font-mono">R$ {totalInvested.toFixed(2)}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Potencial</span>
+                          <p className="text-sm font-black text-[#80FF00] font-mono">R$ {totalPotential.toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      {/* Bet cards */}
+                      {filteredPreds.map((p) => {
+                        const isOver = p.prediction_type === "over";
+                        const isWon = p.status === "won";
+                        const isLost = p.status === "lost";
+                        const isPending = p.status === "open";
+                        const potentialReturn = Number(p.amount_brl) * Number(p.odds_at_entry);
+                        const color = isOver ? "#80FF00" : "#FF5252";
+
+                        return (
+                          <div key={p.id} className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 transition-all hover:border-white/[0.12]">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: color + "15" }}>
+                                  <span className="text-xs font-black" style={{ color }}>{isOver ? "▲" : "▼"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-sm font-bold text-white">{isOver ? "Mais de" : "Menos de"} {p.threshold}</span>
+                                  <span className="block text-[10px] text-white/30">
+                                    {p.created_at ? new Date(p.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                isWon ? "bg-[#80FF00]/10 text-[#80FF00]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#80FF00]/10 text-[#80FF00]"
+                              }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#80FF00]" : isLost ? "bg-[#FF5252]" : "bg-[#80FF00] animate-pulse"}`} />
+                                {isWon ? "Ganhou" : isLost ? "Perdeu" : "Em aberto"}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-white/30">Valor</span>
+                                <span className="font-bold text-white font-mono">R$ {Number(p.amount_brl).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/30">Odds</span>
+                                <span className="font-bold text-white font-mono">{Number(p.odds_at_entry).toFixed(2)}x</span>
+                              </div>
+                              <div className="flex justify-between col-span-2">
+                                <span className="text-white/30">Potencial</span>
+                                <span className={`font-bold font-mono ${isPending ? "text-[#80FF00]" : isWon ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
+                                  {isLost ? `- R$ ${Number(p.amount_brl).toFixed(2)}` : `R$ ${potentialReturn.toFixed(2)}`}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </>
           )}
