@@ -251,31 +251,31 @@ const CHAT_ONLY_USERS = ["@daisajubes","@luccasomaior","@tfrfryypaciho2007","@ga
 
 const FAKE_MSGS = [
   "boa tarde tropa, btc nos 5m ta com cara de descer, barlera puxando frt",
-  "under vamooo","irl em c, 2K nisso aq e pq tem dinheiro sobrando, slc",
+  "menos vamooo","irl em c, 2K nisso aq e pq tem dinheiro sobrando, slc",
   "mds irmao como tu poe 2k nisso eu coloquei 30","eu vendo a minha plo",
-  "nao faco apostas altas, perdi 250 mil no betano","under vamoooo",
+  "nao faco apostas altas, perdi 250 mil no betano","menos vamoooo",
   "po mh site me deslogou, um aro pro entrar, n consegui pegar odd boa",
-  "over over over","30 segundos pra executar o bglh",
+  "mais mais mais","30 segundos pra executar o bglh",
   "Cuida rapaziadaa na proxima pode ir pesado no verde",
   "GRUPO TELEGRAM OPERANDO 100% ACERTIVO! PESQUISEM @RODOVIASINAIS",
   "Acabei de sacar 200 calu na hora","to vendo a linha 3k n vai cair",
-  "aq passa mais de 50 carros","menos","dol mai","aq e o over",
+  "aq passa mais de 50 carros","menos","dol mai","aq e o mais",
   "mais carros agora","ta vindo","presta atencao na linha verde",
 ];
 
 /* Messages bots say after placing a bet */
 const BET_REACTION_MSGS: Record<string, string[]> = {
   over: [
-    "over facil demais","to vendo muito carro passando","over over over",
-    "coloquei tudo no over, bora","vai passar facil","ta vindo carro demais",
-    "confia no over","mais carros agora mano","over sem medo",
-    "ja era, vai ser over de lavada","passando direto","ta lotado a pista",
+    "mais facil demais","to vendo muito carro passando","mais mais mais",
+    "coloquei tudo no mais, bora","vai passar facil","ta vindo carro demais",
+    "confia no mais","mais carros agora mano","mais sem medo",
+    "ja era, vai ser mais de lavada","passando direto","ta lotado a pista",
   ],
   under: [
-    "under vamoooo","ta parado demais, under","under tranquilo",
-    "nao vai passar nada","under de lavada","ta vazio a rodovia",
-    "confia no under","pista morta, under","poucos carros","under sem duvida",
-    "nao passa ninguem","under certo","menos carros agora",
+    "menos vamoooo","ta parado demais, menos","menos tranquilo",
+    "nao vai passar nada","menos de lavada","ta vazio a rodovia",
+    "confia no menos","pista morta, menos","poucos carros","menos sem duvida",
+    "nao passa ninguem","menos certo","menos carros agora",
   ],
 };
 
@@ -568,7 +568,7 @@ function LiveBettors({ threshold, phase }: { threshold: number; phase: "waiting"
             </div>
             <div className="flex items-center gap-1.5">
               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${b.type === "over" ? "bg-[#80FF00]/10 text-[#80FF00]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
-                {b.type === "over" ? `OVER ${threshold}` : `UNDER ${threshold}`}
+                {b.type === "over" ? `MAIS ${threshold}` : `MENOS ${threshold}`}
               </span>
               <span className="text-[10px] text-white/50 font-bold tabular-nums">R${b.amount}</span>
             </div>
@@ -610,7 +610,7 @@ function RoundHistory({ marketId }: { marketId: string }) {
             <div key={r.id} className={`flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg text-[10px] font-bold ${isOver ? "bg-[#80FF00]/10 text-[#80FF00]" : "bg-[#FF5252]/10 text-[#FF5252]"}`}>
               <span>#{r.round_number}</span>
               <span className="text-xs font-black">{r.final_count}</span>
-              <span className="text-[8px] opacity-70">{isOver ? "OVER" : "UNDER"} {r.threshold}</span>
+              <span className="text-[8px] opacity-70">{isOver ? "MAIS" : "MENOS"} {r.threshold}</span>
             </div>
           );
         })}
@@ -765,7 +765,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             <LiveStream marketId={marketId} count={currentCount} />
           </div>
 
-          {/* Betting buttons: OVER / UNDER */}
+          {/* Betting buttons: MAIS / MENOS */}
           <div className="px-4 py-2 lg:py-1.5">
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -791,7 +791,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     : "bg-[#12101A] border-[#1e2a3a] text-white hover:border-[#FF5252]/40 disabled:opacity-40"
                 }`}
               >
-                <span className="text-xs font-bold opacity-70">Ate {threshold}</span>
+                <span className="text-xs font-bold opacity-70">Menos de {threshold}</span>
                 <span className={`block text-base lg:text-sm font-black text-[#FF5252]`}>
                   {odds.under > 0 ? `(${odds.under.toFixed(2)}x)` : "(--x)"}
                 </span>
@@ -806,7 +806,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           {selectedType && (
             <div className="lg:hidden px-4 pb-3 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white/70">{selectedType === "over" ? "Mais de" : "Até"} {threshold} — {selectedType === "over" ? odds.over.toFixed(2) : odds.under.toFixed(2)}x</span>
+                <span className="text-xs font-bold text-white/70">{selectedType === "over" ? "Mais de" : "Menos de"} {threshold} — {selectedType === "over" ? odds.over.toFixed(2) : odds.under.toFixed(2)}x</span>
                 <button onClick={() => setSelectedType(null)} className="text-white/40 text-xs">Cancelar</button>
               </div>
               <div className="flex gap-2">
@@ -843,7 +843,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 <p className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Resultado da Rodada</p>
                 <p className="text-2xl font-black">{lastResult.final_count} <span className="text-sm">veiculos</span></p>
                 <p className="text-xs mt-1">
-                  {lastResult.result.toUpperCase()} (threshold {lastResult.threshold}) — <span className="font-black">{lastResult.payout_multiplier.toFixed(2)}x</span>
+                  {lastResult.result === "over" ? "MAIS" : "MENOS"} (limite {lastResult.threshold}) — <span className="font-black">{lastResult.payout_multiplier.toFixed(2)}x</span>
                 </p>
               </div>
               {market.phase === "waiting" && (
@@ -893,7 +893,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             <div className="p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase tracking-wider">
-                  {selectedType === "over" ? "Mais de" : "Ate"} {threshold}
+                  {selectedType === "over" ? "Mais de" : "Menos de"} {threshold}
                 </h3>
                 <button onClick={() => setSelectedType(null)} className="text-white/50 hover:text-white">
                   <span className="material-symbols-outlined text-sm">close</span>
@@ -945,7 +945,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                   selectedType === "under" ? "bg-[#FF5252] text-white" : "bg-[#80FF00] text-[#0a0a0a]"
                 }`}
               >
-                {!user ? "Faca login" : placing ? "Enviando..." : `${selectedType === "over" ? "MAIS DE" : "ATE"} ${threshold} — R$ ${betAmount || "0"}`}
+                {!user ? "Faca login" : placing ? "Enviando..." : `${selectedType === "over" ? "MAIS DE" : "MENOS DE"} ${threshold} — R$ ${betAmount || "0"}`}
               </button>
             </div>
           ) : (
@@ -974,7 +974,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                           <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
                             <div className="flex items-center gap-2">
                               <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                                {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
+                                {p.prediction_type === "over" ? "MAIS" : "MENOS"} {p.threshold}
                               </span>
                               <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : p.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>
                                 {p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : p.status === "lost" ? "PERDEU" : `@${Number(p.odds_at_entry).toFixed(2)}x`}
@@ -993,7 +993,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     {openPredictions.map((p) => (
                       <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                          {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold} @{Number(p.odds_at_entry).toFixed(2)}x
+                          {p.prediction_type === "over" ? "MAIS" : "MENOS"} {p.threshold} @{Number(p.odds_at_entry).toFixed(2)}x
                         </span>
                         <span className="text-xs font-bold text-[#FFC700]">R$ {Number(p.amount_brl).toFixed(2)}</span>
                       </div>
@@ -1007,7 +1007,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                       <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                            {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
+                            {p.prediction_type === "over" ? "MAIS" : "MENOS"} {p.threshold}
                           </span>
                           <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
                             {p.status === "won" ? "GANHOU" : "PERDEU"}

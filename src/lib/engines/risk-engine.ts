@@ -25,7 +25,7 @@ export function validateBet(
   }
 
   const now = Date.now();
-  if (now >= market.freeze_at) return { allowed: false, reason: "Mercado congelado" };
+  if (market.freeze_at && now >= market.freeze_at) return { allowed: false, reason: "Mercado congelado" };
   if (now >= market.close_at) return { allowed: false, reason: "Mercado fechado" };
 
   const outcome = market.outcomes.find((o) => o.key === outcomeKey);

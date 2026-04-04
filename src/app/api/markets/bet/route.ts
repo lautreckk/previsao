@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       min_bet: Number(market.min_bet) || 1,
       max_bet: Number(market.max_bet) || 10000,
       max_liability: Number(market.max_liability) || 500000,
-      freeze_at: new Date(market.freeze_at).getTime(),
+      freeze_at: market.freeze_at ? new Date(market.freeze_at).getTime() : 0,
       close_at: new Date(market.close_at).getTime(),
     } as PredictionMarket;
 
