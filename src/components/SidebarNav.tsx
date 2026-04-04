@@ -59,7 +59,11 @@ export default function SidebarNav({ activeCategory, onCategoryChange }: Sidebar
       <div className="mb-4">
         <p className="text-[10px] text-[hsl(0,0%,55%)] uppercase tracking-wider font-semibold mb-2 px-1">Cripto 5 min</p>
         {cryptoItems.map((item, i) => (
-          <div key={i} className="flex items-center justify-between px-2 py-1 text-sm">
+          <button
+            key={i}
+            onClick={() => onCategoryChange("crypto")}
+            className="flex items-center justify-between px-2 py-1 text-sm w-full rounded-md hover:bg-[hsl(0,0%,12%)]/50 transition-colors"
+          >
             <div className="flex items-center gap-2">
               <span className="text-sm">{item.icon}</span>
               <span className="text-[hsl(0,0%,85%)] text-sm">{item.label}</span>
@@ -67,7 +71,7 @@ export default function SidebarNav({ activeCategory, onCategoryChange }: Sidebar
             <span className={`text-xs font-medium ${item.positive ? 'text-[#80FF00]' : 'text-[hsl(0,84%,60%)]'}`}>
               {item.change}
             </span>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -99,7 +103,7 @@ export default function SidebarNav({ activeCategory, onCategoryChange }: Sidebar
       <div className="mt-auto space-y-2 px-1">
         <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-xl p-3 text-center overflow-hidden relative">
           <p className="text-xs font-extrabold text-white leading-tight">INDIQUE E<br/>GANHE!</p>
-          <button className="mt-1.5 bg-[#121212]/90 text-[hsl(0,0%,95%)] text-[9px] font-bold px-3 py-1 rounded-md">INDICAR AGORA</button>
+          <Link href="/criar-conta" className="mt-1.5 inline-block bg-[#121212]/90 text-[hsl(0,0%,95%)] text-[9px] font-bold px-3 py-1 rounded-md">INDICAR AGORA</Link>
         </div>
         <div className="bg-gradient-to-r from-green-700 to-green-500 rounded-xl p-3 text-center overflow-hidden relative">
           <p className="text-[10px] text-white/90 font-medium">Até</p>
@@ -111,10 +115,10 @@ export default function SidebarNav({ activeCategory, onCategoryChange }: Sidebar
 
       {/* Bottom links */}
       <div className="mt-3 px-2 space-y-1 pb-3">
-        <button className="flex items-center gap-2 text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] transition-colors w-full py-1">
+        <Link href="/resultados" className="flex items-center gap-2 text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] transition-colors w-full py-1">
           <MousePointer size={14} />
           <span>Precisão</span>
-        </button>
+        </Link>
         <Link href="/como-funciona" className="flex items-center gap-2 text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] transition-colors w-full py-1">
           <BookOpen size={14} />
           <span>Dúvidas</span>

@@ -18,7 +18,10 @@ const ROUND_CONFIGS: Record<string, {
   "sol-5min": { symbol: "SOL", category: "crypto", duration: 300, bettingWindow: 150, schedule: "24/7" },
 };
 
+const BINANCE_SYMBOLS: Record<string, string> = { BTC: "BTCUSDT", ETH: "ETHUSDT", SOL: "SOLUSDT" };
+
 async function getPrice(symbol: string): Promise<number> {
+  // Source 1: CoinGecko
   const cgId = CG_IDS[symbol];
   if (cgId) {
     try {
@@ -26,10 +29,19 @@ async function getPrice(symbol: string): Promise<number> {
       if (res.ok) { const d = await res.json(); if (d[cgId]?.usd) return d[cgId].usd; }
     } catch { /* fall through */ }
   }
+  // Source 2: AwesomeAPI
   try {
     const res = await fetch(`https://economia.awesomeapi.com.br/json/last/${symbol}-USD`);
-    if (res.ok) { const d = await res.json(); return parseFloat(d[`${symbol}USD`]?.bid || "0"); }
-  } catch { /* ignore */ }
+    if (res.ok) { const d = await res.json(); const price = parseFloat(d[`${symbol}USD`]?.bid || "0"); if (price > 0) return price; }
+  } catch { /* fall through */ }
+  // Source 3: Binance
+  const binanceSymbol = BINANCE_SYMBOLS[symbol];
+  if (binanceSymbol) {
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`);
+      if (res.ok) { const d = await res.json(); const price = parseFloat(d.price || "0"); if (price > 0) return price; }
+    } catch { /* fall through */ }
+  }
   return 0;
 }
 
@@ -133,7 +145,23 @@ export async function GET(request: NextRequest) {
             for (const bet of bets) {
               const payout = (bet.amount as number) * payoutPerUnit;
               await supabase.from("live_bets").update({ status: "won", payout }).eq("id", bet.id);
-              await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });
+              let credited = false;
+              for (let attempt = 0; attempt < 3 && !credited; attempt++) {
+                const { error: rpcErr } = await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });
+                if (!rpcErr) { credited = true; } else if (attempt === 2) {
+                  console.error(`[live-rounds] CRITICAL: Failed to credit ${payout} to user ${bet.user_id} bet ${bet.id}:`, rpcErr.message);
+                  await supabase.from("live_bets").update({ status: "pending", payout: 0 }).eq("id", bet.id);
+                }
+              }
+              if (credited) {
+                const { data: userRow } = await supabase.from("users").select("balance").eq("id", bet.user_id).maybeSingle();
+                await supabase.from("ledger").insert({
+                  id: `ldg_live_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                  user_id: bet.user_id, type: "bet_won", amount: payout,
+                  balance_after: Number(userRow?.balance ?? 0), reference_id: bet.id,
+                  description: `Live ${config.symbol} ${winner}: ${openPrice}→${closePrice} (${payoutPerUnit.toFixed(2)}x)`,
+                });
+              }
             }
           }
           const loser = winner === "UP" ? "DOWN" : "UP";

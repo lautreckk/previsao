@@ -912,8 +912,20 @@ async function resolveOneMarket(supabase: any, market: any): Promise<Record<stri
       const payout = isWinner ? bet.amount * payoutPerUnit : 0;
       await supabase.from("prediction_bets").update({ status: isWinner ? "won" : "lost", final_payout: payout }).eq("id", bet.id);
       if (isWinner && payout > 0) {
-        await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });
-        await supabase.from("ledger").insert({ user_id: bet.user_id, type: "bet_won", amount: payout, balance_after: 0, reference_id: bet.id, description: `Auto: ${market.title} — ${bet.outcome_label} (${payoutPerUnit.toFixed(2)}x)` });
+        // Credit balance with retry on failure
+        let credited = false;
+        for (let attempt = 0; attempt < 3 && !credited; attempt++) {
+          const { error: rpcErr } = await supabase.rpc("increment_balance", { user_id_param: bet.user_id, amount_param: payout });
+          if (!rpcErr) { credited = true; } else if (attempt === 2) {
+            console.error(`[settlement] CRITICAL: Failed to credit ${payout} to user ${bet.user_id} for bet ${bet.id} after 3 attempts:`, rpcErr.message);
+            await supabase.from("prediction_bets").update({ status: "pending", final_payout: 0 }).eq("id", bet.id);
+            continue;
+          }
+        }
+        if (credited) {
+          const { data: userRow } = await supabase.from("users").select("balance").eq("id", bet.user_id).maybeSingle();
+          await supabase.from("ledger").insert({ user_id: bet.user_id, type: "bet_won", amount: payout, balance_after: Number(userRow?.balance ?? 0), reference_id: bet.id, description: `Auto: ${market.title} — ${bet.outcome_label} (${payoutPerUnit.toFixed(2)}x)` });
+        }
       }
     }
   }
@@ -945,7 +957,7 @@ export async function processMarketJobs(): Promise<{
     .eq("status", "pending")
     .lte("execute_at", nowISO)
     .order("execute_at", { ascending: true })
-    .limit(20);
+    .limit(50);
 
   if (!jobs || jobs.length === 0) {
     return { processed: 0, results: [], errors: [] };
@@ -993,7 +1005,23 @@ export async function processMarketJobs(): Promise<{
               const payout = isWinner ? Number(pred.amount_brl) * payoutMultiplier : 0;
               await supabase.from("camera_predictions").update({ status: isWinner ? "won" : "lost", payout: isWinner ? payout : 0 }).eq("id", pred.id);
               if (isWinner && payout > 0) {
-                await supabase.rpc("increment_balance", { user_id_param: pred.user_id, amount_param: payout });
+                let credited = false;
+                for (let attempt = 0; attempt < 3 && !credited; attempt++) {
+                  const { error: rpcErr } = await supabase.rpc("increment_balance", { user_id_param: pred.user_id, amount_param: payout });
+                  if (!rpcErr) { credited = true; } else if (attempt === 2) {
+                    console.error(`[camera-job] CRITICAL: Failed to credit ${payout} to user ${pred.user_id} for pred ${pred.id}:`, rpcErr.message);
+                    await supabase.from("camera_predictions").update({ status: "open", payout: 0 }).eq("id", pred.id);
+                  }
+                }
+                if (credited) {
+                  const { data: userRow } = await supabase.from("users").select("balance").eq("id", pred.user_id).maybeSingle();
+                  await supabase.from("ledger").insert({
+                    id: `ldg_camjob_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                    user_id: pred.user_id, type: "bet_won", amount: payout,
+                    balance_after: Number(userRow?.balance ?? 0), reference_id: pred.id,
+                    description: `Camera ${result.toUpperCase()}: ${finalCount} veiculos (threshold ${threshold}) ${payoutMultiplier.toFixed(2)}x`,
+                  });
+                }
               }
             }
             await supabase.from("camera_rounds").update({ resolved_at: nowISO, final_count: finalCount }).eq("id", round.id);
@@ -1005,8 +1033,17 @@ export async function processMarketJobs(): Promise<{
       results.push({ job_id: job.id, market_id: job.market_id, job_type: job.job_type, action: "done" });
     } catch (err) {
       const errMsg = String(err);
-      const newStatus = job.attempts + 1 >= 3 ? "failed" : "pending";
-      await supabase.from("market_jobs").update({ status: newStatus, last_error: errMsg }).eq("id", job.id);
+      const totalAttempts = (job.attempts || 0) + 1;
+      const maxAttempts = job.max_attempts || 5;
+      const newStatus = totalAttempts >= maxAttempts ? "failed" : "pending";
+      // Exponential backoff: delay next retry by 2^attempts minutes (capped at 30min)
+      const backoffMinutes = Math.min(Math.pow(2, totalAttempts), 30);
+      const nextExecuteAt = new Date(Date.now() + backoffMinutes * 60_000).toISOString();
+      await supabase.from("market_jobs").update({
+        status: newStatus, last_error: errMsg,
+        ...(newStatus === "pending" ? { execute_at: nextExecuteAt } : {}),
+      }).eq("id", job.id);
+      if (newStatus === "failed") console.error(`[jobs] FAILED permanently after ${totalAttempts} attempts: job ${job.id} market ${job.market_id}`);
       errors.push(`job_${job.id}: ${errMsg}`);
     }
   }
