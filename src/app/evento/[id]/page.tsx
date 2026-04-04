@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
-import { useChat, ChatProvider } from "@/lib/ChatContext";
+import { useChat } from "@/lib/ChatContext";
 import { initializeStore, getMarket, placeBetFull, tickAllMarkets } from "@/lib/engines/store";
 import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { CATEGORY_META } from "@/lib/engines/types";
@@ -70,28 +70,13 @@ function EventChat() {
         {msgs.map((msg, idx) => {
           const prev = idx > 0 ? msgs[idx - 1] : null;
           const grouped = prev?.user === msg.user;
-          const profileHref = msg.user_id ? `/perfil/${msg.user_id}` : undefined;
           return (
             <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${grouped ? "" : "mt-1.5"}`}>
               {!grouped ? (
-                profileHref ? (
-                  <Link href={profileHref}>
-                    <img src={msg.avatar_url || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5 cursor-pointer hover:ring-2 hover:ring-[#80FF00]/50 transition-all" />
-                  </Link>
-                ) : (
-                  <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5" />
-                )
+                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(msg.user)}&backgroundColor=transparent`} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5" />
               ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
-                {!grouped && (
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    {profileHref ? (
-                      <Link href={profileHref} className="text-[#80FF00] font-bold text-[11px] truncate hover:underline">{msg.user}</Link>
-                    ) : (
-                      <span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span>
-                    )}
-                  </div>
-                )}
+                {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span></div>}
                 <p className="text-[12px] text-gray-300 break-words leading-relaxed">{msg.text}</p>
               </div>
             </div>
@@ -398,11 +383,11 @@ export default function EventoPage() {
   const potentialPayout = simulation ? simulation.estimatedPayout : 0;
 
   return (
-    <div className="h-screen bg-[#080d1a] text-white overflow-hidden">
-      <div className="flex flex-col lg:flex-row h-screen">
+    <div className="min-h-screen bg-[#080d1a] text-white">
+      <div className="flex flex-col lg:flex-row min-h-screen">
 
         {/* ─── LEFT: Market info + Outcomes ─── */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-20 lg:pb-0">
           {/* Header */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14] shrink-0">
             <div className="flex items-center gap-3 min-w-0">
@@ -579,6 +564,41 @@ export default function EventoPage() {
                   })}
                 </div>
 
+                {/* ═══ MOBILE INLINE BET FORM ═══ */}
+                {selected && (
+                  <div className="lg:hidden mt-4 bg-[#0D0B14] rounded-xl border border-white/[0.04] p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: selected.color + "20" }}>
+                          <span className="text-[10px] font-black" style={{ color: selected.color }}>{selected.key.slice(0, 2).toUpperCase()}</span>
+                        </div>
+                        <span className="text-sm font-bold" style={{ color: selected.color }}>{selected.label}</span>
+                        <span className="text-xs text-white/40">{(selected.payout_per_unit > 0 ? selected.payout_per_unit : market.outcomes.length * 0.95).toFixed(2)}x</span>
+                      </div>
+                      <button onClick={() => setSelectedOutcome(null)} className="text-white/30 text-xs">Cancelar</button>
+                    </div>
+                    <div className="flex gap-2">
+                      {[5, 10, 50, 100].map((v) => (
+                        <button key={v} onClick={() => { setBetAmount(String(v)); setError(""); }} className={`flex-1 py-2 rounded-lg text-xs font-bold ${betAmount === String(v) ? "bg-[#80FF00]/20 text-[#80FF00] border border-[#80FF00]/40" : "bg-[#12101A] text-white/50 border border-[#1e2a3a]"}`}>R$ {v}</button>
+                      ))}
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm font-bold">R$</span>
+                      <input type="number" value={betAmount} onChange={(e) => { setBetAmount(e.target.value); setError(""); }} placeholder="0" min="1" className="w-full bg-[#0A0910] rounded-xl pl-10 pr-4 py-2.5 text-white text-base font-black outline-none border border-[#1e2a3a] focus:border-[#80FF00]/40" />
+                    </div>
+                    {user && <p className="text-[10px] text-white/40">Saldo: R$ {user.balance.toFixed(2)} — Ganho: <span className="text-[#80FF00] font-bold">R$ {potentialWin.toFixed(2)}</span></p>}
+                    {error && <p className="text-xs text-[#FF5252] font-bold">{error}</p>}
+                    <button
+                      onClick={() => setShowConfirm(true)}
+                      disabled={!betAmount || parseFloat(betAmount) <= 0 || !user || !isOpen}
+                      className="w-full py-3 rounded-xl bg-[#80FF00] text-[#0a0a0a] font-black text-sm uppercase tracking-wider disabled:opacity-40 active:scale-[0.98] transition-all"
+                    >
+                      {!user ? "Faça login para apostar" : `Apostar R$ ${betAmount || "0"}`}
+                    </button>
+                    {betPlaced && <div className="rounded-lg p-2 text-xs font-bold text-center bg-[#80FF00]/10 text-[#80FF00]">Aposta confirmada!</div>}
+                  </div>
+                )}
+
                 {/* Quick info below buttons */}
                 {market.outcomes.length === 2 && (
                   <div className="flex items-center justify-center gap-6 mt-3 text-[10px] text-white/25">
@@ -640,8 +660,8 @@ export default function EventoPage() {
           )}
         </div>
 
-        {/* ─── MIDDLE: Bet form + Positions ─── */}
-        <div className="w-full lg:w-[340px] lg:border-l border-t lg:border-t-0 border-white/[0.04] flex flex-col bg-[#0a1222] overflow-hidden lg:max-h-screen">
+        {/* ─── MIDDLE: Bet form + Positions (desktop only — mobile uses inline form above) ─── */}
+        <div className="hidden lg:flex w-[340px] border-l border-white/[0.04] flex-col bg-[#0a1222] overflow-hidden max-h-screen">
           {selected ? (
             <div className="flex-1 overflow-y-auto">
               {/* Bet header */}
@@ -886,12 +906,10 @@ export default function EventoPage() {
           )}
         </div>
 
-        {/* ─── RIGHT: Chat (market-specific) ─── */}
-        <ChatProvider marketId={market.id}>
-          <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden hidden lg:flex">
-            <EventChat />
-          </div>
-        </ChatProvider>
+        {/* ─── RIGHT: Chat ─── */}
+        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden hidden lg:flex">
+          <EventChat />
+        </div>
       </div>
 
       {/* Confirm modal */}
@@ -961,9 +979,7 @@ export default function EventoPage() {
       >
         <span className="material-symbols-outlined text-lg">forum</span>
       </button>
-      <ChatProvider marketId={market.id}>
-        <LiveChat isOpen={mobileChatOpen} onClose={() => setMobileChatOpen(false)} />
-      </ChatProvider>
+      <LiveChat isOpen={mobileChatOpen} onClose={() => setMobileChatOpen(false)} />
 
       <div className="lg:hidden"><BottomNav /></div>
     </div>
