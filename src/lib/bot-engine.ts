@@ -50,6 +50,15 @@ async function fetchBots(): Promise<BotInfo[]> {
   }
 }
 
+// Fallback bot names for visual-only bets when API bots are unavailable
+const FALLBACK_BOT_NAMES = [
+  "Lucas M.", "Pedro S.", "Mari P.", "Ana C.", "Carol B.", "Bia R.",
+  "Julia F.", "Joao V.", "Bruno L.", "Rafael K.", "Vini S.", "Duda M.",
+  "Leo T.", "Matheus G.", "Amanda S.", "Felipe R.", "Luiza N.", "Alice P.",
+  "Gabriel S.", "Renata N.", "Thiago C.", "Camila B.", "Diego L.", "Patricia F.",
+  "Henrique Santos", "Renata Nunes", "Fernanda Lima", "Ricardo Souza",
+];
+
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -79,11 +88,37 @@ export function createBotEngine(
   let timer: ReturnType<typeof setTimeout> | null = null;
   let running = false;
 
+  // Visual-only fallback bet (no API call, just UI activity)
+  function emitVisualBet(outcomes: Outcome[]) {
+    const outcome = weightedOutcome(outcomes);
+    const amount = randomAmount();
+    const payout = outcome.payout_per_unit || 1.5;
+    onNewBet({
+      id: `vis_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      user_name: pick(FALLBACK_BOT_NAMES),
+      user_id: "",
+      outcome_key: outcome.key,
+      outcome_label: outcome.label,
+      outcome_color: outcome.color,
+      amount,
+      potential_win: +(amount * payout).toFixed(2),
+      ts: Date.now(),
+    });
+  }
+
   async function tick(outcomes: Outcome[]) {
     if (!running) return;
 
+    if (outcomes.length === 0) {
+      scheduleNext(outcomes);
+      return;
+    }
+
     const bots = await fetchBots();
-    if (bots.length === 0 || outcomes.length === 0) {
+
+    // No bots available — emit visual-only bet
+    if (bots.length === 0) {
+      emitVisualBet(outcomes);
       scheduleNext(outcomes);
       return;
     }
@@ -92,7 +127,9 @@ export function createBotEngine(
     const outcome = weightedOutcome(outcomes);
     const amount = Math.min(randomAmount(), Math.floor(bot.balance));
 
+    // Bot has no balance — emit visual-only bet
     if (amount < 1) {
+      emitVisualBet(outcomes);
       scheduleNext(outcomes);
       return;
     }
@@ -115,7 +152,7 @@ export function createBotEngine(
         const potentialWin = +(amount * (data.bet?.payout_at_entry || outcome.payout_per_unit || 1.5)).toFixed(2);
 
         onNewBet({
-          id: data.bet?.id || `fake_${Date.now()}`,
+          id: data.bet?.id || `vis_${Date.now()}`,
           user_name: bot.name,
           user_id: bot.id,
           outcome_key: outcome.key,
@@ -128,9 +165,13 @@ export function createBotEngine(
 
         // Reduce local balance to prevent overspend
         bot.balance -= amount;
+      } else {
+        // API failed — show visual bet anyway
+        emitVisualBet(outcomes);
       }
     } catch {
-      // Silent fail — bot bets are non-critical
+      // Network error — show visual bet anyway
+      emitVisualBet(outcomes);
     }
 
     scheduleNext(outcomes);

@@ -134,6 +134,10 @@ export default function EventoPage() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const botEngineRef = useRef<ReturnType<typeof createBotEngine> | null>(null);
 
+  // Stable ref for chat so addLiveBet doesn't change identity
+  const chatSendRef = useRef(chatSendMessage);
+  chatSendRef.current = chatSendMessage;
+
   const addLiveBet = useCallback((bet: LiveBet) => {
     setLiveBets((prev) => [bet, ...prev].slice(0, 15));
     // Show toast
@@ -144,10 +148,10 @@ export default function EventoPage() {
     if (Math.random() < 0.5) {
       const delay = 1500 + Math.random() * 4000;
       setTimeout(() => {
-        chatSendMessage(getRandomBetMessage(), `@${bet.user_name.replace("@", "")}`);
+        chatSendRef.current(getRandomBetMessage(), `@${bet.user_name.replace("@", "")}`);
       }, delay);
     }
-  }, [chatSendMessage]);
+  }, []);
 
   // User bets for this market (from prediction_bets)
   interface UserBet {
