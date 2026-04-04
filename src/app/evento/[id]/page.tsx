@@ -115,7 +115,7 @@ export default function EventoPage() {
   const params = useParams();
   const router = useRouter();
   const { user, placeBet: legacyPlaceBet, refreshUser } = useUser();
-  const { sendMessage: chatSendMessage } = useChat();
+  const { addLocalMessage } = useChat();
   const [market, setMarket] = useState<PredictionMarket | null>(null);
   const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState("");
@@ -135,8 +135,8 @@ export default function EventoPage() {
   const botEngineRef = useRef<ReturnType<typeof createBotEngine> | null>(null);
 
   // Stable ref for chat so addLiveBet doesn't change identity
-  const chatSendRef = useRef(chatSendMessage);
-  chatSendRef.current = chatSendMessage;
+  const chatLocalRef = useRef(addLocalMessage);
+  chatLocalRef.current = addLocalMessage;
 
   const addLiveBet = useCallback((bet: LiveBet) => {
     setLiveBets((prev) => [bet, ...prev].slice(0, 15));
@@ -144,11 +144,11 @@ export default function EventoPage() {
     setBetToast(bet);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setBetToast(null), 3500);
-    // ~50% chance bot writes in chat after betting
+    // ~50% chance bot writes in chat after betting (local only, no persist)
     if (Math.random() < 0.5) {
       const delay = 1500 + Math.random() * 4000;
       setTimeout(() => {
-        chatSendRef.current(getRandomBetMessage(), `@${bet.user_name.replace("@", "")}`);
+        chatLocalRef.current(getRandomBetMessage(), `@${bet.user_name.replace("@", "")}`);
       }, delay);
     }
   }, []);
@@ -406,8 +406,8 @@ export default function EventoPage() {
   const potentialPayout = simulation ? simulation.estimatedPayout : 0;
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white">
-      <div className="flex flex-col lg:flex-row min-h-screen">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#080d1a] text-white">
+      <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen lg:max-h-screen">
 
         {/* ─── LEFT: Market info + Outcomes ─── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-20 lg:pb-0">
