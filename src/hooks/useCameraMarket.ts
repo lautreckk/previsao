@@ -142,7 +142,6 @@ export function useCameraMarket(marketId: string) {
         { event: "UPDATE", schema: "public", table: "camera_markets", filter: `id=eq.${marketId}` },
         (payload) => {
           const updated = payload.new as CameraMarket;
-          // Update count immediately from DB change (fastest path)
           if (updated.current_count !== undefined) {
             setCurrentCount(updated.current_count);
           }
@@ -155,6 +154,30 @@ export function useCameraMarket(marketId: string) {
       supabase.removeChannel(channel);
     };
   }, [marketId]);
+
+  // Realtime: postgres changes on camera_rounds (odds update when pools change)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`camera-rounds:${marketId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "camera_rounds", filter: `market_id=eq.${marketId}` },
+        (payload) => {
+          const updated = payload.new as CameraRound;
+          if (updated.pool_over !== undefined && updated.pool_under !== undefined) {
+            setOdds(calculateOdds(Number(updated.pool_over), Number(updated.pool_under)));
+            setCurrentRound((prev) =>
+              prev ? { ...prev, pool_over: updated.pool_over, pool_under: updated.pool_under, total_pool: updated.total_pool } : null
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [marketId, calculateOdds]);
 
   // Realtime: broadcast events (round start, phase change, odds, results)
   useEffect(() => {

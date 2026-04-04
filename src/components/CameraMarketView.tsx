@@ -206,8 +206,49 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
   );
 }
 
-/* ─── Mini Chat (inline, like Palpitano) ─── */
-const FAKE_USERS = ["@daisajubes","@luccasomaior","@tfrfryypaciho2007","@gabrielfenknupp","@hugoascni","@lucaselquezf1a","@diagramasjai","@clamentecorreia","@eimarolvlx0d42","@rofrsdaimoda"];
+/* ─── Shared bot system ─── */
+const ALL_BOTS: { name: string; avatar: string | null }[] = [
+  // ~40% with photo avatars (seeded via i.pravatar.cc)
+  { name: "lucas_m", avatar: "https://i.pravatar.cc/40?u=lucas_m" },
+  { name: "pedro_bet", avatar: "https://i.pravatar.cc/40?u=pedro_bet" },
+  { name: "mari_plays", avatar: "https://i.pravatar.cc/40?u=mari_plays" },
+  { name: "ana_trader", avatar: "https://i.pravatar.cc/40?u=ana_trader" },
+  { name: "carol_bet", avatar: "https://i.pravatar.cc/40?u=carol_bet" },
+  { name: "bia_bet22", avatar: "https://i.pravatar.cc/40?u=bia_bet22" },
+  { name: "julia_mg", avatar: "https://i.pravatar.cc/40?u=julia_mg" },
+  { name: "duda_plays", avatar: "https://i.pravatar.cc/40?u=duda_plays" },
+  { name: "amanda_sp", avatar: "https://i.pravatar.cc/40?u=amanda_sp" },
+  { name: "luiza_sp", avatar: "https://i.pravatar.cc/40?u=luiza_sp" },
+  { name: "alice_rj", avatar: "https://i.pravatar.cc/40?u=alice_rj" },
+  { name: "nath_plays", avatar: "https://i.pravatar.cc/40?u=nath_plays" },
+  // 60% letter-only avatars
+  { name: "joao_vitor", avatar: null },
+  { name: "bruno_sp", avatar: null },
+  { name: "rafael_rj", avatar: null },
+  { name: "vini_sp", avatar: null },
+  { name: "thi_bet", avatar: null },
+  { name: "gab_rj", avatar: null },
+  { name: "leo_trade", avatar: null },
+  { name: "matheus_go", avatar: null },
+  { name: "gui_sp01", avatar: null },
+  { name: "lari_bet", avatar: null },
+  { name: "davi_rj", avatar: null },
+  { name: "caio_bet", avatar: null },
+  { name: "henr_mg", avatar: null },
+  { name: "isa_trade", avatar: null },
+  { name: "felipe_rj", avatar: null },
+  { name: "arthur_go", avatar: null },
+  { name: "manu_bet", avatar: null },
+  { name: "enzo_sp", avatar: null },
+];
+
+function getBotByName(name: string) {
+  return ALL_BOTS.find((b) => b.name === name) || { name, avatar: null };
+}
+
+/* Chat-only users (appear only in chat, not in bettors) */
+const CHAT_ONLY_USERS = ["@daisajubes","@luccasomaior","@tfrfryypaciho2007","@gabrielfenknupp","@hugoascni","@lucaselquezf1a","@diagramasjai","@clamentecorreia","@eimarolvlx0d42","@rofrsdaimoda"];
+
 const FAKE_MSGS = [
   "boa tarde tropa, btc nos 5m ta com cara de descer, barlera puxando frt",
   "under vamooo","irl em c, 2K nisso aq e pq tem dinheiro sobrando, slc",
@@ -221,6 +262,22 @@ const FAKE_MSGS = [
   "aq passa mais de 50 carros","menos","dol mai","aq e o over",
   "mais carros agora","ta vindo","presta atencao na linha verde",
 ];
+
+/* Messages bots say after placing a bet */
+const BET_REACTION_MSGS: Record<string, string[]> = {
+  over: [
+    "over facil demais","to vendo muito carro passando","over over over",
+    "coloquei tudo no over, bora","vai passar facil","ta vindo carro demais",
+    "confia no over","mais carros agora mano","over sem medo",
+    "ja era, vai ser over de lavada","passando direto","ta lotado a pista",
+  ],
+  under: [
+    "under vamoooo","ta parado demais, under","under tranquilo",
+    "nao vai passar nada","under de lavada","ta vazio a rodovia",
+    "confia no under","pista morta, under","poucos carros","under sem duvida",
+    "nao passa ninguem","under certo","menos carros agora",
+  ],
+};
 
 const CAM_AVATAR_COLORS = [
   "from-[#FF6B6B] to-[#EE5A24]", "from-[#80FF00] to-[#4A9900]",
@@ -236,6 +293,9 @@ function camAvatarColor(name: string) {
 
 interface ChatMsg { id: string; user: string; text: string; ts: number }
 
+// Ref to inject messages into chat from outside (e.g. LiveBettors)
+const chatInjectorRef = { current: null as ((msg: ChatMsg) => void) | null };
+
 function InlineChat() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -245,15 +305,23 @@ function InlineChat() {
   const [unreadCount, setUnreadCount] = useState(0);
   const initialized = useRef(false);
 
+  // Expose injector so LiveBettors can push messages
+  const inject = useCallback((msg: ChatMsg) => {
+    setMessages((prev) => [...prev.slice(-40), msg]);
+    if (!isAtBottom) setUnreadCount((c) => c + 1);
+  }, [isAtBottom]);
+  useEffect(() => { chatInjectorRef.current = inject; return () => { chatInjectorRef.current = null; }; }, [inject]);
+
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     const now = Date.now();
+    const allChatUsers = [...CHAT_ONLY_USERS, ...ALL_BOTS.slice(0, 5).map((b) => `@${b.name}`)];
     const seed: ChatMsg[] = [];
     for (let i = 0; i < 8; i++) {
       seed.push({
         id: `s${i}`,
-        user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
+        user: allChatUsers[Math.floor(Math.random() * allChatUsers.length)],
         text: FAKE_MSGS[Math.floor(Math.random() * FAKE_MSGS.length)],
         ts: now - (8 - i) * 25000,
       });
@@ -262,13 +330,14 @@ function InlineChat() {
   }, []);
 
   useEffect(() => {
+    const allChatUsers = [...CHAT_ONLY_USERS, ...ALL_BOTS.slice(0, 5).map((b) => `@${b.name}`)];
     const iv = setInterval(() => {
       if (Math.random() > 0.4) {
         setMessages((prev) => [
           ...prev.slice(-40),
           {
             id: `f${Date.now()}`,
-            user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
+            user: allChatUsers[Math.floor(Math.random() * allChatUsers.length)],
             text: FAKE_MSGS[Math.floor(Math.random() * FAKE_MSGS.length)],
             ts: Date.now(),
           },
@@ -329,12 +398,19 @@ function InlineChat() {
           const timeAgo = Math.max(0, Math.floor((Date.now() - msg.ts) / 60000));
           const timeStr = timeAgo === 0 ? "agora" : `${timeAgo}min`;
 
+          const botName = msg.user.replace("@", "");
+          const bot = getBotByName(botName);
+
           return (
             <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${isGrouped ? "" : "mt-1.5"}`}>
               {!isGrouped ? (
-                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${camAvatarColor(msg.user)} flex items-center justify-center text-[10px] font-black text-white shrink-0 mt-0.5`}>
-                  {msg.user.replace("@", "").charAt(0).toUpperCase()}
-                </div>
+                bot.avatar ? (
+                  <img src={bot.avatar} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5" />
+                ) : (
+                  <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${camAvatarColor(msg.user)} flex items-center justify-center text-[10px] font-black text-white shrink-0 mt-0.5`}>
+                    {botName.charAt(0).toUpperCase()}
+                  </div>
+                )
               ) : (
                 <div className="w-7 shrink-0" />
               )}
@@ -388,46 +464,80 @@ function InlineChat() {
   );
 }
 
-/* ─── Live Bettors (shows fake users betting) ─── */
-const BOT_NAMES = [
-  "lucas_m","pedro_bet","joao_vitor","mari_plays","bruno_sp","ana_trader",
-  "rafael_rj","carol_bet","vini_sp","thi_bet","gab_rj","duda_plays",
-  "leo_trade","bia_bet22","matheus_go","julia_mg","gui_sp01","lari_bet",
-  "davi_rj","amanda_sp","caio_bet","nath_plays","henr_mg","isa_trade",
-  "felipe_rj","luiza_sp","arthur_go","manu_bet","enzo_sp","alice_rj",
-];
+/* ─── Live Bettors (shows fake users betting + injects chat messages) ─── */
+interface BettorEntry { name: string; avatar: string | null; type: "over" | "under"; amount: number; ts: number }
 
-function LiveBettors({ threshold }: { threshold: number }) {
-  const [bettors, setBettors] = useState<{ name: string; type: "over" | "under"; amount: number; ts: number }[]>([]);
+function pickUniqueBotName(usedNames: Set<string>): typeof ALL_BOTS[number] {
+  const available = ALL_BOTS.filter((b) => !usedNames.has(b.name));
+  if (available.length === 0) return ALL_BOTS[Math.floor(Math.random() * ALL_BOTS.length)];
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+function LiveBettors({ threshold, phase }: { threshold: number; phase: "waiting" | "betting" | "observation" }) {
+  const [bettors, setBettors] = useState<BettorEntry[]>([]);
   const initialized = useRef(false);
+  const usedNamesRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     const now = Date.now();
-    const seed = Array.from({ length: 8 }, (_, i) => ({
-      name: BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)],
-      type: (Math.random() > 0.45 ? "over" : "under") as "over" | "under",
-      amount: [1, 2, 5, 10, 20, 50, 100][Math.floor(Math.random() * 7)],
-      ts: now - (8 - i) * 3000,
-    }));
+    const seed: BettorEntry[] = [];
+    for (let i = 0; i < 6; i++) {
+      const bot = pickUniqueBotName(usedNamesRef.current);
+      usedNamesRef.current.add(bot.name);
+      seed.push({
+        name: bot.name,
+        avatar: bot.avatar,
+        type: (Math.random() > 0.45 ? "over" : "under") as "over" | "under",
+        amount: [1, 2, 5, 10, 20, 50, 100][Math.floor(Math.random() * 7)],
+        ts: now - (6 - i) * 3000,
+      });
+    }
     setBettors(seed);
   }, []);
 
+  // Clear bettors list when a new round starts (betting phase begins)
+  const prevPhaseRef = useRef(phase);
+  useEffect(() => {
+    if (phase === "betting" && prevPhaseRef.current !== "betting") {
+      setBettors([]);
+      usedNamesRef.current.clear();
+    }
+    prevPhaseRef.current = phase;
+  }, [phase]);
+
   useEffect(() => {
     const iv = setInterval(() => {
-      setBettors((prev) => [
-        ...prev.slice(-12),
-        {
-          name: BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)],
-          type: (Math.random() > 0.45 ? "over" : "under") as "over" | "under",
-          amount: [1, 2, 5, 10, 20, 50, 100][Math.floor(Math.random() * 7)],
-          ts: Date.now(),
-        },
-      ]);
-    }, 2000 + Math.random() * 4000);
+      // Only add new bots during betting phase
+      if (phase !== "betting") return;
+
+      setBettors((prev) => {
+        // Remove oldest if we have too many, free the name
+        const trimmed = prev.length >= 10 ? prev.slice(1) : prev;
+        if (prev.length >= 10 && prev[0]) usedNamesRef.current.delete(prev[0].name);
+
+        const bot = pickUniqueBotName(usedNamesRef.current);
+        usedNamesRef.current.add(bot.name);
+        const type = (Math.random() > 0.45 ? "over" : "under") as "over" | "under";
+        const amount = [1, 2, 5, 10, 20, 50, 100][Math.floor(Math.random() * 7)];
+
+        // ~60% chance the bettor also says something in chat
+        if (Math.random() < 0.6 && chatInjectorRef.current) {
+          const msgs = BET_REACTION_MSGS[type];
+          chatInjectorRef.current({
+            id: `bot_${Date.now()}_${bot.name}`,
+            user: `@${bot.name}`,
+            text: msgs[Math.floor(Math.random() * msgs.length)],
+            ts: Date.now(),
+          });
+        }
+
+        return [...trimmed, { name: bot.name, avatar: bot.avatar, type, amount, ts: Date.now() }];
+      });
+    }, 2500 + Math.random() * 4500);
     return () => clearInterval(iv);
-  }, []);
+  }, [phase]);
 
   if (bettors.length === 0) return null;
 
@@ -447,9 +557,13 @@ function LiveBettors({ threshold }: { threshold: number }) {
             className="flex items-center justify-between py-0.5 animate-[fadeIn_0.3s_ease-in]"
           >
             <div className="flex items-center gap-1.5">
-              <div className={`w-4 h-4 rounded-full bg-gradient-to-br ${camAvatarColor(b.name)} flex items-center justify-center text-[7px] font-black text-white`}>
-                {b.name.charAt(0).toUpperCase()}
-              </div>
+              {b.avatar ? (
+                <img src={b.avatar} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${camAvatarColor(b.name)} flex items-center justify-center text-[8px] font-black text-white`}>
+                  {b.name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <span className="text-[10px] text-white/60 font-medium">{b.name}</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -686,7 +800,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           </div>
 
           {/* Live bettors strip */}
-          <LiveBettors threshold={threshold} />
+          <LiveBettors threshold={threshold} phase={market.phase} />
 
           {/* Mobile inline bet form — appears in camera tab when type selected */}
           {selectedType && (
