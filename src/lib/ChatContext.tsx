@@ -15,6 +15,8 @@ export interface ChatMessage {
 interface ChatContextType {
   messages: ChatMessage[];
   sendMessage: (text: string, username?: string, avatarUrl?: string) => void;
+  /** Add a message locally only (no Supabase persist, no realtime broadcast). Use for bot messages. */
+  addLocalMessage: (text: string, username: string) => void;
   onlineCount: number;
   marketId?: string | null;
 }
@@ -127,10 +129,18 @@ export function ChatProvider({ children, marketId = null }: ChatProviderProps) {
   const fetchingRef = useRef(false);
   const initializedRef = useRef(false);
   const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const localMsgKeys = useRef<Set<string>>(new Set());
 
   // Add a message to chat (used by both auto and reply systems)
   const addMessage = useCallback((user: string, text: string, avatarUrl?: string, userId?: string) => {
     const now = Date.now();
+    // Track locally-added messages to prevent Realtime duplicates
+    localMsgKeys.current.add(`${user}:${text}`);
+    // Clean old keys to prevent unbounded growth
+    if (localMsgKeys.current.size > 200) {
+      const arr = Array.from(localMsgKeys.current);
+      localMsgKeys.current = new Set(arr.slice(-100));
+    }
     setMessages((prev) => [
       ...prev.slice(-(MAX_MESSAGES - 1)),
       { user, text, id: now + Math.random(), ts: now, avatar_url: avatarUrl, user_id: userId },
@@ -286,10 +296,12 @@ export function ChatProvider({ children, marketId = null }: ChatProviderProps) {
           // Only show messages for same scope (global or same market)
           const msgMarket = row.market_id || null;
           if (marketId !== msgMarket) return;
-          // Avoid duplicating own messages (already added locally)
-          const ts = row.created_at ? new Date(row.created_at).getTime() : Date.now();
-          const isDuplicate = messages.some((m) => Math.abs(m.ts - ts) < 2000 && m.user === (row.username || ""));
-          if (isDuplicate) return;
+          // Avoid duplicating messages already added locally
+          const key = `${row.username || ""}:${row.message || ""}`;
+          if (localMsgKeys.current.has(key)) {
+            localMsgKeys.current.delete(key);
+            return;
+          }
           addMessage(row.username || "@user", row.message || "", row.avatar_url || undefined, row.user_id || undefined);
         }
       )
@@ -337,8 +349,14 @@ export function ChatProvider({ children, marketId = null }: ChatProviderProps) {
     }
   }, [addMessage, persistMessage, fetchReplies]);
 
+  // Local-only message (no persist, no realtime — for bot chat messages)
+  const addLocalMessage = useCallback((text: string, username: string) => {
+    if (!text.trim()) return;
+    addMessage(username, text.trim());
+  }, [addMessage]);
+
   return (
-    <ChatContext.Provider value={{ messages, sendMessage, onlineCount, marketId }}>
+    <ChatContext.Provider value={{ messages, sendMessage, addLocalMessage, onlineCount, marketId }}>
       {children}
     </ChatContext.Provider>
   );
