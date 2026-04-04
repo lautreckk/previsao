@@ -201,7 +201,7 @@ export default function Home() {
           title: (cam.title as string) || "Rodovia ao Vivo",
           short_description: `Contagem de veículos — ${cam.city || "SP"}`,
           description: `Preveja se passarão mais ou menos de ${cam.current_threshold} veículos`,
-          category: "entertainment" as const,
+          category: "custom" as const,
           status: (cam.phase === "betting" || cam.phase === "observation") ? "open" : "open",
           stream_url: cam.stream_url as string,
           banner_url: cam.thumbnail_url as string || "",
