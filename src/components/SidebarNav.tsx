@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  Tv, Trophy, Landmark, DollarSign, Cloud, Bitcoin, Globe, Radio, MousePointer, BookOpen,
+  Tv, Trophy, Landmark, DollarSign, Cloud, Bitcoin, Globe, Radio, MousePointer, BookOpen, Medal,
 } from "lucide-react";
 
 interface SidebarNavProps {
@@ -115,6 +115,10 @@ export default function SidebarNav({ activeCategory, onCategoryChange }: Sidebar
 
       {/* Bottom links */}
       <div className="mt-3 px-2 space-y-1 pb-3">
+        <Link href="/ranking" className="flex items-center gap-2 text-sm text-[#80FF00] hover:text-[#80FF00]/80 transition-colors w-full py-1 font-semibold">
+          <Medal size={14} />
+          <span>Ranking</span>
+        </Link>
         <Link href="/resultados" className="flex items-center gap-2 text-sm text-[hsl(0,0%,55%)] hover:text-[hsl(0,0%,95%)] transition-colors w-full py-1">
           <MousePointer size={14} />
           <span>Precisão</span>
