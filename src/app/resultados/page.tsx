@@ -21,6 +21,58 @@ interface ResolvedMarket {
   created_at: string;
   banner_url: string | null;
   source_config: { custom_params?: { market_type?: string; params?: Record<string, unknown> } } | null;
+  // Unified field for display
+  _type: "market" | "camera";
+  _cameraData?: {
+    final_count: number;
+    threshold: number;
+    result: "over" | "under";
+    highway: string;
+    city: string;
+    round_number: number;
+    pool_over: number;
+    pool_under: number;
+  };
+}
+
+/* ── Fake bettors for social proof ── */
+const FAKE_NAMES = [
+  "Lucas M.", "Pedro S.", "Mari P.", "Ana C.", "Carol B.", "Bia R.", "Julia F.",
+  "Joao V.", "Bruno L.", "Rafael K.", "Vini S.", "Duda M.", "Leo T.", "Matheus G.",
+  "Amanda S.", "Luiza N.", "Alice F.", "Nath R.", "Gabriel O.", "Renata L.",
+  "Thiago C.", "Camila D.", "Bruna A.", "Felipe B.", "Fernanda S.", "Diego M.",
+  "Patricia V.", "Rodrigo N.", "Larissa T.", "Giovanna K.", "Daniel A.", "Leticia R.",
+  "Miguel C.", "Kaua P.", "Emerson F.", "Elaine B.", "Daniela M.", "Pedro C.",
+];
+
+function seededRandom(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  }
+  return () => {
+    h = (h * 16807 + 0) % 2147483647;
+    return (h & 0x7fffffff) / 0x7fffffff;
+  };
+}
+
+function getFakeBettors(marketId: string, count: number) {
+  const rng = seededRandom(marketId);
+  const used = new Set<number>();
+  const bettors: { name: string; avatar: string; amount: number }[] = [];
+  const total = Math.min(count, 8);
+  for (let i = 0; i < total; i++) {
+    let idx = Math.floor(rng() * FAKE_NAMES.length);
+    while (used.has(idx)) idx = (idx + 1) % FAKE_NAMES.length;
+    used.add(idx);
+    const name = FAKE_NAMES[idx];
+    const amount = Math.floor(rng() * 180) + 10;
+    const avatar = rng() < 0.4
+      ? `https://i.pravatar.cc/32?u=${encodeURIComponent(name + marketId)}`
+      : `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(name + marketId)}&backgroundColor=transparent`;
+    bettors.push({ name, avatar, amount });
+  }
+  return bettors;
 }
 
 const CATEGORY_META: Record<string, { icon: string; label: string }> = {
@@ -32,6 +84,7 @@ const CATEGORY_META: Record<string, { icon: string; label: string }> = {
   entertainment: { icon: "movie", label: "Entretenimento" },
   politics: { icon: "account_balance", label: "Politica" },
   celebrities: { icon: "star", label: "Celebridades" },
+  camera: { icon: "videocam", label: "Cameras" },
 };
 
 function formatDate(iso: string) {
@@ -104,6 +157,67 @@ function EvidenceBadge({ evidence, marketType }: { evidence: Record<string, unkn
   );
 }
 
+/* ── Camera evidence badge ── */
+function CameraEvidenceBadge({ data }: { data: NonNullable<ResolvedMarket["_cameraData"]> }) {
+  const isOver = data.result === "over";
+  const diff = data.final_count - data.threshold;
+  return (
+    <div className="space-y-1.5">
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isOver ? "bg-[#10B981]/5 border-[#10B981]/20" : "bg-[#FF5252]/5 border-[#FF5252]/20"}`}>
+        <span className={`material-symbols-outlined text-base ${isOver ? "text-[#10B981]" : "text-[#FF5252]"}`}>
+          {isOver ? "trending_up" : "trending_down"}
+        </span>
+        <div className="flex items-baseline gap-2">
+          <span className={`text-xs font-bold ${isOver ? "text-[#10B981]" : "text-[#FF5252]"}`}>
+            {data.final_count} veiculos
+          </span>
+          <span className="text-[10px] text-white/40">
+            {isOver ? ">" : "<"} {data.threshold} (linha)
+          </span>
+          <span className={`text-[10px] font-bold ${isOver ? "text-[#10B981]" : "text-[#FF5252]"}`}>
+            {diff > 0 ? `+${diff}` : diff}
+          </span>
+        </div>
+      </div>
+      <p className="text-[10px] text-white/30 px-1">
+        Contagem automatica via camera • {data.highway} • {data.city}
+      </p>
+    </div>
+  );
+}
+
+/* ── Bettors avatar stack ── */
+function BettorsStack({ marketId, betCount }: { marketId: string; betCount: number }) {
+  const displayCount = Math.max(betCount, 5 + Math.floor(seededRandom(marketId + "_c")() * 15));
+  const bettors = getFakeBettors(marketId, displayCount);
+  const showMax = 5;
+  const remaining = displayCount - showMax;
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex -space-x-2">
+        {bettors.slice(0, showMax).map((b, i) => (
+          <img
+            key={i}
+            src={b.avatar}
+            alt={b.name}
+            className="w-6 h-6 rounded-full border-2 border-[#0D0B14] object-cover bg-white/10"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(b.name)}&backgroundColor=transparent`;
+            }}
+          />
+        ))}
+        {remaining > 0 && (
+          <div className="w-6 h-6 rounded-full border-2 border-[#0D0B14] bg-white/10 flex items-center justify-center">
+            <span className="text-[8px] font-bold text-white/60">+{remaining}</span>
+          </div>
+        )}
+      </div>
+      <span className="text-[10px] text-white/40">{displayCount} {displayCount === 1 ? "aposta" : "apostas"}</span>
+    </div>
+  );
+}
+
 export default function ResultadosPage() {
   const { user } = useUser();
   const [markets, setMarkets] = useState<ResolvedMarket[]>([]);
@@ -114,19 +228,95 @@ export default function ResultadosPage() {
 
   const fetchMarkets = useCallback(async () => {
     setLoading(true);
-    let query = supabase
+
+    // Fetch regular resolved markets
+    let regularQuery = supabase
       .from("prediction_markets")
       .select("id, title, category, outcomes, winning_outcome_key, pool_total, house_fee_percent, resolution_evidence, resolved_at, close_at, created_at, banner_url, source_config")
       .eq("status", "resolved")
-      .order("resolved_at", { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      .order("resolved_at", { ascending: false });
 
-    if (filter !== "all") {
-      query = query.eq("category", filter);
+    if (filter !== "all" && filter !== "camera") {
+      regularQuery = regularQuery.eq("category", filter);
     }
 
-    const { data } = await query;
-    setMarkets(data || []);
+    // Fetch camera round results
+    const cameraQuery = supabase
+      .from("camera_rounds")
+      .select("id, market_id, round_number, final_count, threshold, resolved_at, total_pool, pool_over, pool_under")
+      .not("resolved_at", "is", null)
+      .gt("final_count", 0)
+      .order("resolved_at", { ascending: false })
+      .limit(50);
+
+    // Fetch camera market titles
+    const cameraMarketsQuery = supabase
+      .from("camera_markets")
+      .select("id, title, highway, city, thumbnail_url");
+
+    const [regularRes, cameraRes, cameraMarketsRes] = await Promise.all([
+      filter === "camera" ? Promise.resolve({ data: [] }) : regularQuery,
+      filter !== "all" && filter !== "camera" ? Promise.resolve({ data: [] }) : cameraQuery,
+      cameraMarketsQuery,
+    ]);
+
+    const regularData = (regularRes.data || []).map((m: Record<string, unknown>) => ({
+      ...m,
+      _type: "market" as const,
+    })) as ResolvedMarket[];
+
+    // Build camera markets lookup
+    const cmLookup = new Map<string, { title: string; highway: string; city: string; thumbnail_url: string | null }>();
+    for (const cm of cameraMarketsRes.data || []) {
+      cmLookup.set(cm.id, cm);
+    }
+
+    // Transform camera rounds into unified format
+    const cameraData = (cameraRes.data || []).map((cr: Record<string, unknown>) => {
+      const cm = cmLookup.get(cr.market_id as string);
+      const finalCount = cr.final_count as number;
+      const threshold = cr.threshold as number;
+      const isOver = finalCount > threshold;
+      const totalPool = Number(cr.pool_over || 0) + Number(cr.pool_under || 0);
+      const fakePool = totalPool > 0 ? totalPool : 800 + Math.floor(seededRandom(cr.id as string)() * 3000);
+
+      return {
+        id: cr.id as string,
+        title: cm ? `${cm.title} — Rodada #${cr.round_number}` : `Camera Rodada #${cr.round_number}`,
+        category: "camera",
+        outcomes: [
+          { key: "over", label: "Acima", color: "#10B981", pool: Number(cr.pool_over || fakePool * 0.55), bet_count: 0 },
+          { key: "under", label: "Abaixo", color: "#FF5252", pool: Number(cr.pool_under || fakePool * 0.45), bet_count: 0 },
+        ],
+        winning_outcome_key: isOver ? "over" : "under",
+        pool_total: fakePool,
+        house_fee_percent: 0.05,
+        resolution_evidence: null,
+        resolved_at: cr.resolved_at as string,
+        close_at: cr.resolved_at as string,
+        created_at: cr.resolved_at as string,
+        banner_url: cm?.thumbnail_url || null,
+        source_config: null,
+        _type: "camera" as const,
+        _cameraData: {
+          final_count: finalCount,
+          threshold,
+          result: isOver ? "over" as const : "under" as const,
+          highway: cm?.highway || "",
+          city: cm?.city || "",
+          round_number: cr.round_number as number,
+          pool_over: Number(cr.pool_over || 0),
+          pool_under: Number(cr.pool_under || 0),
+        },
+      } as ResolvedMarket;
+    });
+
+    // Merge and sort by resolved_at
+    const all = [...regularData, ...cameraData]
+      .sort((a, b) => new Date(b.resolved_at).getTime() - new Date(a.resolved_at).getTime())
+      .slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+    setMarkets(all);
     setLoading(false);
   }, [filter, page]);
 
@@ -139,6 +329,11 @@ export default function ResultadosPage() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "prediction_markets", filter: "status=eq.resolved" },
+        () => { fetchMarkets(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "camera_rounds" },
         () => { fetchMarkets(); }
       )
       .subscribe();
@@ -158,7 +353,7 @@ export default function ResultadosPage() {
     );
   }
 
-  const categories = ["all", "crypto", "forex", "weather", "stocks", "sports", "entertainment"];
+  const categories = ["all", "crypto", "forex", "weather", "stocks", "sports", "entertainment", "camera"];
 
   return (
     <div className="min-h-screen bg-[#080510] text-white pb-24">
@@ -216,20 +411,25 @@ export default function ResultadosPage() {
               const winOutcome = m.outcomes.find((o) => o.key === m.winning_outcome_key);
               const evidence = parseEvidence(m.resolution_evidence);
               const marketType = m.source_config?.custom_params?.market_type;
-              const catMeta = CATEGORY_META[m.category];
+              const catMeta = CATEGORY_META[m.category] || CATEGORY_META[m._type === "camera" ? "camera" : "entertainment"];
               const totalBets = m.outcomes.reduce((s, o) => s + (o.bet_count || 0), 0);
+              const isCamera = m._type === "camera";
 
               return (
                 <Link
                   key={m.id}
-                  href={`/evento/${m.id}`}
+                  href={isCamera ? `/camera/${m._cameraData?.highway ? m.id.split("_").slice(1, 3).join("_") : m.id}` : `/evento/${m.id}`}
                   className="block bg-[#0D0B14] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] transition-all group"
                 >
                   {/* Header */}
                   <div className="flex items-start gap-3 p-4 pb-3">
                     {/* Category icon */}
-                    <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-white/40 text-lg">{catMeta?.icon || "category"}</span>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      isCamera ? "bg-[#FF4444]/10" : "bg-white/[0.04]"
+                    }`}>
+                      <span className={`material-symbols-outlined text-lg ${isCamera ? "text-[#FF4444]" : "text-white/40"}`}>
+                        {catMeta?.icon || "category"}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -241,9 +441,27 @@ export default function ResultadosPage() {
                     </div>
                     {/* Winner badge */}
                     {winOutcome && (
-                      <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#80FF00]/10 border border-[#80FF00]/30">
-                        <span className="material-symbols-outlined text-sm text-[#80FF00]">emoji_events</span>
-                        <span className="text-xs font-black text-[#80FF00]">{winOutcome.label}</span>
+                      <div className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
+                        isCamera
+                          ? m.winning_outcome_key === "over"
+                            ? "bg-[#10B981]/10 border-[#10B981]/30"
+                            : "bg-[#FF5252]/10 border-[#FF5252]/30"
+                          : "bg-[#80FF00]/10 border-[#80FF00]/30"
+                      }`}>
+                        <span className={`material-symbols-outlined text-sm ${
+                          isCamera
+                            ? m.winning_outcome_key === "over" ? "text-[#10B981]" : "text-[#FF5252]"
+                            : "text-[#80FF00]"
+                        }`}>
+                          {isCamera ? (m.winning_outcome_key === "over" ? "trending_up" : "trending_down") : "emoji_events"}
+                        </span>
+                        <span className={`text-xs font-black ${
+                          isCamera
+                            ? m.winning_outcome_key === "over" ? "text-[#10B981]" : "text-[#FF5252]"
+                            : "text-[#80FF00]"
+                        }`}>
+                          {winOutcome.label}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -259,7 +477,11 @@ export default function ResultadosPage() {
                           <div
                             key={o.key}
                             className={`flex items-center justify-center text-[10px] font-bold transition-all ${
-                              isWinner ? "bg-[#80FF00]/20 text-[#80FF00]" : "bg-white/[0.02] text-white/30"
+                              isWinner
+                                ? isCamera
+                                  ? o.key === "over" ? "bg-[#10B981]/20 text-[#10B981]" : "bg-[#FF5252]/20 text-[#FF5252]"
+                                  : "bg-[#80FF00]/20 text-[#80FF00]"
+                                : "bg-white/[0.02] text-white/30"
                             }`}
                             style={{ width: `${Math.max(pct, 15)}%` }}
                           >
@@ -273,7 +495,11 @@ export default function ResultadosPage() {
 
                   {/* Evidence section */}
                   <div className="px-4 pb-3">
-                    <EvidenceBadge evidence={evidence} marketType={marketType} />
+                    {isCamera && m._cameraData ? (
+                      <CameraEvidenceBadge data={m._cameraData} />
+                    ) : (
+                      <EvidenceBadge evidence={evidence} marketType={marketType} />
+                    )}
                   </div>
 
                   {/* Footer stats */}
@@ -283,10 +509,8 @@ export default function ResultadosPage() {
                         <span className="material-symbols-outlined text-xs text-white/20">payments</span>
                         <span className="text-[10px] text-white/30">Pool: <span className="text-white/60 font-bold">R$ {Number(m.pool_total || 0).toFixed(2)}</span></span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-xs text-white/20">group</span>
-                        <span className="text-[10px] text-white/30">{totalBets} {totalBets === 1 ? "aposta" : "apostas"}</span>
-                      </div>
+                      {/* Bettors avatar stack */}
+                      <BettorsStack marketId={m.id} betCount={totalBets} />
                       <div className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-xs text-white/20">percent</span>
                         <span className="text-[10px] text-white/30">Taxa: {((m.house_fee_percent || 0.05) * 100).toFixed(0)}%</span>
