@@ -29,8 +29,7 @@ export default function ChatPanelDesktop({ isOpen, onToggle }: ChatPanelDesktopP
       {/* Vertical "AO VIVO" tab on far right edge */}
       <button
         onClick={onToggle}
-        className="hidden xl:flex fixed right-0 top-[88px] z-30 bg-[hsl(0,0%,11%)] border-l border-[hsl(0,0%,18%)] items-center justify-center w-8 cursor-pointer hover:bg-[hsl(0,0%,14%)] transition-colors flex-col gap-1"
-        style={{ height: 'calc(100vh - 88px)' }}
+        className="hidden xl:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-[hsl(0,0%,11%)] border border-r-0 border-[hsl(0,0%,18%)] rounded-l-xl items-center justify-center w-8 cursor-pointer hover:bg-[hsl(0,0%,14%)] transition-colors flex-col gap-1 py-4"
       >
         {isOpen ? <ChevronRight size={14} className="text-[hsl(0,0%,55%)]" /> : <ChevronLeft size={14} className="text-[hsl(0,0%,55%)]" />}
         <div className="flex items-center gap-1 mt-2">
@@ -38,7 +37,7 @@ export default function ChatPanelDesktop({ isOpen, onToggle }: ChatPanelDesktopP
           <span className="text-[10px] text-[hsl(0,0%,55%)] font-bold">{onlineCount}</span>
         </div>
         <span className="text-[10px] text-[hsl(0,0%,55%)]">online</span>
-        <div className="mt-4" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+        <div className="mt-3" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
           <span className="text-[11px] font-bold text-[hsl(0,0%,95%)] tracking-wider">AO VIVO</span>
         </div>
       </button>
