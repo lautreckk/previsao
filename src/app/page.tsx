@@ -207,7 +207,7 @@ export default function Home() {
           created_at: cam.created_at as string,
           open_at: cam.created_at as string,
           freeze_at: null,
-          close_at: new Date(Date.now() + 300_000).toISOString(),
+          close_at: (cam.phase_ends_at as string) || new Date(Date.now() + 300_000).toISOString(),
           resolve_at: null,
           resolved_at: null,
           pool_total: pools.total_pool,

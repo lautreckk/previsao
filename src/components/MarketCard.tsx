@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo, useMemo } from "react";
+import { useState, useEffect, memo, useMemo, useCallback } from "react";
 import type { PredictionMarket } from "@/lib/engines/types";
 import { CATEGORY_META } from "@/lib/engines/types";
 import Link from "next/link";
@@ -33,7 +33,7 @@ const RoundHistoryDots = memo(function RoundHistoryDots({ marketId }: { marketId
 });
 
 /* Lightweight live count — fetches once on mount, updates via postgres_changes. No hover dependency. */
-const CameraLiveCount = memo(function CameraLiveCount({ marketId }: { marketId: string }) {
+const CameraLiveCount = memo(function CameraLiveCount({ marketId, onPhaseEndsAt }: { marketId: string; onPhaseEndsAt?: (ts: number) => void }) {
   const [count, setCount] = useState<number | null>(null);
   const [threshold, setThreshold] = useState<number>(175);
   const [phase, setPhase] = useState<string>("waiting");
@@ -41,13 +41,14 @@ const CameraLiveCount = memo(function CameraLiveCount({ marketId }: { marketId: 
   useEffect(() => {
     let cancelled = false;
     supabase.from("camera_markets")
-      .select("current_count, current_threshold, phase")
+      .select("current_count, current_threshold, phase, phase_ends_at")
       .eq("id", marketId).maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return;
         setCount(data.current_count || 0);
         setThreshold(data.current_threshold || 175);
         setPhase(data.phase || "waiting");
+        if (data.phase_ends_at && onPhaseEndsAt) onPhaseEndsAt(new Date(data.phase_ends_at).getTime());
       });
 
     const channel = supabase
@@ -60,11 +61,12 @@ const CameraLiveCount = memo(function CameraLiveCount({ marketId }: { marketId: 
         if (u.current_count !== undefined) setCount(u.current_count as number);
         if (u.current_threshold !== undefined) setThreshold(u.current_threshold as number);
         if (u.phase !== undefined) setPhase(u.phase as string);
+        if (u.phase_ends_at && onPhaseEndsAt) onPhaseEndsAt(new Date(u.phase_ends_at as string).getTime());
       })
       .subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(channel); };
-  }, [marketId]);
+  }, [marketId, onPhaseEndsAt]);
 
   if (count === null) return null;
 
@@ -112,6 +114,10 @@ function MarketCardInner({ market }: { market: PredictionMarket }) {
   const isClosed = ["resolved", "cancelled"].includes(market.status) || (!isCamera && market.close_at <= Date.now());
   const isLive = market.status === "open" && (market.close_at > Date.now() || isCamera);
 
+  // For camera cards, track phase_ends_at from realtime updates
+  const [cameraDeadline, setCameraDeadline] = useState<number>(isCamera ? market.close_at : 0);
+  const handlePhaseEndsAt = useCallback((ts: number) => setCameraDeadline(ts), []);
+
   // Single shared tick for all time displays — only when live
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -120,7 +126,8 @@ function MarketCardInner({ market }: { market: PredictionMarket }) {
     return () => clearInterval(iv);
   }, [isLive]);
 
-  const remaining = market.close_at - Date.now();
+  const effectiveCloseAt = isCamera && cameraDeadline > 0 ? cameraDeadline : market.close_at;
+  const remaining = effectiveCloseAt - Date.now();
   let timeStr = "";
   if (remaining <= 0) timeStr = isCamera ? "AO VIVO" : "Encerrado";
   else if (remaining < 3600000) { const m = Math.floor(remaining / 60000); const s = Math.floor((remaining % 60000) / 1000); timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; }
@@ -194,8 +201,8 @@ function MarketCardInner({ market }: { market: PredictionMarket }) {
             {meta?.icon && <Icon name={meta.icon} size={11} weight="duotone" />}
             {meta?.label || market.category}
           </span>
-          {isLive && remaining > 0 && remaining < 600000 && (
-            <span className="text-[10px] font-mono font-bold text-[#A0FF40] animate-pulse">{timeStr}</span>
+          {isLive && remaining > 0 && (isCamera || remaining < 600000) && (
+            <span className="text-[10px] font-mono font-bold text-[#A0FF40]">{timeStr}</span>
           )}
         </div>
 
@@ -213,40 +220,62 @@ function MarketCardInner({ market }: { market: PredictionMarket }) {
           </h4>
         </div>
 
-        {/* ── Camera: Live count bar + Round history ── */}
-        {isCamera && isLive && <CameraLiveCount marketId={market.id} />}
-        {isCamera && <RoundHistoryDots marketId={market.id} />}
+        {/* ── Camera: Live count bar ── */}
+        {isCamera && isLive && <CameraLiveCount marketId={market.id} onPhaseEndsAt={handlePhaseEndsAt} />}
 
         {/* ── Outcomes ── */}
-        <div className="px-3 pb-2.5 flex-1 space-y-1">
-          {market.outcomes.slice(0, 3).map((o) => {
-            const prob = probs.find((p) => p.key === o.key);
-            const pct = prob ? Math.round(prob.probability * 100) : Math.round(100 / market.outcomes.length);
-            const odds = getOdds(o);
-            return (
-              <div key={o.key} className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: o.color }} />
-                <span className="text-[11px] text-white/80 truncate flex-1 min-w-0 font-medium">{o.label}</span>
-                <span className={`text-[11px] font-mono shrink-0 tabular-nums font-bold ${odds >= 3 ? "text-[#80FF00]" : "text-white/50"}`}>
-                  {odds.toFixed(2)}x
-                </span>
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded min-w-[38px] text-center shrink-0"
-                  style={{
-                    backgroundColor: o.color + "25",
-                    color: o.color,
-                    boxShadow: `0 0 6px ${o.color}20`,
-                  }}
-                >
-                  {pct}%
-                </span>
-              </div>
-            );
-          })}
-          {market.outcomes.length > 3 && (
-            <p className="text-[10px] text-white/20 pl-3">+{market.outcomes.length - 3} opcoes</p>
-          )}
-        </div>
+        {isCamera ? (
+          /* Camera cards: compact odds + history in one block */
+          <div className="px-3 pb-2.5 flex-1">
+            <div className="flex items-center gap-3">
+              {market.outcomes.slice(0, 2).map((o) => {
+                const prob = probs.find((p) => p.key === o.key);
+                const pct = prob ? Math.round(prob.probability * 100) : 50;
+                const odds = getOdds(o);
+                return (
+                  <div key={o.key} className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <span className="text-[10px] text-white/50 truncate">{o.label}</span>
+                    <span className={`text-[10px] font-mono font-bold tabular-nums ml-auto shrink-0 ${odds >= 3 ? "text-[#80FF00]" : "text-white/40"}`}>
+                      {odds.toFixed(2)}x
+                    </span>
+                    <span className="text-[10px] font-bold text-white/25 tabular-nums shrink-0">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* Regular market cards: full outcome rows */
+          <div className="px-3 pb-2.5 flex-1 space-y-1">
+            {market.outcomes.slice(0, 3).map((o) => {
+              const prob = probs.find((p) => p.key === o.key);
+              const pct = prob ? Math.round(prob.probability * 100) : Math.round(100 / market.outcomes.length);
+              const odds = getOdds(o);
+              return (
+                <div key={o.key} className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: o.color }} />
+                  <span className="text-[11px] text-white/80 truncate flex-1 min-w-0 font-medium">{o.label}</span>
+                  <span className={`text-[11px] font-mono shrink-0 tabular-nums font-bold ${odds >= 3 ? "text-[#80FF00]" : "text-white/50"}`}>
+                    {odds.toFixed(2)}x
+                  </span>
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded min-w-[38px] text-center shrink-0"
+                    style={{
+                      backgroundColor: o.color + "25",
+                      color: o.color,
+                      boxShadow: `0 0 6px ${o.color}20`,
+                    }}
+                  >
+                    {pct}%
+                  </span>
+                </div>
+              );
+            })}
+            {market.outcomes.length > 3 && (
+              <p className="text-[10px] text-white/20 pl-3">+{market.outcomes.length - 3} opcoes</p>
+            )}
+          </div>
+        )}
 
         {/* ── Footer ── */}
         <div className="px-3 pb-2.5 pt-1.5 flex items-center justify-between border-t border-white/[0.04]">
@@ -273,14 +302,16 @@ function MarketCardInner({ market }: { market: PredictionMarket }) {
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-1">
-              <Icon name="schedule" size={11} className="text-white/25" />
-              <span className={`text-[10px] font-bold font-mono tabular-nums ${
-                remaining > 0 && remaining < 600000 ? "text-[#A0FF40]" : remaining > 0 ? "text-white/30" : "text-white/15"
-              }`}>
-                {timeStr}
-              </span>
-            </div>
+            {!isCamera && (
+              <div className="flex items-center gap-1">
+                <Icon name="schedule" size={11} className="text-white/25" />
+                <span className={`text-[10px] font-bold font-mono tabular-nums ${
+                  remaining > 0 && remaining < 600000 ? "text-[#A0FF40]" : remaining > 0 ? "text-white/30" : "text-white/15"
+                }`}>
+                  {timeStr}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

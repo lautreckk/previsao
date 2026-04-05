@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getLevelName } from "@/lib/UserContext";
 import BottomNav from "@/components/BottomNav";
+import SidebarNav from "@/components/SidebarNav";
 
 type SortKey = "profit" | "wins" | "volume" | "streak";
 
@@ -102,32 +103,35 @@ export default function RankingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white pb-24">
+    <div className="min-h-screen bg-[#080d1a] text-white pb-24 lg:pb-0">
+      {/* Desktop sidebar */}
+      <SidebarNav activeCategory="" onCategoryChange={() => {}} />
+
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#080d1a]/90 backdrop-blur-lg border-b border-white/[0.04]">
-        <div className="px-4 py-4 flex items-center gap-3">
+      <div className="sticky top-0 z-30 bg-[#080d1a]/90 backdrop-blur-lg border-b border-white/[0.04] lg:ml-44">
+        <div className="px-4 lg:px-8 py-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#80FF00]/10 flex items-center justify-center">
             <span className="material-symbols-outlined text-[#80FF00]">leaderboard</span>
           </div>
           <div>
-            <h1 className="font-black text-sm uppercase tracking-wider">Ranking</h1>
-            <p className="text-[10px] text-white/30">Top 100 previsores</p>
+            <h1 className="font-black text-sm lg:text-lg uppercase tracking-wider">Ranking</h1>
+            <p className="text-[10px] lg:text-xs text-white/30">Top 100 previsores</p>
           </div>
         </div>
 
         {/* Sort tabs */}
-        <div className="flex px-2 pb-2 gap-1">
+        <div className="flex px-2 lg:px-8 pb-2 gap-1 lg:gap-2">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setSortKey(t.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+              className={`flex-1 lg:flex-none lg:px-5 flex items-center justify-center gap-1.5 py-2 lg:py-2.5 rounded-lg text-[10px] lg:text-xs font-black uppercase tracking-wider transition-all ${
                 sortKey === t.key
                   ? "bg-[#80FF00]/10 text-[#80FF00] border border-[#80FF00]/20"
                   : "text-white/30 hover:text-white/50"
               }`}
             >
-              <span className="material-symbols-outlined text-xs">{t.icon}</span>
+              <span className="material-symbols-outlined text-xs lg:text-sm">{t.icon}</span>
               {t.label}
             </button>
           ))}
@@ -135,14 +139,14 @@ export default function RankingPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-20 lg:ml-44">
           <div className="w-8 h-8 border-2 border-[#80FF00]/30 border-t-[#80FF00] rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="px-4 py-4">
+        <div className="px-4 lg:px-8 py-4 lg:py-6 lg:ml-44">
           {/* Top 3 Podium */}
           {top100.length >= 3 && (
-            <div className="flex items-end justify-center gap-3 mb-6 pt-4">
+            <div className="flex items-end justify-center gap-3 lg:gap-6 mb-6 lg:mb-8 pt-4 lg:pt-6">
               {[1, 0, 2].map((podiumIdx) => {
                 const u = top100[podiumIdx];
                 if (!u) return null;
@@ -152,11 +156,11 @@ export default function RankingPage() {
                   <Link
                     key={u.id}
                     href={`/perfil/${u.id}`}
-                    className={`flex flex-col items-center ${isFirst ? "order-2 -mt-4" : pos === 2 ? "order-1" : "order-3"}`}
+                    className={`flex flex-col items-center ${isFirst ? "order-2 -mt-4 lg:-mt-6" : pos === 2 ? "order-1" : "order-3"}`}
                   >
                     <div className="relative mb-2">
                       <div
-                        className={`rounded-full p-[2px] ${isFirst ? "w-20 h-20" : "w-16 h-16"}`}
+                        className={`rounded-full p-[2px] ${isFirst ? "w-20 h-20 lg:w-28 lg:h-28" : "w-16 h-16 lg:w-22 lg:h-22"}`}
                         style={{ background: `linear-gradient(135deg, ${MEDAL_COLORS[podiumIdx]}80, ${MEDAL_COLORS[podiumIdx]})` }}
                       >
                         {u.avatar_url ? (
@@ -170,15 +174,15 @@ export default function RankingPage() {
                         )}
                       </div>
                       <div
-                        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black"
+                        className="absolute -bottom-1 -right-1 w-6 h-6 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-[10px] lg:text-xs font-black"
                         style={{ backgroundColor: MEDAL_COLORS[podiumIdx], color: "#0a0a0a" }}
                       >
                         {pos}
                       </div>
                     </div>
-                    <span className="text-[11px] font-bold text-white truncate max-w-[80px]">{u.name.split(" ")[0]}</span>
-                    <span className="text-[10px] font-bold tabular-nums" style={{ color: getStatColor(u) }}>{getStatValue(u)}</span>
-                    <span className="text-[8px] text-white/20">{getLevelName(u.level)}</span>
+                    <span className="text-[11px] lg:text-sm font-bold text-white truncate max-w-[80px] lg:max-w-[120px]">{u.name.split(" ")[0]}</span>
+                    <span className="text-[10px] lg:text-sm font-bold tabular-nums" style={{ color: getStatColor(u) }}>{getStatValue(u)}</span>
+                    <span className="text-[8px] lg:text-[10px] text-white/20">{getLevelName(u.level)}</span>
                   </Link>
                 );
               })}
@@ -186,7 +190,7 @@ export default function RankingPage() {
           )}
 
           {/* Full list */}
-          <div className="bg-[#0D0B14] rounded-2xl border border-white/[0.06] overflow-hidden">
+          <div className="bg-[#0D0B14] rounded-2xl border border-white/[0.06] overflow-hidden lg:max-w-4xl lg:mx-auto">
             {top100.map((u, idx) => {
               const pos = idx + 1;
               const isTop3 = pos <= 3;
@@ -194,49 +198,49 @@ export default function RankingPage() {
                 <Link
                   key={u.id}
                   href={`/perfil/${u.id}`}
-                  className={`flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors ${idx > 0 ? "border-t border-white/[0.03]" : ""}`}
+                  className={`flex items-center gap-3 lg:gap-4 px-4 lg:px-6 py-3 lg:py-4 hover:bg-white/[0.02] transition-colors ${idx > 0 ? "border-t border-white/[0.03]" : ""}`}
                 >
                   {/* Position */}
                   <div className="w-8 text-center shrink-0">
                     {isTop3 ? (
                       <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black mx-auto"
+                        className="w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-[10px] lg:text-xs font-black mx-auto"
                         style={{ backgroundColor: MEDAL_COLORS[pos - 1], color: "#0a0a0a" }}
                       >
                         {pos}
                       </div>
                     ) : (
-                      <span className="text-xs font-bold text-white/30 tabular-nums">{pos}</span>
+                      <span className="text-xs lg:text-sm font-bold text-white/30 tabular-nums">{pos}</span>
                     )}
                   </div>
 
                   {/* Avatar */}
                   {u.avatar_url ? (
-                    <img src={u.avatar_url} alt={u.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                    <img src={u.avatar_url} alt={u.name} className="w-9 h-9 lg:w-11 lg:h-11 rounded-full object-cover shrink-0" />
                   ) : (
                     <img
                       src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(u.name)}&backgroundColor=transparent`}
                       alt={u.name}
-                      className="w-9 h-9 rounded-full bg-white/[0.06] shrink-0"
+                      className="w-9 h-9 lg:w-11 lg:h-11 rounded-full bg-white/[0.06] shrink-0"
                     />
                   )}
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-white truncate">{u.name}</span>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[#80FF00]/10 text-[#80FF00] font-bold shrink-0">
+                      <span className="text-sm lg:text-base font-bold text-white truncate">{u.name}</span>
+                      <span className="text-[8px] lg:text-[10px] px-1.5 py-0.5 rounded-full bg-[#80FF00]/10 text-[#80FF00] font-bold shrink-0">
                         Lv.{u.level}
                       </span>
                     </div>
-                    <span className="text-[10px] text-white/30">
+                    <span className="text-[10px] lg:text-xs text-white/30">
                       {u.total_predictions} previsoes • {u.total_wins}W/{u.total_losses}L
                     </span>
                   </div>
 
                   {/* Stat */}
                   <div className="text-right shrink-0">
-                    <span className="text-sm font-black tabular-nums" style={{ color: getStatColor(u) }}>
+                    <span className="text-sm lg:text-base font-black tabular-nums" style={{ color: getStatColor(u) }}>
                       {getStatValue(u)}
                     </span>
                   </div>

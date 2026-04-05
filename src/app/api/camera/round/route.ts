@@ -32,20 +32,7 @@ async function getLastRounds(marketId: string, limit: number) {
   return data || [];
 }
 
-// Available DER-SP cameras — rotated each round
-const CAMERAS = [
-  { id: "SP008-KM095", highway: "SP-008 (Fernao Dias)", km: "095", city: "Braganca Paulista" },
-  { id: "SP055-KM110B", highway: "SP-055 (Santos Dumont)", km: "110B", city: "Sao Jose dos Campos" },
-  { id: "SP055-KM073", highway: "SP-055 (Santos Dumont)", km: "073", city: "Taubate" },
-  { id: "SP055-KM092", highway: "SP-055 (Santos Dumont)", km: "092", city: "Cacapava" },
-];
-const HLS_BASE = "https://34.104.32.249.nip.io";
-
-function getNextCamera(currentCameraId: string | null): typeof CAMERAS[0] {
-  if (!currentCameraId) return CAMERAS[0];
-  const idx = CAMERAS.findIndex((c) => c.id === currentCameraId);
-  return CAMERAS[(idx + 1) % CAMERAS.length];
-}
+// Each camera market has a fixed camera_id — no rotation needed
 
 function calculateThreshold(history: { final_count: number }[]): number {
   const validHistory = history.filter((r) => (r.final_count || 0) > 0);

@@ -45,27 +45,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Type 2: Count sync (periodic bulk update)
-    // FIX: Only accept counts during "betting" phase
     if (count !== undefined) {
+      const validCount = Math.max(0, Math.floor(Number(count)));
       const { data: market } = await supabase
         .from("camera_markets")
         .select("phase")
         .eq("id", market_id)
         .maybeSingle();
 
-      // Only update count during betting phase — ignore during observation/waiting
-      if (market?.phase !== "betting") {
+      // Accept counts during betting and observation (counting) phases
+      if (market?.phase !== "betting" && market?.phase !== "observation") {
         return NextResponse.json({
           ok: false,
           ignored: true,
-          reason: `Phase is '${market?.phase}', only accepting counts during 'betting'`,
+          reason: `Phase is '${market?.phase}', only accepting counts during 'betting' or 'observation'`,
           phase: market?.phase,
         });
       }
 
       await supabase
         .from("camera_markets")
-        .update({ current_count: count, updated_at: timestamp || new Date().toISOString() })
+        .update({ current_count: validCount, updated_at: timestamp || new Date().toISOString() })
         .eq("id", market_id);
 
       broadcast(market_id, "count.sync", { count, timestamp });
