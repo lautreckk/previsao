@@ -31,15 +31,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Valor minimo: R$ 1" }, { status: 400 });
     }
 
-    // Get user balance
+    // Get user balance + bot check
     const { data: userData, error: userErr } = await supabase
       .from("users")
-      .select("balance, total_predictions, total_wagered")
+      .select("balance, total_predictions, total_wagered, is_bot")
       .eq("id", user_id)
       .single();
 
     if (userErr || !userData) {
       return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 404 });
+    }
+    // Block bot accounts from betting via public API (bots only bet via cron)
+    if (userData.is_bot) {
+      return NextResponse.json({ error: "Conta restrita" }, { status: 403 });
     }
     if (Number(userData.balance) < amount) {
       return NextResponse.json({ error: "Saldo insuficiente" }, { status: 400 });

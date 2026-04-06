@@ -40,6 +40,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (user) {
+      // Block bot accounts from logging in
+      if (user.is_bot) {
+        return NextResponse.json({ error: "Conta indisponivel" }, { status: 403 });
+      }
+
       const valid = await verifyPassword(password, user.password);
       if (!valid) {
         return NextResponse.json({ error: "Senha incorreta" }, { status: 401 });
