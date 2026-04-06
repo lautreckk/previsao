@@ -41,10 +41,7 @@ export async function POST(request: NextRequest) {
     if (userErr || !userData) {
       return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 404 });
     }
-    // Block bot accounts from betting via public API (bots only bet via cron)
-    if (userData.is_bot) {
-      return NextResponse.json({ error: "Conta restrita" }, { status: 403 });
-    }
+    // Bots can bet via both client-side bot-engine and server-side cron
     if (Number(userData.balance) < amount) {
       return NextResponse.json({ error: "Saldo insuficiente" }, { status: 400 });
     }

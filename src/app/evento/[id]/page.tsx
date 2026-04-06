@@ -123,6 +123,7 @@ export default function EventoPage() {
   const { user, placeBet: legacyPlaceBet, refreshUser } = useUser();
   const { addLocalMessage } = useChat();
   const [market, setMarket] = useState<PredictionMarket | null>(null);
+  const [marketLoading, setMarketLoading] = useState(true);
   const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
@@ -354,6 +355,7 @@ export default function EventoPage() {
         const local = getMarket(id);
         if (local) { setMarket(local); trackViewContent({ marketName: local.title, category: local.category }); }
       }
+      setMarketLoading(false);
     });
   }, [params.id]);
 
@@ -443,6 +445,12 @@ export default function EventoPage() {
       botEngineRef.current.updateOutcomes(market.outcomes);
     }
   }, [market?.outcomes]);
+
+  if (marketLoading) return (
+    <div className="min-h-screen bg-[#080d1a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#80FF00] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   if (!market) return (
     <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white">
