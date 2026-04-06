@@ -140,8 +140,8 @@ export default function DepositoPage() {
         <MarketTicker />
       </div>
 
-      {/* Header */}
-      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+      {/* Header — full width */}
+      <header className="fixed top-[32px] left-0 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
         <button onClick={() => router.back()} className="lg:hidden text-white/70 p-1">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -150,8 +150,7 @@ export default function DepositoPage() {
         </Link>
         <h2 className="text-sm font-headline font-bold text-white/60 ml-2 hidden lg:block">Depositar via PIX</h2>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm text-on-surface-variant hidden sm:inline">Saldo:</span>
-          <span className="bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</span>
+          <Link href="/perfil" className="bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</Link>
         </div>
       </header>
 
@@ -162,8 +161,8 @@ export default function DepositoPage() {
         {/* Sidebar — desktop only */}
         <SidebarNav activeCategory="" onCategoryChange={() => {}} />
 
-        <div className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden">
-      <div className="max-w-md mx-auto lg:mx-0">
+        <div className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden flex justify-center">
+      <div className="max-w-lg w-full">
         {errorMsg && (
           <div className="bg-error/10 border border-error/30 rounded-2xl p-3 mb-4 flex items-center gap-2 animate-fade-in-up">
             <span className="material-symbols-outlined text-error text-sm">warning</span>
@@ -173,35 +172,56 @@ export default function DepositoPage() {
 
         {step === "amount" && (
           <div className="flex flex-col gap-4 animate-fade-in-up">
-            <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
+            {/* Hero incentive */}
+            <div className="rounded-2xl border border-[#80FF00]/20 overflow-hidden bg-gradient-to-br from-[#80FF00]/10 via-[#0d1117] to-[#0d1117] p-5 text-center">
+              <span className="material-symbols-outlined text-[#80FF00] text-3xl mb-2 block" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
+              <h1 className="text-xl font-black font-headline text-white mb-1">Adicione saldo e comece a lucrar</h1>
+              <p className="text-xs text-on-surface-variant">Deposito via PIX instantaneo. Comece a fazer previsoes agora!</p>
+            </div>
+
+            {/* User card — compact */}
+            <div className="bg-surface-container rounded-2xl p-3 border border-white/5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#80FF00]/20 flex items-center justify-center">
-                  <span className="text-lg font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+                <div className="w-9 h-9 rounded-full bg-[#80FF00]/20 flex items-center justify-center">
+                  <span className="text-base font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0"><p className="text-sm font-bold truncate">{user.name}</p><p className="text-xs text-on-surface-variant truncate">{user.email}</p></div>
-                <div className="text-right"><p className="text-xs text-on-surface-variant">CPF</p><p className="text-xs text-white font-mono">{user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.***-$4")}</p></div>
+                <div className="text-right"><p className="text-[10px] text-on-surface-variant">Saldo atual</p><p className="text-sm text-[#80FF00] font-black font-headline">R$ {user.balance.toFixed(2)}</p></div>
               </div>
             </div>
 
+            {/* Amount selection */}
             <div className="bg-surface-container rounded-2xl p-5 border border-white/5">
               <h2 className="text-sm font-bold text-on-surface-variant mb-4 uppercase tracking-wider">Qual valor deseja depositar?</h2>
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {presetAmounts.map((val) => (
-                  <button key={val} onClick={() => setAmount(String(val))} className={`py-3 rounded-2xl text-sm font-bold transition-all active:scale-95 ${amount === String(val) ? "kinetic-gradient text-[#0a0a0a] glow-green" : "bg-surface-container-highest text-on-surface hover:bg-surface-bright"}`}>R$ {val}</button>
+                  <button key={val} onClick={() => setAmount(String(val))} className={`py-3 rounded-2xl text-sm font-bold transition-all active:scale-95 ${amount === String(val) ? "kinetic-gradient text-[#0a0a0a] glow-green shadow-[0_0_20px_rgba(128,255,0,0.2)]" : "bg-surface-container-highest text-on-surface hover:bg-surface-bright"}`}>R$ {val}</button>
                 ))}
               </div>
-              <div className="relative mb-4">
+              <div className="relative mb-3">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg font-bold">R$</span>
-                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" min="1" className="w-full bg-surface-container-lowest rounded-2xl pl-12 pr-4 py-4 text-white text-2xl font-black outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-white/5" />
+                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" min="1" className="w-full bg-surface-container-lowest rounded-2xl pl-12 pr-4 py-3.5 text-white text-xl font-black outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-white/5" />
               </div>
               <p className="text-xs text-on-surface-variant mb-4">Valor minimo: R$ 15,00</p>
-              <button onClick={handleGeneratePix} disabled={loading || !amount || parseFloat(amount) < 15} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base disabled:opacity-40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider glow-green">
+              <button onClick={handleGeneratePix} disabled={loading || !amount || parseFloat(amount) < 15} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base disabled:opacity-40 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider glow-green shadow-[0_4px_20px_rgba(128,255,0,0.3)]">
                 {loading ? (<><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Gerando PIX...</>) : (<><span className="material-symbols-outlined text-sm">pix</span>Gerar PIX</>)}
               </button>
             </div>
-            <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
-              <div className="flex items-center gap-2 mb-2"><span className="material-symbols-outlined text-[#80FF00] text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span><span className="text-sm font-bold font-headline">Deposito Instantaneo</span></div>
-              <p className="text-xs text-on-surface-variant">Pagamentos via PIX sao confirmados automaticamente em segundos.</p>
+
+            {/* Trust badges */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-surface-container rounded-xl p-3 border border-white/5 text-center">
+                <span className="material-symbols-outlined text-[#80FF00] text-lg mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                <p className="text-[10px] text-on-surface-variant font-bold">Instantaneo</p>
+              </div>
+              <div className="bg-surface-container rounded-xl p-3 border border-white/5 text-center">
+                <span className="material-symbols-outlined text-[#80FF00] text-lg mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                <p className="text-[10px] text-on-surface-variant font-bold">100% Seguro</p>
+              </div>
+              <div className="bg-surface-container rounded-xl p-3 border border-white/5 text-center">
+                <span className="material-symbols-outlined text-[#80FF00] text-lg mb-1 block" style={{ fontVariationSettings: "'FILL' 1" }}>pix</span>
+                <p className="text-[10px] text-on-surface-variant font-bold">Via PIX</p>
+              </div>
             </div>
           </div>
         )}
