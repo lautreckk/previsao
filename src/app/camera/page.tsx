@@ -5,19 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { CameraMarketView } from "@/components/CameraMarketView";
 
 const CAMERA_IDS = [
+  "cam_sp008_km095",
   "cam_sp055_km110b",
   "cam_sp055_km110a",
-  "cam_sp055_km073",
-  "cam_sp055_km055",
-  "cam_sp055_km083",
-  "cam_sp055_km092",
-  "cam_sp055_km136",
-  "cam_sp055_km168",
-  "cam_sp055_km193",
-  "cam_sp055_km211a",
-  "cam_sp055_km211b",
-  "cam_sp008_km095",
-  "cam_sp046_km167",
 ];
 
 export default function CameraLobbyPage() {

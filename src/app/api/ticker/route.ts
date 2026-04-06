@@ -18,14 +18,14 @@ async function fetchForex(): Promise<Record<string, number>> {
   const pairs = "USD-BRL,EUR-BRL,EUR-USD";
   const res = await fetch(
     `https://economia.awesomeapi.com.br/json/last/${pairs}`,
-    { signal: AbortSignal.timeout(5000) }
+    { signal: AbortSignal.timeout(8000), cache: "no-store" }
   );
   if (!res.ok) throw new Error(`AwesomeAPI ${res.status}`);
   const json = await res.json();
   return {
-    "USD/BRL": parseFloat(json.USDBRL.bid),
-    "EUR/BRL": parseFloat(json.EURBRL.bid),
-    "EUR/USD": parseFloat(json.EURUSD.bid),
+    "USD/BRL": parseFloat(json.USDBRL?.bid) || 0,
+    "EUR/BRL": parseFloat(json.EURBRL?.bid) || 0,
+    "EUR/USD": parseFloat(json.EURUSD?.bid) || 0,
   };
 }
 
@@ -44,7 +44,7 @@ async function fetchCrypto(): Promise<Record<string, number>> {
 
 async function fetchMarketCount(): Promise<number> {
   const { count } = await supabaseAdmin
-    .from("markets")
+    .from("prediction_markets")
     .select("*", { count: "exact", head: true })
     .in("status", ["open", "pending"]);
   return count ?? 0;
@@ -55,9 +55,9 @@ async function getTickerData(): Promise<TickerData> {
   if (cache && cache.expiresAt > now) return cache.data;
 
   const [forex, crypto, marketCount] = await Promise.all([
-    fetchForex().catch(() => cache?.data.forex ?? { "USD/BRL": 0, "EUR/BRL": 0, "EUR/USD": 0 }),
-    fetchCrypto().catch(() => cache?.data.crypto ?? { BTC: 0, ETH: 0 }),
-    fetchMarketCount().catch(() => cache?.data.marketCount ?? 0),
+    fetchForex().catch((e) => { console.error("[ticker] forex fetch failed:", e.message); return cache?.data.forex ?? { "USD/BRL": 0, "EUR/BRL": 0, "EUR/USD": 0 }; }),
+    fetchCrypto().catch((e) => { console.error("[ticker] crypto fetch failed:", e.message); return cache?.data.crypto ?? { BTC: 0, ETH: 0 }; }),
+    fetchMarketCount().catch((e) => { console.error("[ticker] market count failed:", e.message); return cache?.data.marketCount ?? 0; }),
   ]);
 
   const data: TickerData = {

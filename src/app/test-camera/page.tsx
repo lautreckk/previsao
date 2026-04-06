@@ -5,9 +5,8 @@ import { supabase } from "@/lib/supabase";
 
 const CAMERAS = [
   { id: "SP008-KM095", marketId: "cam_sp008_km095", label: "SP-008 KM 95 — Sto. Antônio do Pinhal", lineY: 0.48 },
-  { id: "SP055-KM110B", marketId: "cam_sp055_km110b", label: "SP-055 KM 110 — Caraguatatuba", lineY: 0.58 },
-  { id: "SP055-KM073", marketId: "cam_sp055_km073", label: "SP-055 KM 73 — Caraguatatuba", lineY: 0.55 },
-  { id: "SP055-KM083", marketId: "cam_sp055_km083", label: "SP-055 KM 83 — Caraguatatuba", lineY: 0.55 },
+  { id: "SP055-KM110B", marketId: "cam_sp055_km110b", label: "SP-055 KM 110B — Caraguatatuba", lineY: 0.58 },
+  { id: "SP055-KM110A", marketId: "cam_sp055_km110a", label: "SP-055 KM 110A — Caraguatatuba", lineY: 0.55 },
 ];
 
 const STREAM_BASE = "https://34.104.32.249.nip.io";
