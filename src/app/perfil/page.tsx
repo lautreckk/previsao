@@ -4,7 +4,10 @@ import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser, getLevelName, type User } from "@/lib/UserContext";
-import BottomNav from "@/components/BottomNav";
+import SidebarNav from "@/components/SidebarNav";
+import MobileNavNew from "@/components/MobileNavNew";
+import MarketTicker from "@/components/MarketTicker";
+import Icon from "@/components/Icon";
 
 type Tab = "resumo" | "conta" | "historico";
 type BetFilter = "all" | "pending" | "won" | "lost";
@@ -60,63 +63,86 @@ export default function PerfilPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-surface-dim text-on-surface pb-32 overflow-x-hidden w-full max-w-[100vw]">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex justify-between items-center px-4 h-16 overflow-hidden">
-        <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="lg:hidden text-[#80FF00] p-1"><span className="material-symbols-outlined">arrow_back</span></button>
-          <Link href="/" className="flex items-center gap-2"><img src="/logo.png" alt="Winify" className="h-16 w-auto" /></Link>
-        </div>
-        <div className="bg-surface-container-highest px-4 py-1.5 rounded-full border border-white/5 flex items-center gap-2">
-          <span className="text-[#80FF00] font-bold font-headline tracking-tight text-sm">R$ {user.balance.toFixed(2)}</span>
-          <span className="material-symbols-outlined text-[#80FF00] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
+    <div className="min-h-screen bg-[#0d1117] text-on-surface pb-20 lg:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+      {/* Ticker — fixed top */}
+      <div className="fixed top-0 left-0 right-0 z-40">
+        <MarketTicker />
+      </div>
+
+      {/* Header */}
+      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+        <button onClick={() => router.back()} className="lg:hidden text-white/70 p-1">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <Link href="/" className="shrink-0">
+          <img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" />
+        </Link>
+        <h2 className="hidden lg:block text-sm font-headline font-bold text-white/60 ml-2">Meu Perfil</h2>
+        <div className="ml-auto flex items-center gap-2">
+          <Link href="/deposito" className="bg-[#80FF00] text-[#0a0a0a] px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black flex items-center gap-1.5 hover:opacity-90 transition-all">
+            <Icon name="add" size={16} weight="bold" />Depositar
+          </Link>
+          <Link href="/perfil" className="bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00] hidden sm:block">
+            R$ {user.balance.toFixed(2)}
+          </Link>
         </div>
       </header>
 
-      <main className="pt-20 pb-8 px-4 max-w-lg mx-auto">
-        {/* Profile Header */}
-        <section className="relative bg-gradient-to-br from-surface-container via-surface-container to-surface-container-high rounded-3xl p-6 border border-white/5 mb-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-[#80FF00]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-          <div className="flex items-center gap-5">
-            <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-tr from-[#80FF00] via-[#A0FF40] to-[#80FF00]">
-                {user.avatar_url ? (
-                  <img src={user.avatar_url} alt={user.name} className="w-full h-full rounded-full object-cover border-[3px] border-surface-dim" />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-surface-dim flex items-center justify-center border-[3px] border-surface-dim">
-                    <span className="text-3xl font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                )}
+      {/* Spacer */}
+      <div className="h-[78px]" />
+
+      <div className="flex">
+        {/* Sidebar — desktop only */}
+        <SidebarNav activeCategory="" onCategoryChange={() => {}} />
+
+        {/* Main */}
+        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden">
+          {/* Profile Header */}
+          <section className="relative bg-gradient-to-br from-surface-container via-surface-container to-surface-container-high rounded-2xl p-6 border border-white/5 mb-6 overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-[#80FF00]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+            <div className="flex items-center gap-5">
+              <div className="relative shrink-0">
+                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full p-[2px] bg-gradient-to-tr from-[#80FF00] via-[#A0FF40] to-[#80FF00]">
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt={user.name} className="w-full h-full rounded-full object-cover border-[3px] border-surface-dim" />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-surface-dim flex items-center justify-center border-[3px] border-surface-dim">
+                      <span className="text-3xl lg:text-4xl font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <h1 className="font-headline font-extrabold text-xl lg:text-2xl tracking-tight text-on-surface truncate">{user.name}</h1>
+                <p className="text-on-surface-variant text-xs lg:text-sm font-medium truncate">{user.email}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[10px] lg:text-xs font-bold bg-[#80FF00]/15 text-[#80FF00] px-2 py-0.5 rounded-full">Lv.{user.level} {getLevelName(user.level)}</span>
+                  <span className="text-on-surface-variant/40 text-[10px] lg:text-xs">
+                    Desde {new Date(user.createdAt).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface truncate">{user.name}</h1>
-              <p className="text-on-surface-variant text-xs font-medium truncate">{user.email}</p>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] font-bold bg-[#80FF00]/15 text-[#80FF00] px-2 py-0.5 rounded-full">Lv.{user.level} {getLevelName(user.level)}</span>
-                <span className="text-on-surface-variant/40 text-[10px]">
-                  Desde {new Date(user.createdAt).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Tab Bar */}
-        <nav className="flex bg-surface-container rounded-2xl p-1 mb-6 border border-white/5">
-          {tabs.map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-headline font-bold transition-all ${tab === t.key ? "bg-[#80FF00]/15 text-[#80FF00] shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}>
-              <span className="material-symbols-outlined text-base" style={tab === t.key ? { fontVariationSettings: "'FILL' 1" } : undefined}>{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </nav>
+          {/* Tab Bar */}
+          <nav className="flex bg-surface-container rounded-2xl p-1 mb-6 border border-white/5 max-w-md">
+            {tabs.map((t) => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-headline font-bold transition-all ${tab === t.key ? "bg-[#80FF00]/15 text-[#80FF00] shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}>
+                <span className="material-symbols-outlined text-base" style={tab === t.key ? { fontVariationSettings: "'FILL' 1" } : undefined}>{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+          </nav>
 
-        {tab === "resumo" && <ResumoTab stats={stats} user={user} bets={bets} />}
-        {tab === "conta" && <ContaTab user={user} updateProfile={updateProfile} changePassword={changePassword} uploadAvatar={uploadAvatar} logout={logout} router={router} togglePublicProfile={togglePublicProfile} />}
-        {tab === "historico" && <HistoricoTab bets={bets} stats={stats} />}
-      </main>
-      <BottomNav />
+          {tab === "resumo" && <ResumoTab stats={stats} user={user} bets={bets} />}
+          {tab === "conta" && <ContaTab user={user} updateProfile={updateProfile} changePassword={changePassword} uploadAvatar={uploadAvatar} logout={logout} router={router} togglePublicProfile={togglePublicProfile} />}
+          {tab === "historico" && <HistoricoTab bets={bets} stats={stats} />}
+        </main>
+      </div>
+
+      <MobileNavNew onChatOpen={() => {}} />
     </div>
   );
 }
@@ -125,14 +151,29 @@ export default function PerfilPage() {
 function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Array<{ id: string; marketTitle: string; optionName: string; odds: number; amount: number; status: string; createdAt: string }> }) {
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Top row: Stats + Win Rate + Weekly Profit */}
+      <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard label="Vitorias" value={user.total_wins || stats.won} icon="emoji_events" color="text-[#80FF00]" bg="bg-[#80FF00]/10" />
         <StatCard label="Derrotas" value={user.total_losses || stats.lost} icon="close" color="text-red-400" bg="bg-red-400/10" />
         <StatCard label="Pendentes" value={stats.pending} icon="schedule" color="text-[#5B9DFF]" bg="bg-[#5B9DFF]/10" />
+        <div className="hidden lg:flex bg-surface-container rounded-2xl p-4 border border-white/5 flex-col justify-center">
+          <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1">Taxa de Acerto</p>
+          <span className="text-2xl font-headline font-black text-[#80FF00] italic">{stats.winRate.toFixed(0)}%</span>
+          <div className="mt-2 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[#80FF00] to-[#A0FF40] rounded-full transition-all" style={{ width: `${Math.min(stats.winRate, 100)}%` }} />
+          </div>
+        </div>
+        <div className="hidden lg:flex bg-surface-container rounded-2xl p-4 border border-white/5 flex-col justify-center">
+          <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1">Lucro Semanal</p>
+          <span className={`text-2xl font-headline font-black italic ${stats.weekProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {stats.weekProfit >= 0 ? "+" : ""}R$ {Math.abs(stats.weekProfit).toFixed(0)}
+          </span>
+          <p className="text-[10px] text-on-surface-variant mt-1">{stats.weekBets} apostas esta semana</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* Mobile-only: Win Rate + Weekly */}
+      <div className="grid grid-cols-2 gap-3 lg:hidden">
         <div className="bg-surface-container rounded-2xl p-4 border border-white/5">
           <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1">Taxa de Acerto</p>
           <span className="text-2xl font-headline font-black text-[#80FF00] italic">{stats.winRate.toFixed(0)}%</span>
@@ -151,7 +192,7 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
 
       {/* Streak & Level */}
       {(user.win_streak > 0 || user.best_streak > 0) && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="bg-surface-container rounded-2xl p-4 border border-white/5 flex items-center gap-3">
             <span className="material-symbols-outlined text-[#80FF00] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
             <div>
@@ -169,42 +210,45 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
         </div>
       )}
 
-      {/* Balance Card */}
-      <div className="bg-surface-container rounded-2xl p-6 border-l-4 border-[#80FF00] shadow-xl">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-[0.2em]">Saldo Disponivel</p>
-            <h2 className="text-4xl font-headline font-black text-on-surface mt-1 italic">R$ {user.balance.toFixed(2)}</h2>
+      {/* Desktop 2-col: Balance + Financial Summary side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Balance Card */}
+        <div className="bg-surface-container rounded-2xl p-6 border-l-4 border-[#80FF00] shadow-xl">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-[0.2em]">Saldo Disponivel</p>
+              <h2 className="text-4xl font-headline font-black text-on-surface mt-1 italic">R$ {user.balance.toFixed(2)}</h2>
+            </div>
+            <span className="material-symbols-outlined text-[#80FF00] text-3xl">payments</span>
           </div>
-          <span className="material-symbols-outlined text-[#80FF00] text-3xl">payments</span>
+          <div className="flex gap-3">
+            <Link href="/deposito" className="flex-1 bg-gradient-to-r from-[#80FF00] to-[#4A9900] text-[#0a0a0a] font-headline font-extrabold py-3 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all text-center text-sm">DEPOSITAR</Link>
+            <Link href="/saque" className="flex-1 bg-surface-container-highest text-on-surface font-headline font-extrabold py-3 rounded-2xl hover:bg-surface-bright active:scale-95 transition-all text-sm text-center">SACAR</Link>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Link href="/deposito" className="flex-1 bg-gradient-to-r from-[#80FF00] to-[#4A9900] text-[#0a0a0a] font-headline font-extrabold py-3 rounded-2xl hover:scale-[1.02] active:scale-95 transition-all text-center text-sm">DEPOSITAR</Link>
-          <button className="flex-1 bg-surface-container-highest text-on-surface font-headline font-extrabold py-3 rounded-2xl hover:bg-surface-bright active:scale-95 transition-all text-sm">SACAR</button>
-        </div>
-      </div>
 
-      {/* Financial Summary */}
-      <div className="bg-surface-container rounded-2xl p-5 border border-white/5">
-        <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#80FF00] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
-          Resumo Financeiro
-        </h3>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-on-surface-variant">Total Apostado</span>
-            <span className="text-sm font-headline font-bold">R$ {(user.total_wagered || stats.totalWagered).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-on-surface-variant">Total Retornado</span>
-            <span className="text-sm font-headline font-bold text-emerald-400">R$ {(user.total_returns || stats.totalReturns).toFixed(2)}</span>
-          </div>
-          <div className="h-px bg-white/5" />
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-on-surface">Lucro Liquido</span>
-            <span className={`text-lg font-headline font-black italic ${stats.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {stats.profit >= 0 ? "+" : ""}R$ {Math.abs(stats.profit).toFixed(2)}
-            </span>
+        {/* Financial Summary */}
+        <div className="bg-surface-container rounded-2xl p-5 border border-white/5">
+          <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#80FF00] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>analytics</span>
+            Resumo Financeiro
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-on-surface-variant">Total Apostado</span>
+              <span className="text-sm font-headline font-bold">R$ {(user.total_wagered || stats.totalWagered).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-on-surface-variant">Total Retornado</span>
+              <span className="text-sm font-headline font-bold text-emerald-400">R$ {(user.total_returns || stats.totalReturns).toFixed(2)}</span>
+            </div>
+            <div className="h-px bg-white/5" />
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-on-surface">Lucro Liquido</span>
+              <span className={`text-lg font-headline font-black italic ${stats.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {stats.profit >= 0 ? "+" : ""}R$ {Math.abs(stats.profit).toFixed(2)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -222,7 +266,9 @@ function ResumoTab({ stats, user, bets }: { stats: Stats; user: User; bets: Arra
             <Link href="/" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Explorar mercados</Link>
           </div>
         ) : (
-          bets.slice(0, 5).map((bet) => <BetRow key={bet.id} bet={bet} />)
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {bets.slice(0, 6).map((bet) => <BetRow key={bet.id} bet={bet} />)}
+          </div>
         )}
       </div>
     </div>
@@ -322,83 +368,92 @@ function ContaTab({
         )}
       </div>
 
-      {/* Avatar */}
-      <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
-        <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#80FF00] text-lg">photo_camera</span>
-          Foto do Perfil
-        </h3>
-        <div className="flex items-center gap-5">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full p-[2px] bg-gradient-to-tr from-[#80FF00] via-[#A0FF40] to-[#80FF00]">
-              {user.avatar_url ? (
-                <img src={user.avatar_url} alt={user.name} className="w-full h-full rounded-full object-cover border-[3px] border-surface-dim" />
-              ) : (
-                <div className="w-full h-full rounded-full bg-surface-dim flex items-center justify-center border-[3px] border-surface-dim">
-                  <span className="text-4xl font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+      {/* Desktop 2-col layout for account settings */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left column: Avatar + Personal Info */}
+        <div className="space-y-6">
+          {/* Avatar */}
+          <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
+            <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#80FF00] text-lg">photo_camera</span>
+              Foto do Perfil
+            </h3>
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full p-[2px] bg-gradient-to-tr from-[#80FF00] via-[#A0FF40] to-[#80FF00]">
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt={user.name} className="w-full h-full rounded-full object-cover border-[3px] border-surface-dim" />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-surface-dim flex items-center justify-center border-[3px] border-surface-dim">
+                      <span className="text-4xl font-black text-[#80FF00] font-headline">{user.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+                <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#80FF00] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform">
+                  <span className="material-symbols-outlined text-sm text-[#0a0a0a]">{uploading ? "hourglass_top" : "edit"}</span>
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              </div>
+              <div className="text-xs text-on-surface-variant">
+                <p>Clique no icone para alterar</p>
+                <p className="text-[10px] mt-1 opacity-60">JPG, PNG - max 2MB</p>
+              </div>
             </div>
-            <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#80FF00] flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform">
-              <span className="material-symbols-outlined text-sm text-[#0a0a0a]">{uploading ? "hourglass_top" : "edit"}</span>
+          </div>
+
+          {/* Personal Info */}
+          <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
+            <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#80FF00] text-lg">badge</span>
+              Informacoes Pessoais
+            </h3>
+            <div className="space-y-4">
+              <FormField label="Nome completo" value={name} onChange={setName} icon="person" />
+              <FormField label="E-mail" value={email} onChange={setEmail} icon="mail" type="email" />
+              <FormField label="Telefone" value={phone} onChange={setPhone} icon="phone" placeholder="(11) 99999-9999" />
+              <FormField label="CPF" value={cpf} onChange={setCpf} icon="fingerprint" placeholder="000.000.000-00" />
+              <div>
+                <label className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1 block">Bio</label>
+                <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Conte um pouco sobre voce..." rows={2}
+                  className="w-full bg-surface-container-highest border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-[#80FF00]/40 focus:ring-1 focus:ring-[#80FF00]/20 transition-all resize-none" />
+              </div>
+            </div>
+            <button onClick={handleSave} disabled={!hasChanges || saving}
+              className={`mt-5 w-full py-3 rounded-2xl font-headline font-extrabold text-sm transition-all ${hasChanges ? "bg-gradient-to-r from-[#80FF00] to-[#4A9900] text-[#0a0a0a] hover:scale-[1.02] active:scale-95" : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"}`}>
+              {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar Alteracoes"}
             </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-          </div>
-          <div className="text-xs text-on-surface-variant">
-            <p>Clique no icone para alterar</p>
-            <p className="text-[10px] mt-1 opacity-60">JPG, PNG - max 2MB</p>
           </div>
         </div>
-      </div>
 
-      {/* Personal Info */}
-      <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
-        <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#80FF00] text-lg">badge</span>
-          Informacoes Pessoais
-        </h3>
-        <div className="space-y-4">
-          <FormField label="Nome completo" value={name} onChange={setName} icon="person" />
-          <FormField label="E-mail" value={email} onChange={setEmail} icon="mail" type="email" />
-          <FormField label="Telefone" value={phone} onChange={setPhone} icon="phone" placeholder="(11) 99999-9999" />
-          <FormField label="CPF" value={cpf} onChange={setCpf} icon="fingerprint" placeholder="000.000.000-00" />
-          <div>
-            <label className="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest mb-1 block">Bio</label>
-            <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Conte um pouco sobre voce..." rows={2}
-              className="w-full bg-surface-container-highest border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-[#80FF00]/40 focus:ring-1 focus:ring-[#80FF00]/20 transition-all resize-none" />
+        {/* Right column: Password + Logout */}
+        <div className="space-y-6">
+          {/* Change Password */}
+          <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
+            <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#80FF00] text-lg">lock</span>
+              Alterar Senha
+            </h3>
+            <div className="space-y-4">
+              <FormField label="Senha atual" value={oldPw} onChange={setOldPw} icon="key" type="password" />
+              <FormField label="Nova senha" value={newPw} onChange={setNewPw} icon="lock" type="password" />
+              <FormField label="Confirmar nova senha" value={confirmPw} onChange={setConfirmPw} icon="lock" type="password" />
+            </div>
+            {pwMsg && <p className={`mt-3 text-xs font-medium ${pwMsg.ok ? "text-emerald-400" : "text-red-400"}`}>{pwMsg.text}</p>}
+            <button onClick={handlePasswordChange} disabled={!oldPw || !newPw || !confirmPw || pwSaving}
+              className={`mt-5 w-full py-3 rounded-2xl font-headline font-extrabold text-sm transition-all ${oldPw && newPw && confirmPw ? "bg-surface-container-highest text-on-surface hover:bg-surface-bright active:scale-95 border border-white/10" : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"}`}>
+              {pwSaving ? "Alterando..." : "Alterar Senha"}
+            </button>
           </div>
-        </div>
-        <button onClick={handleSave} disabled={!hasChanges || saving}
-          className={`mt-5 w-full py-3 rounded-2xl font-headline font-extrabold text-sm transition-all ${hasChanges ? "bg-gradient-to-r from-[#80FF00] to-[#4A9900] text-[#0a0a0a] hover:scale-[1.02] active:scale-95" : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"}`}>
-          {saving ? "Salvando..." : saved ? "Salvo!" : "Salvar Alteracoes"}
-        </button>
-      </div>
 
-      {/* Change Password */}
-      <div className="bg-surface-container rounded-2xl p-6 border border-white/5">
-        <h3 className="font-headline font-bold text-sm mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#80FF00] text-lg">lock</span>
-          Alterar Senha
-        </h3>
-        <div className="space-y-4">
-          <FormField label="Senha atual" value={oldPw} onChange={setOldPw} icon="key" type="password" />
-          <FormField label="Nova senha" value={newPw} onChange={setNewPw} icon="lock" type="password" />
-          <FormField label="Confirmar nova senha" value={confirmPw} onChange={setConfirmPw} icon="lock" type="password" />
+          {/* Logout */}
+          <button onClick={() => { logout(); router.push("/"); }}
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 font-headline font-bold text-sm hover:bg-red-500/20 active:scale-95 transition-all">
+            <span className="material-symbols-outlined text-lg">logout</span>
+            Sair da Conta
+          </button>
         </div>
-        {pwMsg && <p className={`mt-3 text-xs font-medium ${pwMsg.ok ? "text-emerald-400" : "text-red-400"}`}>{pwMsg.text}</p>}
-        <button onClick={handlePasswordChange} disabled={!oldPw || !newPw || !confirmPw || pwSaving}
-          className={`mt-5 w-full py-3 rounded-2xl font-headline font-extrabold text-sm transition-all ${oldPw && newPw && confirmPw ? "bg-surface-container-highest text-on-surface hover:bg-surface-bright active:scale-95 border border-white/10" : "bg-surface-container-highest text-on-surface-variant cursor-not-allowed"}`}>
-          {pwSaving ? "Alterando..." : "Alterar Senha"}
-        </button>
       </div>
-
-      {/* Logout */}
-      <button onClick={() => { logout(); router.push("/"); }}
-        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 font-headline font-bold text-sm hover:bg-red-500/20 active:scale-95 transition-all">
-        <span className="material-symbols-outlined text-lg">logout</span>
-        Sair da Conta
-      </button>
     </div>
   );
 }
@@ -417,8 +472,10 @@ function HistoricoTab({ bets, stats }: { bets: Array<{ id: string; marketTitle: 
 
   return (
     <div className="space-y-6">
+      {/* Filter + Performance side by side on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Filter buttons */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2 content-start">
         {filters.map((f) => (
           <button key={f.key} onClick={() => setFilter(f.key)}
             className={`py-2.5 rounded-xl text-center transition-all ${filter === f.key ? "bg-[#80FF00]/15 border border-[#80FF00]/30 text-[#80FF00]" : "bg-surface-container border border-white/5 text-on-surface-variant hover:text-on-surface"}`}>
@@ -458,6 +515,7 @@ function HistoricoTab({ bets, stats }: { bets: Array<{ id: string; marketTitle: 
           </span>
         </div>
       </div>
+      </div>
 
       {/* Bet List */}
       <div className="space-y-3">
@@ -471,7 +529,9 @@ function HistoricoTab({ bets, stats }: { bets: Array<{ id: string; marketTitle: 
             <p className="text-sm text-on-surface-variant">Nenhuma aposta encontrada</p>
           </div>
         ) : (
-          filtered.map((bet) => <BetRow key={bet.id} bet={bet} expanded />)
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {filtered.map((bet) => <BetRow key={bet.id} bet={bet} expanded />)}
+          </div>
         )}
       </div>
     </div>

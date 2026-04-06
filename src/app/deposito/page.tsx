@@ -4,7 +4,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/UserContext";
 import { trackPurchase, trackInitiateCheckout } from "@/lib/pixel";
-import BottomNav from "@/components/BottomNav";
+import SidebarNav from "@/components/SidebarNav";
+import MobileNavNew from "@/components/MobileNavNew";
+import MarketTicker from "@/components/MarketTicker";
 import Link from "next/link";
 
 export default function DepositoPage() {
@@ -132,14 +134,36 @@ export default function DepositoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-dim text-on-surface overflow-x-hidden w-full max-w-[100vw]">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0b1120]/80 backdrop-blur-xl bg-gradient-to-b from-[#0f1729] to-transparent shadow-2xl shadow-emerald-500/10 flex items-center px-4 h-16 overflow-hidden">
-        <button onClick={() => router.back()} className="text-[#80FF00] mr-4"><span className="material-symbols-outlined">arrow_back</span></button>
-        <h1 className="text-base font-bold font-headline uppercase tracking-tight flex-1">Depositar via PIX</h1>
-        <span className="text-sm text-on-surface-variant">Saldo: <span className="text-[#80FF00] font-bold font-headline">R$ {user.balance.toFixed(2)}</span></span>
+    <div className="min-h-screen bg-[#0d1117] text-on-surface pb-20 lg:pb-0 overflow-x-hidden w-full max-w-[100vw]">
+      {/* Ticker */}
+      <div className="fixed top-0 left-0 right-0 z-40">
+        <MarketTicker />
       </div>
 
-      <div className="pt-24 p-4 max-w-md mx-auto pb-32">
+      {/* Header */}
+      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+        <button onClick={() => router.back()} className="lg:hidden text-white/70 p-1">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <Link href="/" className="shrink-0">
+          <img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" />
+        </Link>
+        <h2 className="text-sm font-headline font-bold text-white/60 ml-2 hidden lg:block">Depositar via PIX</h2>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-sm text-on-surface-variant hidden sm:inline">Saldo:</span>
+          <span className="bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</span>
+        </div>
+      </header>
+
+      {/* Spacer */}
+      <div className="h-[78px]" />
+
+      <div className="flex">
+        {/* Sidebar — desktop only */}
+        <SidebarNav activeCategory="" onCategoryChange={() => {}} />
+
+        <div className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden">
+      <div className="max-w-md mx-auto lg:mx-0">
         {errorMsg && (
           <div className="bg-error/10 border border-error/30 rounded-2xl p-3 mb-4 flex items-center gap-2 animate-fade-in-up">
             <span className="material-symbols-outlined text-error text-sm">warning</span>
@@ -219,7 +243,10 @@ export default function DepositoPage() {
           </div>
         )}
       </div>
-      <BottomNav />
+      </div>
+      </div>
+
+      <MobileNavNew onChatOpen={() => {}} />
     </div>
   );
 }
