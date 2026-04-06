@@ -650,23 +650,22 @@ export default function EventoPage() {
                     const pct = prob ? Math.round(prob.probability * 100) : Math.round(100 / market.outcomes.length);
                     const odds = (o.payout_per_unit > 0 ? o.payout_per_unit : (market.outcomes.length * 0.95));
                     const isActive = selectedOutcome === o.key;
-                    const isPositive = idx === 0 || o.key === "YES" || o.key === "UP" || o.key === "SOBE" || o.key === "HOME";
+                    const k = o.key.toUpperCase();
+                    const l = o.label.toLowerCase();
+                    const isPositive = k === "YES" || k === "UP" || k === "SOBE" || k === "HOME" || l.includes("sobe") || l.includes("sim") || l.includes("acima") || l.includes("mais") || l.includes("over");
+                    const isNegative = k === "NO" || k === "DOWN" || k === "DESCE" || k === "AWAY" || l.includes("desce") || l.includes("nao") || l.includes("abaixo") || l.includes("menos") || l.includes("under") || l.includes("até");
 
                     // Emoji based on outcome type
                     const emoji = (() => {
-                      const k = o.key.toUpperCase();
-                      const l = o.label.toLowerCase();
-                      if (k === "UP" || k === "SOBE" || l.includes("sobe") || l.includes("sim") || l.includes("acima") || l.includes("mais")) return "👍";
-                      if (k === "DOWN" || k === "DESCE" || l.includes("desce") || l.includes("nao") || l.includes("abaixo") || l.includes("menos") || l.includes("até")) return "👎";
-                      if (k === "YES") return "👍";
-                      if (k === "NO") return "👎";
+                      if (isPositive) return "👍";
+                      if (isNegative) return "👎";
                       if (k === "DRAW" || l.includes("empate")) return "🤝";
-                      if (k === "HOME" || idx === 0) return "🏠";
-                      if (k === "AWAY" || idx === 2) return "✈️";
-                      return isPositive ? "👍" : "👎";
+                      if (idx === 0) return "🏠";
+                      if (idx === 2) return "✈️";
+                      return idx === 0 ? "👍" : "👎";
                     })();
 
-                    const bgColor = isPositive ? "#10B981" : "#EF4444";
+                    const bgColor = isPositive ? "#10B981" : isNegative ? "#EF4444" : (idx === 0 ? "#10B981" : "#EF4444");
                     const hoverBg = isPositive ? "#059669" : "#DC2626";
 
                     return (
