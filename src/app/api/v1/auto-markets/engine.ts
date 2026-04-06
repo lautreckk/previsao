@@ -703,10 +703,16 @@ export async function generateAutoMarkets(tiers?: ("curto" | "medio" | "longo")[
         ai_prompt: tmpl.image_prompt,
       };
 
+      console.log(`[auto-markets] Inserting ${id} to ${process.env.NEXT_PUBLIC_SUPABASE_URL}`);
       const { data, error } = await supabase.from("prediction_markets").insert(row).select().single();
       if (error) {
+        console.error(`[auto-markets] Insert error for ${id}:`, error.message, error.details, error.hint);
         errors.push(`insert_${tmpl.id}: ${error.message}`);
+      } else if (!data) {
+        console.error(`[auto-markets] Insert returned no data for ${id} (silent failure)`);
+        errors.push(`insert_${tmpl.id}: no data returned (possible RLS block)`);
       } else {
+        console.log(`[auto-markets] Inserted ${id} successfully`);
         created.push(data);
         // Schedule jobs: close (stop bets) + resolve (pay winners)
         const resolveAt = new Date(closeAt.getTime() + 60000);
