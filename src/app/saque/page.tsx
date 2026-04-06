@@ -108,8 +108,8 @@ export default function SaquePage() {
         <MarketTicker />
       </div>
 
-      {/* Header */}
-      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+      {/* Header — full width */}
+      <header className="fixed top-[32px] left-0 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
         <button onClick={() => step === "confirm" ? setStep("form") : router.back()} className="lg:hidden text-white/70 p-1">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -118,8 +118,10 @@ export default function SaquePage() {
         </Link>
         <h2 className="text-sm font-headline font-bold text-white/60 ml-2 hidden lg:block">Sacar via PIX</h2>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm text-on-surface-variant hidden sm:inline">Saldo:</span>
-          <span className="bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</span>
+          <Link href="/deposito" className="bg-[#80FF00] text-[#0a0a0a] px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-black flex items-center gap-1.5 hover:opacity-90 transition-all">
+            <span className="material-symbols-outlined text-base">add</span>Depositar
+          </Link>
+          <Link href="/perfil" className="bg-white/[0.04] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</Link>
         </div>
       </header>
 
