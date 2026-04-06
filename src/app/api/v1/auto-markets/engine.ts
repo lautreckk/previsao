@@ -737,55 +737,79 @@ export async function resolveExpiredMarkets(): Promise<{
   const results: Record<string, unknown>[] = [];
   const nowISO = new Date().toISOString();
 
-  // Step 1: Transition stale open/frozen markets to closed
-  const { data: staleOpen } = await supabase
+  // Step 1: Close + resolve expired automatic markets in one pass
+  // Fetch open/frozen expired markets that are automatic — we'll close AND resolve them
+  const { data: staleAuto } = await supabase
     .from("prediction_markets")
-    .select("id")
+    .select("*")
     .in("status", ["open", "frozen"])
+    .eq("resolution_type", "automatic")
     .lt("close_at", nowISO)
-    .limit(50);
+    .order("close_at", { ascending: true })
+    .limit(100);
 
-  if (staleOpen && staleOpen.length > 0) {
-    for (const m of staleOpen) {
-      await supabase.from("prediction_markets").update({ status: "closed" }).eq("id", m.id);
+  if (staleAuto && staleAuto.length > 0) {
+    for (const market of staleAuto) {
+      try {
+        await supabase.from("prediction_markets").update({ status: "closed" }).eq("id", market.id);
+        const resolveResult = await resolveOneMarket(supabase, { ...market, status: "closed" });
+        results.push(resolveResult);
+      } catch (err) {
+        errors.push(`resolve_${market.id}: ${err}`);
+      }
     }
   }
 
-  // Step 2: Resolve automatic closed markets
-  const { data: autoExpired } = await supabase
+  // Step 2: Also resolve any already-closed automatic markets (from previous partial runs)
+  const { data: closedAuto } = await supabase
     .from("prediction_markets")
     .select("*")
     .eq("status", "closed")
     .eq("resolution_type", "automatic")
     .lt("close_at", nowISO)
-    .limit(30);
+    .order("close_at", { ascending: true })
+    .limit(100);
 
-  // Step 3: Move manual markets to awaiting_resolution
-  const { data: manualExpired } = await supabase
+  if (closedAuto && closedAuto.length > 0) {
+    for (const market of closedAuto) {
+      try {
+        const resolveResult = await resolveOneMarket(supabase, market);
+        results.push(resolveResult);
+      } catch (err) {
+        errors.push(`resolve_${market.id}: ${err}`);
+      }
+    }
+  }
+
+  // Step 3: Close + move manual/semi_automatic expired markets to awaiting_resolution
+  const { data: staleManual } = await supabase
     .from("prediction_markets")
     .select("id, title")
-    .eq("status", "closed")
+    .in("status", ["open", "frozen"])
     .in("resolution_type", ["manual", "semi_automatic"])
     .lt("close_at", nowISO)
-    .limit(30);
+    .limit(100);
 
-  if (manualExpired && manualExpired.length > 0) {
-    for (const m of manualExpired) {
+  if (staleManual && staleManual.length > 0) {
+    for (const m of staleManual) {
       await supabase.from("prediction_markets").update({ status: "awaiting_resolution" }).eq("id", m.id);
       results.push({ market_id: m.id, title: m.title, action: "awaiting_resolution" });
     }
   }
 
-  if (!autoExpired || autoExpired.length === 0) {
-    return { resolved: results.length, results, errors };
-  }
+  // Also handle already-closed manual ones
+  const { data: closedManual } = await supabase
+    .from("prediction_markets")
+    .select("id, title")
+    .eq("status", "closed")
+    .in("resolution_type", ["manual", "semi_automatic"])
+    .lt("close_at", nowISO)
+    .limit(100);
 
-  for (const market of autoExpired) {
-    try {
-      const resolveResult = await resolveOneMarket(supabase, market);
-      results.push(resolveResult);
-    } catch (err) {
-      errors.push(`resolve_${market.id}: ${err}`);
+  if (closedManual && closedManual.length > 0) {
+    for (const m of closedManual) {
+      await supabase.from("prediction_markets").update({ status: "awaiting_resolution" }).eq("id", m.id);
+      results.push({ market_id: m.id, title: m.title, action: "awaiting_resolution" });
     }
   }
 

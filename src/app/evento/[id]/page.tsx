@@ -7,7 +7,6 @@ import { initializeStore, getMarket, placeBetFull, tickAllMarkets } from "@/lib/
 import { simulateBet, calcImpliedProbabilities } from "@/lib/engines/parimutuel";
 import { CATEGORY_META } from "@/lib/engines/types";
 import BottomNav from "@/components/BottomNav";
-import LiveChat from "@/components/LiveChat";
 import { LivePriceDisplay } from "@/components/LivePriceDisplay";
 import LivePriceChart from "@/components/LivePriceChart";
 import { MarketResultBanner } from "@/components/MarketResultBanner";
@@ -16,6 +15,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import type { PredictionMarket } from "@/lib/engines/types";
+import { createBotEngine } from "@/lib/bot-engine";
 import type { LiveBet } from "@/lib/bot-engine";
 import { getBotAvatarUrl, getRandomBetMessage } from "@/lib/bot-avatars";
 import { trackViewContent, trackAddToCart } from "@/lib/pixel";
@@ -126,7 +126,7 @@ export default function EventoPage() {
   const [placing, setPlacing] = useState(false);
   const [flashKeys, setFlashKeys] = useState<Record<string, "up" | "down">>({});
   const [isResolved, setIsResolved] = useState(false);
-  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<"mercado" | "posicoes" | "chat">("mercado");
 
   // Live activity feed
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
@@ -406,6 +406,28 @@ export default function EventoPage() {
     return () => clearInterval(iv);
   }, [market?.id, market?.status]);
 
+  // Bot engine: auto-bet bots for live activity (8-20 bots/min)
+  const botEngineRef = useRef<ReturnType<typeof createBotEngine> | null>(null);
+  useEffect(() => {
+    if (!market?.id || market.status !== "open") {
+      botEngineRef.current?.stop();
+      botEngineRef.current = null;
+      return;
+    }
+    const engine = createBotEngine(market.id, addLiveBet);
+    botEngineRef.current = engine;
+    engine.start(market.outcomes);
+    return () => { engine.stop(); botEngineRef.current = null; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market?.id, market?.status, addLiveBet]);
+
+  // Update bot engine when outcomes change (odds update)
+  useEffect(() => {
+    if (market?.outcomes && botEngineRef.current) {
+      botEngineRef.current.updateOutcomes(market.outcomes);
+    }
+  }, [market?.outcomes]);
+
   if (!market) return (
     <div className="min-h-screen bg-[#080d1a] flex items-center justify-center text-white">
       <div className="text-center"><span className="material-symbols-outlined text-5xl text-white/50">error</span><p className="mt-2 text-white/50">Mercado nao encontrado</p><button onClick={() => router.push("/")} className="mt-4 text-[#80FF00] font-bold">Voltar</button></div>
@@ -468,10 +490,32 @@ export default function EventoPage() {
 
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-[#080d1a] text-white">
+      {/* ─── MOBILE TAB SWITCHER (like camera market) ─── */}
+      <div className="lg:hidden flex border-b border-white/[0.04] bg-[#0D0B14] sticky top-0 z-20">
+        {([
+          { key: "mercado" as const, icon: "trending_up", label: "Mercado" },
+          { key: "posicoes" as const, icon: "receipt_long", label: "Posicoes" },
+          { key: "chat" as const, icon: "forum", label: "Chat" },
+        ]).map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setMobilePanel(p.key)}
+            className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider transition-colors ${
+              mobilePanel === p.key
+                ? "text-[#80FF00] border-b-2 border-[#80FF00]"
+                : "text-white/40"
+            }`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>{p.icon}</span>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen lg:max-h-screen">
 
         {/* ─── LEFT: Market info + Outcomes ─── */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-20 lg:pb-0">
+        <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto pb-20 lg:pb-0 ${mobilePanel !== "mercado" ? "hidden lg:flex" : ""}`}>
           {/* Header */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14] shrink-0">
             <div className="flex items-center gap-3 min-w-0">
@@ -744,8 +788,8 @@ export default function EventoPage() {
           )}
         </div>
 
-        {/* ─── MIDDLE: Bet form + Positions (desktop only — mobile uses inline form above) ─── */}
-        <div className="hidden lg:flex w-[340px] border-l border-white/[0.04] flex-col bg-[#0a1222] overflow-hidden max-h-screen">
+        {/* ─── MIDDLE: Bet form + Positions ─── */}
+        <div className={`w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0a1222] overflow-hidden lg:max-h-screen ${mobilePanel === "posicoes" ? "flex-1 pb-20" : "hidden lg:flex"}`}>
           {selected ? (
             <div className="flex-1 overflow-y-auto">
               {/* Bet header */}
@@ -993,7 +1037,7 @@ export default function EventoPage() {
         </div>
 
         {/* ─── RIGHT: Chat ─── */}
-        <div className="w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden hidden lg:flex">
+        <div className={`w-full lg:w-[340px] border-l border-white/[0.04] flex flex-col bg-[#0D0B14] overflow-hidden ${mobilePanel === "chat" ? "flex-1" : "hidden lg:flex"}`}>
           <EventChat />
         </div>
       </div>
@@ -1058,15 +1102,7 @@ export default function EventoPage() {
         }
       `}</style>
 
-      {/* Mobile chat FAB */}
-      <button
-        onClick={() => setMobileChatOpen(true)}
-        className="lg:hidden fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-[#80FF00] text-[#0a0a0a] flex items-center justify-center shadow-[0_4px_20px_rgba(128,255,0,0.4)] hover:scale-105 active:scale-95 transition-all"
-      >
-        <span className="material-symbols-outlined text-lg">forum</span>
-      </button>
-      <LiveChat isOpen={mobileChatOpen} onClose={() => setMobileChatOpen(false)} />
-
+      {/* BottomNav for desktop fallback — mobile uses tab switcher above */}
       <div className="lg:hidden"><BottomNav /></div>
     </div>
   );
