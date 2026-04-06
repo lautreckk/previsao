@@ -513,9 +513,9 @@ export default function Home() {
             <div>
               <h4 className="text-[10px] font-black text-white/50 uppercase tracking-wider mb-3">Suporte</h4>
               <ul className="space-y-1.5">
-                <li><span className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors cursor-pointer">FAQ</span></li>
-                <li><span className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors cursor-pointer">Termos</span></li>
-                <li><span className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors cursor-pointer">Privacidade</span></li>
+                <li><Link href="/como-funciona" className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors">FAQ</Link></li>
+                <li><Link href="/termos" className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors">Termos</Link></li>
+                <li><Link href="/privacidade" className="text-[11px] text-white/40 hover:text-[#80FF00] transition-colors">Privacidade</Link></li>
               </ul>
             </div>
           </div>

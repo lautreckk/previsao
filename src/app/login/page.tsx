@@ -48,6 +48,9 @@ export default function LoginPage() {
               <label className="text-xs text-on-surface-variant mb-1 block uppercase tracking-wider font-bold">Senha</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" className="w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-white text-sm outline-none focus:ring-2 focus:ring-[#80FF00]/40 border border-white/5" />
             </div>
+            <div className="flex justify-end">
+              <button type="button" onClick={() => alert("Entre em contato com o suporte para redefinir sua senha.")} className="text-xs text-[#80FF00]/70 hover:text-[#80FF00] transition-colors">Esqueci minha senha</button>
+            </div>
             {error && <p className="text-error text-sm text-center font-bold">{error}</p>}
             <button type="submit" disabled={loading} className="w-full py-4 rounded-2xl kinetic-gradient text-[#0a0a0a] font-black font-headline text-base mt-2 uppercase tracking-wider glow-green hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60">{loading ? "Entrando..." : "Entrar"}</button>
           </form>

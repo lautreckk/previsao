@@ -93,7 +93,7 @@ export default function SidebarNav({ activeCategory, onCategoryChange }: Sidebar
                 <cat.icon size={14} />
                 <span>{cat.label}</span>
               </div>
-              <span className="text-xs text-[hsl(0,0%,55%)]">{cat.count}</span>
+              <span className="text-xs text-[hsl(0,0%,55%)] ml-1">{cat.count.toLocaleString("pt-BR")}</span>
             </button>
           ))}
         </nav>
