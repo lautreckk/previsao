@@ -285,9 +285,7 @@ export default function Home() {
             return a.close_at - b.close_at;
           });
 
-          const dbTitles = new Set(dbMarkets.map((m) => m.title.toLowerCase()));
-          const uniqueLocal = local.filter((m) => !dbTitles.has(m.title.toLowerCase()));
-          setMarkets([...dbMarkets, ...uniqueLocal]);
+          setMarkets(dbMarkets);
           setMarketsLoading(false);
           return;
         }
