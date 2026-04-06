@@ -162,7 +162,7 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
   }, [hlsUrl]);
 
   return (
-    <div className="relative w-full" style={{ paddingBottom: "80%" }}>
+    <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
       <video
         ref={videoRef}
         autoPlay
@@ -347,8 +347,8 @@ function RoundHistory({ marketId }: { marketId: string }) {
   if (history.length === 0) return null;
 
   return (
-    <div className="px-4 py-3 border-t border-white/[0.04]">
-      <p className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-2">Historico</p>
+    <div className="px-4 py-1.5 border-t border-white/[0.04]">
+      <p className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-1">Historico</p>
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {history.map((r) => {
           const isOver = (r.final_count || 0) > (r.threshold || 0);
@@ -451,10 +451,10 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
       <div className="flex flex-col lg:flex-row h-[calc(100vh-41px)] pb-16 lg:pb-0 lg:h-screen">
 
         {/* ─── LEFT COLUMN: Stream + Betting ─── */}
-        <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto ${mobilePanel !== "camera" ? "hidden lg:flex" : ""}`}>
+        <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto lg:overflow-hidden ${mobilePanel !== "camera" ? "hidden lg:flex" : ""}`}>
 
           {/* Top bar: Title + Timer */}
-          <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04] bg-[#0D0B14]">
+          <header className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0D0B14]">
             <div className="flex items-center gap-3 min-w-0">
               <Link href="/" className="text-[#80FF00] shrink-0">
                 <span className="material-symbols-outlined">arrow_back</span>
@@ -483,7 +483,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           </header>
 
           {/* Phase label — count is shown IN the video by the worker */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.04] bg-[#0a1222]">
+          <div className="flex items-center justify-between px-4 py-1.5 border-b border-white/[0.04] bg-[#0a1222]">
             <div className="flex items-center gap-3">
               <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Rodada {market.round_number}</span>
             </div>
@@ -507,17 +507,17 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
           </div>
 
           {/* Live HLS stream */}
-          <div className="px-4 pt-3">
+          <div className="px-3 pt-2 lg:px-4 lg:pt-2">
             <LiveStream marketId={marketId} count={currentCount} />
           </div>
 
           {/* Betting buttons: OVER / UNDER (like Palpitano bottom buttons) */}
-          <div className="px-4 py-3">
+          <div className="px-4 py-2 lg:py-1.5">
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setSelectedType("over")}
                 disabled={!isBetting}
-                className={`py-4 rounded-xl text-center transition-all active:scale-95 border-2 ${
+                className={`py-2.5 lg:py-2 rounded-xl text-center transition-all active:scale-95 border-2 ${
                   selectedType === "over"
                     ? "bg-[#80FF00]/20 border-[#80FF00] text-[#80FF00] shadow-[0_0_20px_rgba(128,255,0,0.15)]"
                     : "bg-[#12101A] border-[#1e2a3a] text-white hover:border-[#80FF00]/40 disabled:opacity-40"
@@ -531,7 +531,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
               <button
                 onClick={() => setSelectedType("under")}
                 disabled={!isBetting}
-                className={`py-4 rounded-xl text-center transition-all active:scale-95 border-2 ${
+                className={`py-2.5 lg:py-2 rounded-xl text-center transition-all active:scale-95 border-2 ${
                   selectedType === "under"
                     ? "bg-[#FF5252]/20 border-[#FF5252] text-[#FF5252] shadow-[0_0_20px_rgba(255,82,82,0.15)]"
                     : "bg-[#12101A] border-[#1e2a3a] text-white hover:border-[#FF5252]/40 disabled:opacity-40"
@@ -709,61 +709,122 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                 ))}
               </div>
               <div className="flex-1 overflow-y-auto p-4">
-                {tab === "posicoes" && (
-                  <div className="text-center text-white/50 py-8">
-                    <p className="text-sm">Faca login para visualizar suas posicoes.</p>
-                    {!user && <Link href="/login" className="text-[#80FF00] text-sm font-bold mt-2 inline-block">Entrar</Link>}
-                    {user && myPredictions.length === 0 && <p className="text-xs mt-2">Nenhuma previsao feita ainda.</p>}
-                    {user && myPredictions.length > 0 && (
-                      <div className="space-y-2 mt-4 text-left">
-                        {myPredictions.slice(0, 10).map((p) => (
-                          <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                                {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
-                              </span>
-                              <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : p.status === "lost" ? "text-[#FF5252]" : "text-[#FFC700]"}`}>
-                                {p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : p.status === "lost" ? "PERDEU" : `@${Number(p.odds_at_entry).toFixed(2)}x`}
-                              </span>
-                            </div>
-                            <span className="text-xs font-bold">R$ {Number(p.amount_brl).toFixed(2)}</span>
+                {(() => {
+                  if (!user) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="bg-[#0D0B14] rounded-xl border border-white/[0.04] p-6">
+                          <div className="w-14 h-14 rounded-2xl bg-[#80FF00]/10 flex items-center justify-center mx-auto mb-3">
+                            <span className="material-symbols-outlined text-[#80FF00] text-2xl">account_circle</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {tab === "aberto" && (
-                  <div className="space-y-2">
-                    {openPredictions.length === 0 && <p className="text-center text-white/50 text-sm py-8">Nenhuma previsao em aberto.</p>}
-                    {openPredictions.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                          {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold} @{Number(p.odds_at_entry).toFixed(2)}x
-                        </span>
-                        <span className="text-xs font-bold text-[#FFC700]">R$ {Number(p.amount_brl).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {tab === "encerradas" && (
-                  <div className="space-y-2">
-                    {closedPredictions.length === 0 && <p className="text-center text-white/50 text-sm py-8">Nenhuma previsao encerrada.</p>}
-                    {closedPredictions.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between bg-[#12101A] rounded-lg p-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded ${p.prediction_type === "over" ? "bg-[#80FF00]/15 text-[#80FF00]" : "bg-[#FF5252]/15 text-[#FF5252]"}`}>
-                            {p.prediction_type === "over" ? "OVER" : "UNDER"} {p.threshold}
-                          </span>
-                          <span className={`text-[10px] font-bold ${p.status === "won" ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
-                            {p.status === "won" ? "GANHOU" : "PERDEU"}
-                          </span>
+                          <p className="text-sm text-white font-bold mb-1">Faca login para comecar</p>
+                          <p className="text-xs text-white/30 mb-4">Veja suas posicoes, historico e gerencie suas previsoes.</p>
+                          <Link href="/login" className="inline-block px-6 py-2.5 rounded-lg bg-[#80FF00] text-[#0a0a0a] text-sm font-black uppercase tracking-wider hover:bg-[#80FF00]/90 active:scale-95 transition-all">Entrar</Link>
                         </div>
-                        <span className="text-xs font-bold">{p.status === "won" ? `+R$${Number(p.payout).toFixed(2)}` : `R$ ${Number(p.amount_brl).toFixed(2)}`}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  }
+
+                  const filteredPredictions = tab === "posicoes"
+                    ? myPredictions
+                    : tab === "aberto"
+                    ? openPredictions
+                    : closedPredictions;
+
+                  if (filteredPredictions.length === 0) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-6">
+                          <div className="w-14 h-14 rounded-2xl bg-[#1a2a3a] flex items-center justify-center mx-auto mb-3">
+                            <span className="material-symbols-outlined text-white/30 text-2xl">
+                              {tab === "posicoes" ? "touch_app" : tab === "aberto" ? "hourglass_empty" : "check_circle"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-white font-bold mb-1">
+                            {tab === "posicoes" ? "Nenhuma posicao ainda" : tab === "aberto" ? "Nenhuma previsao em aberto" : "Nenhuma previsao encerrada"}
+                          </p>
+                          <p className="text-xs text-white/30">Selecione OVER ou UNDER ao lado para fazer sua previsao.</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const totalInvested = filteredPredictions.reduce((s, p) => s + Number(p.amount_brl), 0);
+                  const totalPotential = filteredPredictions.reduce((s, p) => s + Number(p.amount_brl) * Number(p.odds_at_entry), 0);
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Summary bar */}
+                      <div className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Investido</span>
+                          <p className="text-sm font-black text-white font-mono">R$ {totalInvested.toFixed(2)}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Potencial</span>
+                          <p className="text-sm font-black text-[#80FF00] font-mono">R$ {totalPotential.toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      {/* Prediction cards */}
+                      {filteredPredictions.map((p) => {
+                        const isOver = p.prediction_type === "over";
+                        const isWon = p.status === "won";
+                        const isLost = p.status === "lost";
+                        const isPending = p.status === "open";
+                        const potentialReturn = Number(p.amount_brl) * Number(p.odds_at_entry);
+                        const outcomeColor = isOver ? "#80FF00" : "#FF5252";
+
+                        return (
+                          <div key={p.id} className="bg-[#12101A] rounded-xl border border-white/[0.06] p-3 transition-all hover:border-white/[0.12]">
+                            {/* Header: outcome + status */}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: outcomeColor + "15" }}>
+                                  <span className="text-xs font-black" style={{ color: outcomeColor }}>
+                                    {isOver ? "OV" : "UN"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-sm font-bold text-white">{isOver ? `Sim, acima de ${p.threshold}` : `Nao, abaixo`}</span>
+                                  <span className="block text-[10px] text-white/30">Rodovia — Carros</span>
+                                </div>
+                              </div>
+                              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                isWon ? "bg-[#80FF00]/10 text-[#80FF00]" : isLost ? "bg-[#FF5252]/10 text-[#FF5252]" : "bg-[#80FF00]/10 text-[#80FF00]"
+                              }`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isWon ? "bg-[#80FF00]" : isLost ? "bg-[#FF5252]" : "bg-[#80FF00] animate-pulse"}`} />
+                                {isWon ? "Ganhou" : isLost ? "Perdeu" : "Em aberto"}
+                              </div>
+                            </div>
+
+                            {/* Bet details */}
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-white/30">Valor</span>
+                                <span className="font-bold text-white font-mono">R$ {Number(p.amount_brl).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/30">Odds</span>
+                                <span className="font-bold text-white font-mono">{Number(p.odds_at_entry).toFixed(2)}x</span>
+                              </div>
+                              <div className="flex justify-between col-span-2">
+                                <span className="text-white/30">Potencial</span>
+                                <span className={`font-bold font-mono ${isPending ? "text-[#80FF00]" : isWon ? "text-[#80FF00]" : "text-[#FF5252]"}`}>
+                                  {isLost ? `- R$ ${Number(p.amount_brl).toFixed(2)}` : `R$ ${potentialReturn.toFixed(2)}`}
+                                </span>
+                              </div>
+                              <div className="flex justify-between col-span-2 pt-1.5 border-t border-white/[0.06]">
+                                <span className="text-white/30">Entrada</span>
+                                <span className="font-bold text-white font-mono">Threshold {p.threshold}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </>
           )}
