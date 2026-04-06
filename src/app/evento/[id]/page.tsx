@@ -71,13 +71,19 @@ function EventChat() {
         {msgs.map((msg, idx) => {
           const prev = idx > 0 ? msgs[idx - 1] : null;
           const grouped = prev?.user === msg.user;
+          const predCount = (() => { let h = 0; for (let i = 0; i < msg.user.length; i++) h = msg.user.charCodeAt(i) + ((h << 5) - h); return 5 + Math.abs(h) % 150; })();
           return (
             <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${grouped ? "" : "mt-1.5"}`}>
               {!grouped ? (
                 <img src={getBotAvatarUrl(msg.user)} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover" />
               ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
-                {!grouped && <div className="flex items-center gap-1.5 mb-0.5"><span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span></div>}
+                {!grouped && (
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span>
+                    <span className="text-[9px] text-white/20 font-medium">{predCount} previsoes</span>
+                  </div>
+                )}
                 <p className="text-[12px] text-gray-300 break-words leading-relaxed">{msg.text}</p>
               </div>
             </div>

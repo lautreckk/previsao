@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useCameraMarket } from "@/hooks/useCameraMarket";
 import { useUser } from "@/lib/UserContext";
+import { useChat } from "@/lib/ChatContext";
+import { getBotAvatarUrl } from "@/lib/bot-avatars";
 import BottomNav from "@/components/BottomNav";
 import Link from "next/link";
 
@@ -206,82 +208,23 @@ function LiveStream({ marketId, count }: { marketId: string; count: number }) {
   );
 }
 
-/* ─── Mini Chat (inline, like Palpitano) ─── */
-const FAKE_USERS = ["@daisajubes","@luccasomaior","@tfrfryypaciho2007","@gabrielfenknupp","@hugoascni","@lucaselquezf1a","@diagramasjai","@clamentecorreia","@eimarolvlx0d42","@rofrsdaimoda"];
-const FAKE_MSGS = [
-  "boa tarde tropa, btc nos 5m ta com cara de descer, barlera puxando frt",
-  "under vamooo","irl em c, 2K nisso aq e pq tem dinheiro sobrando, slc",
-  "mds irmao como tu poe 2k nisso eu coloquei 30","eu vendo a minha plo",
-  "nao faco apostas altas, perdi 250 mil no betano","under vamoooo",
-  "po mh site me deslogou, um aro pro entrar, n consegui pegar odd boa",
-  "over over over","30 segundos pra executar o bglh",
-  "Cuida rapaziadaa na proxima pode ir pesado no verde",
-  "GRUPO TELEGRAM OPERANDO 100% ACERTIVO! PESQUISEM @RODOVIASINAIS",
-  "Acabei de sacar 200 calu na hora","to vendo a linha 3k n vai cair",
-  "aq passa mais de 50 carros","menos","dol mai","aq e o over",
-  "mais carros agora","ta vindo","presta atencao na linha verde",
-];
-
-const CAM_AVATAR_COLORS = [
-  "from-[#FF6B6B] to-[#EE5A24]", "from-[#80FF00] to-[#4A9900]",
-  "from-[#6C5CE7] to-[#A29BFE]", "from-[#FDCB6E] to-[#F39C12]",
-  "from-[#00CEFF] to-[#0984E3]", "from-[#FD79A8] to-[#E84393]",
-  "from-[#55E6C1] to-[#58B19F]", "from-[#FF9FF3] to-[#F368E0]",
-];
-function camAvatarColor(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return CAM_AVATAR_COLORS[Math.abs(hash) % CAM_AVATAR_COLORS.length];
-}
-
-interface ChatMsg { id: string; user: string; text: string; ts: number }
-
+/* ─── Mini Chat (uses global ChatContext, like event page) ─── */
 function InlineChat() {
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const { messages: msgs, sendMessage, onlineCount } = useChat();
   const [input, setInput] = useState("");
   const { user } = useUser();
   const chatRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const initialized = useRef(false);
+  const prevCount = useRef(msgs.length);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    const now = Date.now();
-    const seed: ChatMsg[] = [];
-    for (let i = 0; i < 8; i++) {
-      seed.push({
-        id: `s${i}`,
-        user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
-        text: FAKE_MSGS[Math.floor(Math.random() * FAKE_MSGS.length)],
-        ts: now - (8 - i) * 25000,
-      });
+    if (msgs.length > prevCount.current && !isAtBottom) {
+      setUnreadCount((c) => c + (msgs.length - prevCount.current));
     }
-    setMessages(seed);
-  }, []);
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      if (Math.random() > 0.4) {
-        setMessages((prev) => [
-          ...prev.slice(-40),
-          {
-            id: `f${Date.now()}`,
-            user: FAKE_USERS[Math.floor(Math.random() * FAKE_USERS.length)],
-            text: FAKE_MSGS[Math.floor(Math.random() * FAKE_MSGS.length)],
-            ts: Date.now(),
-          },
-        ]);
-        if (!isAtBottom) setUnreadCount((c) => c + 1);
-      }
-    }, 5000 + Math.random() * 5000);
-    return () => clearInterval(iv);
-  }, [isAtBottom]);
-
-  useEffect(() => {
+    prevCount.current = msgs.length;
     if (isAtBottom) chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isAtBottom]);
+  }, [msgs, isAtBottom]);
 
   const handleScroll = useCallback(() => {
     const el = chatRef.current;
@@ -292,16 +235,19 @@ function InlineChat() {
   }, []);
 
   const send = () => {
-    if (!input.trim() || !user) return;
-    setMessages((prev) => [
-      ...prev.slice(-40),
-      { id: `u${Date.now()}`, user: `@${user.name.split(" ")[0].toLowerCase()}`, text: input.trim(), ts: Date.now() },
-    ]);
+    if (!input.trim()) return;
+    const username = user ? `@${user.name.split(" ")[0].toLowerCase()}` : "@voce";
+    sendMessage(input.trim(), username);
     setInput("");
     setIsAtBottom(true);
   };
 
-  const onlineCount = 420 + Math.floor(Math.random() * 80);
+  // Generate a fake prediction count from username hash
+  const getPredictionCount = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return 5 + Math.abs(hash) % 150;
+  };
 
   return (
     <div className="flex flex-col h-full relative">
@@ -323,26 +269,21 @@ function InlineChat() {
 
       {/* Messages */}
       <div ref={chatRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
-        {messages.map((msg, idx) => {
-          const prevMsg = idx > 0 ? messages[idx - 1] : null;
-          const isGrouped = prevMsg?.user === msg.user;
-          const timeAgo = Math.max(0, Math.floor((Date.now() - msg.ts) / 60000));
-          const timeStr = timeAgo === 0 ? "agora" : `${timeAgo}min`;
+        {msgs.map((msg, idx) => {
+          const prev = idx > 0 ? msgs[idx - 1] : null;
+          const grouped = prev?.user === msg.user;
+          const predCount = getPredictionCount(msg.user);
 
           return (
-            <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${isGrouped ? "" : "mt-1.5"}`}>
-              {!isGrouped ? (
-                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${camAvatarColor(msg.user)} flex items-center justify-center text-[10px] font-black text-white shrink-0 mt-0.5`}>
-                  {msg.user.replace("@", "").charAt(0).toUpperCase()}
-                </div>
-              ) : (
-                <div className="w-7 shrink-0" />
-              )}
+            <div key={msg.id} className={`group flex gap-2 px-2 py-1 rounded-lg hover:bg-[#1a2a3a]/50 transition-colors ${grouped ? "" : "mt-1.5"}`}>
+              {!grouped ? (
+                <img src={getBotAvatarUrl(msg.user)} alt={msg.user} className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0 mt-0.5 object-cover" />
+              ) : <div className="w-7 shrink-0" />}
               <div className="min-w-0 flex-1">
-                {!isGrouped && (
+                {!grouped && (
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <span className="text-[#80FF00] font-bold text-[11px] truncate">{msg.user}</span>
-                    <span className="text-[9px] text-[#3a4a5a] ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">{timeStr}</span>
+                    <span className="text-[9px] text-white/20 font-medium">{predCount} previsoes</span>
                   </div>
                 )}
                 <p className="text-[12px] text-gray-300 break-words leading-relaxed">{msg.text}</p>
@@ -366,22 +307,18 @@ function InlineChat() {
       {/* Input */}
       <div className="px-3 py-2.5 border-t border-white/[0.04] shrink-0 bg-[#0a1020]">
         {user ? (
-          <div className="flex items-center gap-2 bg-[#12101A] rounded-xl border border-[#1e2a3a] focus-within:border-[#80FF00]/40 transition-colors px-3">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Enviar mensagem..."
-              className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder-[#8B95A8]"
-            />
-            <button onClick={send} className="text-white/50 hover:text-[#80FF00] transition-colors p-1">
-              <span className="material-symbols-outlined text-base">send</span>
-            </button>
-          </div>
+          <>
+            <div className="flex items-center gap-2 bg-[#1A1722] rounded-xl border border-white/[0.06] focus-within:border-[#80FF00]/40 transition-colors px-3">
+              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Enviar mensagem..." className="flex-1 bg-transparent py-2 text-sm text-white outline-none placeholder-[#5A6478]" />
+              <button className="text-white/30 hover:text-white transition-colors p-1"><span className="material-symbols-outlined text-lg">mood</span></button>
+              <button onClick={send} className="text-white/30 hover:text-[#80FF00] transition-colors p-1"><span className="material-symbols-outlined text-lg">send</span></button>
+            </div>
+            <p className="text-[10px] text-[#3a4a5a] mt-1 text-center">Seja respeitoso. Siga as <span className="text-[#80FF00]/70">regras da comunidade</span></p>
+          </>
         ) : (
-          <p className="text-center text-sm text-white/50">
-            <a href="/login" className="text-[#80FF00] font-bold">Faca login</a> para enviar mensagens
-          </p>
+          <div className="text-center py-1.5">
+            <p className="text-[11px] text-white/30">Faca <a href="/login" className="text-[#80FF00] font-bold">login</a> para participar do chat</p>
+          </div>
         )}
       </div>
     </div>
