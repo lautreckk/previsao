@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, CheckCircle, XCircle, ArrowRight, HelpCircle, Trophy, Bitcoin, Landmark, Gamepad2, Tv, Zap } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
+import SidebarNav from "@/components/SidebarNav";
+import MobileNavNew from "@/components/MobileNavNew";
+import MarketTicker from "@/components/MarketTicker";
 
 const faqs = [
   { q: "Preciso ter 18 anos para usar a plataforma?", a: "Sim, é obrigatório ter no mínimo 18 anos para utilizar a plataforma. Isso é verificado durante o cadastro." },
@@ -52,16 +54,17 @@ export default function ComoFuncionaPage() {
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-white pb-20 lg:pb-0">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-4 gap-3">
+      <div className="fixed top-0 left-0 right-0 z-40"><MarketTicker /></div>
+      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
         <Link href="/" className="shrink-0"><img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" /></Link>
-        <div className="ml-auto flex items-center gap-2">
-          <Link href="/login" className="text-white/60 px-3 py-2 text-sm hover:text-white">Entrar</Link>
-          <Link href="/criar-conta" className="bg-[#80FF00] text-[#0a0a0a] px-4 py-2 rounded-lg text-sm font-bold">Registrar</Link>
-        </div>
+        <h2 className="text-sm font-headline font-bold text-white/60 ml-2 hidden lg:block">Como Funciona</h2>
       </header>
+      <div className="h-[78px]" />
+      <div className="flex">
+        <SidebarNav activeCategory="" onCategoryChange={() => {}} />
+        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden">
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto">
         {/* Hero */}
         <section className="text-center py-12 sm:py-16">
           <span className="inline-block bg-[#80FF00]/10 text-[#80FF00] text-xs font-bold px-4 py-1.5 rounded-full border border-[#80FF00]/20 mb-6">GUIA COMPLETO</span>
@@ -267,7 +270,9 @@ export default function ComoFuncionaPage() {
         </section>
       </div>
 
-      <div className="lg:hidden"><BottomNav /></div>
+        </main>
+      </div>
+      <MobileNavNew onChatOpen={() => {}} />
     </div>
   );
 }

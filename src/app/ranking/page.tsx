@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getLevelName } from "@/lib/UserContext";
-import BottomNav from "@/components/BottomNav";
+import MobileNavNew from "@/components/MobileNavNew";
+import MarketTicker from "@/components/MarketTicker";
 import SidebarNav from "@/components/SidebarNav";
 
 type SortKey = "profit" | "wins" | "volume" | "streak";
@@ -103,24 +104,19 @@ export default function RankingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white pb-24 lg:pb-0">
-      {/* Desktop sidebar */}
+    <div className="min-h-screen bg-[#0d1117] text-white pb-20 lg:pb-0">
       <SidebarNav activeCategory="" onCategoryChange={() => {}} />
 
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#080d1a]/90 backdrop-blur-lg border-b border-white/[0.04] lg:ml-44">
-        <div className="px-4 lg:px-8 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#80FF00]/10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#80FF00]">leaderboard</span>
-          </div>
-          <div>
-            <h1 className="font-black text-sm lg:text-lg uppercase tracking-wider">Ranking</h1>
-            <p className="text-[10px] lg:text-xs text-white/30">Top 100 previsores</p>
-          </div>
-        </div>
+      <div className="fixed top-0 left-0 right-0 z-40"><MarketTicker /></div>
+      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+        <Link href="/" className="shrink-0"><img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" /></Link>
+        <h2 className="text-sm font-headline font-bold text-white/60 ml-2 hidden lg:block">Ranking</h2>
+      </header>
+      <div className="h-[78px]" />
 
-        {/* Sort tabs */}
-        <div className="flex px-2 lg:px-8 pb-2 gap-1 lg:gap-2">
+      {/* Sort tabs */}
+      <div className="lg:ml-44 border-b border-white/[0.04]">
+        <div className="flex px-2 lg:px-8 py-2 gap-1 lg:gap-2">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -258,7 +254,7 @@ export default function RankingPage() {
         </div>
       )}
 
-      <BottomNav />
+      <MobileNavNew onChatOpen={() => {}} />
     </div>
   );
 }

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/lib/UserContext";
 import { supabase } from "@/lib/supabase";
-import BottomNav from "@/components/BottomNav";
+import SidebarNav from "@/components/SidebarNav";
+import MobileNavNew from "@/components/MobileNavNew";
+import MarketTicker from "@/components/MarketTicker";
 
 interface RealBet {
   id: string;
@@ -88,7 +90,7 @@ export default function SaldosPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#080d1a] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d1117] text-white flex items-center justify-center">
         <div className="text-center">
           <span className="material-symbols-outlined text-5xl text-white/20">confirmation_number</span>
           <p className="mt-2 text-white/40 mb-4">Faça login para ver suas apostas</p>
@@ -106,17 +108,16 @@ export default function SaldosPage() {
   const totalWon = bets.filter(b => b.status === "won").reduce((s, b) => s + Number(b.final_payout || b.amount * b.payout_at_entry), 0);
 
   return (
-    <div className="min-h-screen bg-[#080d1a] text-white pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-4 gap-3">
-        <button onClick={() => router.back()} className="text-[#80FF00]"><span className="material-symbols-outlined">arrow_back</span></button>
-        <Link href="/"><img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" /></Link>
-        <div className="ml-auto bg-white/[0.04] px-3 py-1.5 rounded-lg border border-white/[0.06]">
-          <span className="text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</span>
-        </div>
+    <div className="min-h-screen bg-[#0d1117] text-white pb-20 lg:pb-0">
+      <div className="fixed top-0 left-0 right-0 z-40"><MarketTicker /></div>
+      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+        <Link href="/" className="shrink-0"><img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" /></Link>
+        <h2 className="text-sm font-headline font-bold text-white/60 ml-2 hidden lg:block">Historico de Saldos</h2>
       </header>
-
-      <main className="px-4 py-4 max-w-lg mx-auto space-y-4">
+      <div className="h-[78px]" />
+      <div className="flex">
+        <SidebarNav activeCategory="" onCategoryChange={() => {}} />
+        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 text-center">
@@ -201,8 +202,9 @@ export default function SaldosPage() {
           </div>
         )}
       </main>
+      </div>
 
-      <BottomNav />
+      <MobileNavNew onChatOpen={() => {}} />
     </div>
   );
 }

@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useUser } from "@/lib/UserContext";
 import { supabase } from "@/lib/supabase";
-import Header from "@/components/Header";
-import BottomNav from "@/components/BottomNav";
+import SidebarNav from "@/components/SidebarNav";
+import MobileNavNew from "@/components/MobileNavNew";
+import MarketTicker from "@/components/MarketTicker";
 
 interface ResolvedMarket {
   id: string;
@@ -356,10 +357,18 @@ export default function ResultadosPage() {
   const categories = ["all", "crypto", "forex", "weather", "stocks", "sports", "entertainment", "camera"];
 
   return (
-    <div className="min-h-screen bg-[#080510] text-white pb-24">
-      <Header />
+    <div className="min-h-screen bg-[#0d1117] text-white pb-20 lg:pb-0">
+      <div className="fixed top-0 left-0 right-0 z-40"><MarketTicker /></div>
+      <header className="fixed top-[32px] left-0 lg:left-44 right-0 z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/[0.04] h-14 flex items-center px-3 lg:px-5 gap-3">
+        <Link href="/" className="shrink-0"><img src="/logo.png" alt="PALPITEX" className="h-7 w-auto" /></Link>
+        <h2 className="text-sm font-headline font-bold text-white/60 ml-2 hidden lg:block">Resultados</h2>
+      </header>
+      <div className="h-[78px]" />
+      <div className="flex">
+        <SidebarNav activeCategory="" onCategoryChange={() => {}} />
+        <main className="flex-1 lg:ml-44 px-3 sm:px-4 lg:px-6 py-4 min-w-0 max-w-full overflow-x-hidden">
 
-      <div className="max-w-4xl mx-auto px-4 pt-6">
+      <div className="max-w-4xl mx-auto">
         {/* Title */}
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-[#80FF00]/10 flex items-center justify-center">
@@ -546,7 +555,9 @@ export default function ResultadosPage() {
         )}
       </div>
 
-      <div className="lg:hidden"><BottomNav /></div>
+        </main>
+      </div>
+      <MobileNavNew onChatOpen={() => {}} />
     </div>
   );
 }
