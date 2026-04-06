@@ -67,6 +67,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Market not found" }, { status: 404 });
     }
 
+    // Don't process closed/disabled cameras
+    if (market.status === "closed" || market.status === "disabled") {
+      return NextResponse.json({ error: "Market is closed", status: market.status }, { status: 403 });
+    }
+
     const now = new Date();
     const phaseEndsAt = market.phase_ends_at ? new Date(market.phase_ends_at) : null;
 

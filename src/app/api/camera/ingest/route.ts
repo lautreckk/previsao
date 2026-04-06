@@ -34,6 +34,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "market_id required" }, { status: 400 });
     }
 
+    // Reject closed/disabled cameras early
+    const { data: marketCheck } = await supabase
+      .from("camera_markets")
+      .select("status")
+      .eq("id", market_id)
+      .maybeSingle();
+    if (marketCheck?.status === "closed" || marketCheck?.status === "disabled") {
+      return NextResponse.json({ error: "Market is closed", ignored: true }, { status: 403 });
+    }
+
     // Type 1: Individual vehicle detection event
     if (event_type === "vehicle.detected" && vehicle_id) {
       broadcast(market_id, "vehicle.detected", {
