@@ -16,46 +16,44 @@ export default function CameraLobbyPage() {
 
   useEffect(() => {
     async function findActive() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("camera_markets")
         .select("id, phase, status, operating_hours")
         .in("status", ["waiting", "open"])
         .order("id");
 
+      // Fallback if query fails
+      if (error || !data || data.length === 0) {
+        setActiveMarketId(CAMERA_IDS[0]);
+        return;
+      }
+
       // Filter out cameras outside operating hours (Brazil UTC-3)
-      const now = new Date();
-      const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-      const mins = brTime.getUTCHours() * 60 + brTime.getUTCMinutes();
-      const available = (data || []).filter((m) => {
+      const nowMs = Date.now();
+      const brHour = new Date(nowMs - 3 * 3600_000).getUTCHours();
+      const brMin = new Date(nowMs - 3 * 3600_000).getUTCMinutes();
+      const mins = brHour * 60 + brMin;
+
+      const available = data.filter((m) => {
         const oh = m.operating_hours as string | null;
         if (!oh) return true;
         const match = oh.match(/^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/);
         if (!match) return true;
-        const [, sH, sM, eH, eM] = match.map(Number);
-        const start = sH * 60 + sM;
-        const end = eH * 60 + eM;
+        const start = Number(match[1]) * 60 + Number(match[2]);
+        const end = Number(match[3]) * 60 + Number(match[4]);
         return start <= end ? (mins >= start && mins < end) : (mins >= start || mins < end);
       });
 
       if (available.length === 0) {
-        setActiveMarketId(null);
         setOffline(true);
         return;
       }
 
-      // Find first active camera (betting/observation), or first open, or first available
       const active = available.find((m) => m.phase === "betting" || m.phase === "observation");
-      if (active) {
-        setActiveMarketId(active.id);
-        return;
-      }
+      if (active) { setActiveMarketId(active.id); return; }
 
-      // Fallback: any waiting market
       const waiting = available.find((m) => m.phase === "waiting");
-      if (waiting) {
-        setActiveMarketId(waiting.id);
-        return;
-      }
+      if (waiting) { setActiveMarketId(waiting.id); return; }
 
       setActiveMarketId(available[0].id);
     }
