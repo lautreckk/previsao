@@ -34,8 +34,6 @@ image = (
 # Format: (camera_id, roi_x_start, roi_x_end, line_y, confidence, tolerance)
 CAMERAS = {
     "cam_sp008_km095":  ("SP008-KM095",  0.08, 0.85, 0.48, 0.30, 35),
-    "cam_sp055_km110b": ("SP055-KM110B", 0.15, 0.85, 0.58, 0.30, 35),
-    "cam_sp055_km110a": ("SP055-KM110A", 0.05, 0.80, 0.52, 0.30, 35),
 }
 
 API_URL = "https://previsao-tau.vercel.app"

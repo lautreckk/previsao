@@ -13,32 +13,6 @@ x-worker: &worker
       max-file: "2"
 
 services:
-  cam-sp055-km110b:
-    <<: *worker
-    command: >
-      --market-id cam_sp055_km110b
-      --stream-url https://34.104.32.249.nip.io/SP055-KM110B/stream.m3u8
-      --stream-type hls
-      --api-url ${API_URL}
-      --secret ${WORKER_SECRET}
-      --supabase-url ${SUPABASE_URL}
-      --supabase-key ${SUPABASE_KEY}
-      --roi-x-start 0.15 --roi-x-end 0.85 --line-y 0.58
-      --confidence 0.30 --tolerance 35
-
-  cam-sp055-km110a:
-    <<: *worker
-    command: >
-      --market-id cam_sp055_km110a
-      --stream-url https://34.104.32.249.nip.io/SP055-KM110A/stream.m3u8
-      --stream-type hls
-      --api-url ${API_URL}
-      --secret ${WORKER_SECRET}
-      --supabase-url ${SUPABASE_URL}
-      --supabase-key ${SUPABASE_KEY}
-      --roi-x-start 0.05 --roi-x-end 0.80 --line-y 0.52
-      --confidence 0.30 --tolerance 35
-
   cam-sp008-km095:
     <<: *worker
     command: >

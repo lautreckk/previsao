@@ -172,10 +172,25 @@ export default function Home() {
           .limit(10);
 
         // Fetch all active camera markets
-        const { data: cameraData } = await supabase
+        const { data: cameraDataRaw } = await supabase
           .from("camera_markets")
           .select("*")
           .in("status", ["waiting", "open"]);
+
+        // Filter out cameras outside their operating hours (Brazil time UTC-3)
+        const cameraData = (cameraDataRaw || []).filter((cam: Record<string, unknown>) => {
+          const oh = cam.operating_hours as string | null;
+          if (!oh) return true;
+          const match = oh.match(/^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/);
+          if (!match) return true;
+          const [, sH, sM, eH, eM] = match.map(Number);
+          const now = new Date();
+          const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+          const mins = brTime.getUTCHours() * 60 + brTime.getUTCMinutes();
+          const start = sH * 60 + sM;
+          const end = eH * 60 + eM;
+          return start <= end ? (mins >= start && mins < end) : (mins >= start || mins < end);
+        });
 
         // Fetch camera round pools for odds
         const camIds = (cameraData || []).map((c: Record<string, unknown>) => `cr_${c.id}_${c.round_number}`);

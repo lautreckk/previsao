@@ -7,6 +7,26 @@ import { supabaseAdmin as supabase } from "@/lib/supabase-server";
  * Cron: tick all active camera markets every minute (server-side, no client dependency)
  * This ensures rounds auto-advance even when no clients are connected.
  */
+function isWithinOperatingHours(operatingHours: string | null): boolean {
+  if (!operatingHours) return true; // no restriction = always active
+  const match = operatingHours.match(/^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/);
+  if (!match) return true;
+
+  const [, startH, startM, endH, endM] = match.map(Number);
+  // Current time in Brazil (UTC-3)
+  const now = new Date();
+  const brTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const currentMinutes = brTime.getUTCHours() * 60 + brTime.getUTCMinutes();
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+
+  if (startMinutes <= endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  }
+  // Overnight range (e.g. 22:00-06:00)
+  return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+}
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -18,7 +38,7 @@ export async function GET(request: NextRequest) {
   // Get all active camera markets
   const { data: markets } = await supabase
     .from("camera_markets")
-    .select("id, phase, phase_ends_at")
+    .select("id, phase, phase_ends_at, operating_hours")
     .in("status", ["waiting", "open"]);
 
   if (!markets || markets.length === 0) {
@@ -29,6 +49,15 @@ export async function GET(request: NextRequest) {
   const origin = baseUrl?.startsWith("http") ? baseUrl : `https://${baseUrl}`;
 
   for (const market of markets) {
+    // Check operating hours — skip cameras outside their active window
+    if (!isWithinOperatingHours(market.operating_hours)) {
+      // If camera is mid-round, let it finish; only block new rounds
+      if (market.phase === "waiting") {
+        results.push({ market_id: market.id, action: "outside_hours", operating_hours: market.operating_hours });
+        continue;
+      }
+    }
+
     const now = Date.now();
     const phaseEndsAt = market.phase_ends_at ? new Date(market.phase_ends_at).getTime() : null;
     const shouldTick = market.phase === "waiting" || (phaseEndsAt && now >= phaseEndsAt);
