@@ -501,7 +501,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
             <div className="flex items-center gap-3 shrink-0">
               {/* Balance badge */}
               {user && (
-                <Link href="/carteira" className="flex items-center gap-1.5 bg-[#80FF00]/10 border border-[#80FF00]/20 rounded-full px-3 py-1.5 hover:bg-[#80FF00]/20 transition-colors">
+                <Link href="/deposito" className="flex items-center gap-1.5 bg-[#80FF00]/10 border border-[#80FF00]/20 rounded-full px-3 py-1.5 hover:bg-[#80FF00]/20 transition-colors">
                   <span className="material-symbols-outlined text-[#80FF00]" style={{ fontSize: "14px" }}>account_balance_wallet</span>
                   <span className="text-xs font-black text-[#80FF00] tabular-nums">R$ {balance.toFixed(2)}</span>
                 </Link>
@@ -700,7 +700,7 @@ export function CameraMarketView({ marketId }: { marketId: string }) {
                     </div>
                   </div>
                 ) : (() => {
-                  const filteredPredictions = tab === "posicoes" ? myPredictions : tab === "aberto" ? openPredictions : closedPredictions;
+                  const filteredPredictions = tab === "encerradas" ? closedPredictions : openPredictions;
 
                   if (filteredPredictions.length === 0) {
                     return (

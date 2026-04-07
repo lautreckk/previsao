@@ -546,7 +546,7 @@ export default function EventoPage() {
               <Link href="/" className="text-[#80FF00] shrink-0"><span className="material-symbols-outlined">arrow_back</span></Link>
               <img src="/logo.png" alt="Winify" className="h-8 w-auto" />
             </div>
-            {user && <Link href="/perfil" className="bg-[#1A1722] border border-white/[0.06] px-3 py-1.5 rounded-lg text-sm font-bold text-[#80FF00]">R$ {user.balance.toFixed(2)}</Link>}
+            {user && <Link href="/deposito" className="flex items-center gap-1.5 bg-[#80FF00]/10 border border-[#80FF00]/20 rounded-full px-3 py-1.5 hover:bg-[#80FF00]/20 transition-colors"><span className="material-symbols-outlined text-[#80FF00]" style={{ fontSize: "14px" }}>account_balance_wallet</span><span className="text-xs font-black text-[#80FF00] tabular-nums">R$ {user.balance.toFixed(2)}</span></Link>}
           </header>
 
           {/* Result Banner (resolved markets) */}
