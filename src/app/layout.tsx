@@ -3,6 +3,7 @@ import { UserProvider } from "@/lib/UserContext";
 import { ChatProvider } from "@/lib/ChatContext";
 import { ToastProvider } from "@/components/Toast";
 import TrackingPixels from "@/components/TrackingPixels";
+import SystemUpdateBanner from "@/components/SystemUpdateBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -55,6 +56,7 @@ export default function RootLayout({
           <ChatProvider>
             <ToastProvider>
               <TrackingPixels />
+              <SystemUpdateBanner />
               {children}
             </ToastProvider>
           </ChatProvider>

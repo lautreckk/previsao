@@ -304,8 +304,8 @@ export default function Home() {
           setMarketsLoading(false);
           return;
         }
-      } catch {
-        // fallback
+      } catch (err) {
+        console.error("[Home] Failed to fetch markets from DB:", err);
       }
 
       setMarkets(local);
